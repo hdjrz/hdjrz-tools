@@ -857,7 +857,7 @@
     return list.map(normalizeEscalationOption);
   }
 
-  const BIT88_NOTES_WORDING_VERSION = 19;
+  const BIT88_NOTES_WORDING_VERSION = 20;
 
   function getPresetOptionsList() {
     if (typeof window !== "undefined" && Array.isArray(window.DEFAULT_ESCALATION_OPTIONS) && window.DEFAULT_ESCALATION_OPTIONS.length) {
