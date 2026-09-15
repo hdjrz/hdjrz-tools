@@ -177,3 +177,53 @@ Under Settings (gear) — **one screen**:
      - Click **Confirm & Execute**: the short note is typed into the User Notes field, and the 5-line final note is copied to clipboard and Zoom workspace opens ready for `Ctrl+V`!
     - After completion, notice the extension automatically returns the tab back to `https://nano-admin.bet88.ph/users`!
 5. **Auto Find User is off.** Pasting an ID on `/users` should not click Find User or open overview. Turn it on later in Settings only when Joshua asks.
+
+---
+
+## 7. Tampermonkey Distribution, Build Pipeline & Versioning Rules
+
+### 7.1 Build Pipeline & Code Obfuscation
+- **Target Platform**: Tampermonkey Userscript (Chrome / Edge / Firefox) hosted on GitHub (`https://github.com/hdjrz/hdjrz-tools`).
+- **Build Script**: `build-userscript.js` (executed via `npm run build`).
+- **Bundling Process**:
+  1. Reads `version` from `package.json`.
+  2. Constructs the Userscript metadata header (`// ==UserScript==`) with `@updateURL` and `@downloadURL` pointing to `https://raw.githubusercontent.com/hdjrz/hdjrz-tools/main/hdjrzTools.user.js`.
+  3. Wraps `content/templates.js`, `content/content.css`, and `content/content.js` into an isolated execution scope.
+  4. Embeds the `hdjrzChrome` shim/polyfill layer to map Chrome Extension storage APIs (`chrome.storage.local`, `chrome.storage.session`, `chrome.runtime`, `navigator.clipboard`) to `GM_getValue`, `GM_setValue`, `GM_setClipboard`, and `localStorage`.
+  5. Runs `javascript-obfuscator` to compress and scramble production output into `hdjrzTools.user.js` to protect commercial IP.
+
+### 7.2 Why Tampermonkey Update Checks Fail ("Narf! No update found, sry!")
+- **Rule 1: `@version` MUST be incremented**: Tampermonkey compares the local script's `@version` string against the `@version` line in the remote file at `@updateURL`. If `package.json` version is **not** bumped before building (e.g. staying at `1.1.0`), Tampermonkey sees matching version numbers and reports:
+  > *"Narf! No update found, sry!"*
+  **Always bump `package.json` version** (e.g. `1.1.0` -> `1.1.1`) before running `npm run build` and pushing to GitHub `main`.
+- **Rule 2: GitHub Raw CDN Caching (3–5 minute latency)**:
+  - `raw.githubusercontent.com` caches files at edge CDNs for ~3 to 5 minutes.
+  - Immediately after pushing a new release to GitHub, Tampermonkey's update check may still fetch the cached HTTP response showing the old version.
+  - **Workaround**: Wait 3–5 minutes for GitHub CDN cache invalidation, or force-install by opening `https://raw.githubusercontent.com/hdjrz/hdjrz-tools/main/hdjrzTools.user.js` directly in the browser address bar.
+
+### 7.3 Storage Wording Migration (`BIT88_NOTES_WORDING_VERSION`)
+- Modifying default note presets or Zoom templates in `content/templates.js` does **not** automatically update existing user options stored in browser local storage (`localStorage` / `GM_getValue`).
+- **Migration Mechanism**:
+  - `BIT88_NOTES_WORDING_VERSION` in `content/content.js` tracks the schema version of default note templates.
+  - When the script initializes, if `loadedWordingVersion < BIT88_NOTES_WORDING_VERSION`, `applyBit88UserNotesToSavedOptions()` runs automatically to overwrite saved note templates with updated factory presets while preserving custom user-added buttons.
+  - **Rule**: Bumping `BIT88_NOTES_WORDING_VERSION` is required whenever default note wording or Zoom formulas are changed in code releases.
+
+---
+
+## 8. Multi-Tab & Cross-Tab Architectural Rules
+
+### 8.1 Multi-Tab License Persistence
+- **SessionStorage Isolation Issue**: Chrome `sessionStorage` is strictly tab-isolated. Using `sessionStorage` for license status checks caused new Nano tabs to lose license state, re-triggering key input dialogs or modal race conditions (`openLicenseModal`).
+- **Persistent Storage Rule**:
+  - License role and device binding MUST be stored using persistent storage (`localStorageApi()` / `GM_getValue()`) under `hdjrzLicenseRole` and `hdjrzLicenseDeviceId`.
+  - On page load, `loadLicenseRole()` checks persistent storage. If a valid role (`admin` or `guest`) is found, `esc-license-overlay` is automatically suppressed and dismissed across all current and new tabs.
+
+### 8.2 Cross-Tab KYC SWITCH Communication (`BroadcastChannel`)
+- **Tampermonkey Tab ID Absence**: Unlike WebExtensions, Tampermonkey userscripts do not have access to Chrome's `chrome.tabs` numerical `tabId`s.
+- **BroadcastChannel Implementation**:
+  - Uses HTML5 `BroadcastChannel("hdjrz_kyc_channel")` for cross-tab communication.
+  - Tabs identify each other using normalized `publicId` / `userId` (e.g. `4LP9G4GQ` or `17347812`).
+  - **KYC SWITCH Workflow**:
+    1. Clicking Confirm & Execute on the New Verified player tab broadcasts a `KYC_INJECT_COMMAND` message over `hdjrz_kyc_channel` with `targetTabIds` containing the target Old Account's `publicId`/`userId`.
+    2. The Old Account player tab listening on `hdjrz_kyc_channel` receives the message, matches its own `publicId`/`userId`, and injects the Old Account User Note (`The Old account: KYC switch - New account UID:(...)`) into its own DOM automatically without requiring a second confirmation modal.
+
