@@ -233,7 +233,7 @@ Pasuyo po TLs`
     chip: { text: "R.UA", color: "#b45309" },
     defaultReason: "Underage NGP NON-XENDIT",
     reasons: ["Underage NGP NON-XENDIT"],
-    userNotesText: "NOT OK for RETAKE: Doc-UA | [Name] | [DOB]",
+    userNotesText: "NOT OK for RETAKE: Doc-UA | [Name] | [DOB] ([AGE])",
     zoomText: `FOR BLOCKING - UNDERAGE NGP NON-XENDIT
 (Waiting to other details)
 
@@ -246,7 +246,7 @@ Pasuyo po TLs`,
     noteChoices: [
       {
         "label": "User Notes",
-        "userNotesText": "NOT OK for RETAKE: Doc-UA | [Name] | [DOB]"
+        "userNotesText": "NOT OK for RETAKE: Doc-UA | [Name] | [DOB] ([AGE])"
       }
     ],
     zoomChoices: [
@@ -329,7 +329,7 @@ Pasuyo po TLs`
     chip: { text: "For escalation", color: "#b91c1c" },
     defaultReason: "Underage with funds",
     reasons: ["Underage with funds"],
-    userNotesText: "NOT OK for RETAKE: Doc-UA | [Name] | [DOB]",
+    userNotesText: "NOT OK for RETAKE: Doc-UA | [Name] | [DOB] ([AGE])",
     zoomText: `FOR BLOCKING - UNDERAGE WITH FUNDS
 (Waiting for national ID)
 
@@ -342,7 +342,7 @@ Pasuyo po TLs`,
     noteChoices: [
       {
         "label": "User Notes",
-        "userNotesText": "NOT OK for RETAKE: Doc-UA | [Name] | [DOB]"
+        "userNotesText": "NOT OK for RETAKE: Doc-UA | [Name] | [DOB] ([AGE])"
       }
     ],
     zoomChoices: [
@@ -370,7 +370,7 @@ Pasuyo po TLs`
     chip: { text: "", color: "#dc2626" },
     defaultReason: "Underage without funds",
     reasons: ["Underage without funds"],
-    userNotesText: "",
+    userNotesText: "NOT OK for RETAKE: Doc-UA | [Name] | [DOB] ([AGE])",
     zoomText: `FOR BLOCKING - UNDERAGE WITHOUT FUNDS
 
 User ID: [User ID]
@@ -382,7 +382,7 @@ Pasuyo po TLs`,
     noteChoices: [
       {
         "label": "User Notes",
-        "userNotesText": ""
+        "userNotesText": "NOT OK for RETAKE: Doc-UA | [Name] | [DOB] ([AGE])"
       }
     ],
     zoomChoices: [
