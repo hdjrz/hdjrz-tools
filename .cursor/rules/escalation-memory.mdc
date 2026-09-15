@@ -1,0 +1,13 @@
+---
+description: Always read docs/PROJECT_MEMORY.md before modifying the Escalation Extension
+globs: ["*"]
+alwaysApply: true
+---
+
+# Escalation Extension Rule
+
+Before modifying this repository:
+1. Read `docs/PROJECT_MEMORY.md`.
+2. Keep the floating escalation bar compact, categorized, and draggable.
+3. Preserve the confirmation modal preview to prevent accidental escalations.
+4. Maintain all 14 escalation codes, BIT88 User Notes / Zoom wording, KYC SWITCH DUP-ID Zoom fill, and a one-tab Settings list (rows stay one line; Edit popup for notes, Zoom, reasons). Add a button starts with Reason / User Notes / Zoom field checkboxes.
