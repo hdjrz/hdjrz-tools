@@ -2797,6 +2797,7 @@
   }
 
   function openLicenseModal(afterUnlock) {
+    if (isLicensed()) return;
     const existing = document.getElementById("esc-license-overlay");
     if (existing) {
       existing.remove();
@@ -4930,6 +4931,9 @@
   function startPageMonitor() {
     function checkPage() {
       if (isLicensed()) {
+        const licenseOverlay = document.getElementById("esc-license-overlay");
+        if (licenseOverlay) licenseOverlay.remove();
+
         if (!dockElement || !document.getElementById("escalation-helper-dock")) {
           renderHorizontalDock();
         }
