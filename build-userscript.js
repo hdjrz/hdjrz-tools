@@ -20,11 +20,14 @@ const templatesCode = fs.readFileSync(templatesPath, 'utf8');
 const cssCode = fs.readFileSync(cssPath, 'utf8');
 const contentJsCode = fs.readFileSync(contentJsPath, 'utf8');
 
+const pkg = JSON.parse(fs.readFileSync(path.join(rootDir, 'package.json'), 'utf8'));
+const version = pkg.version || '1.0.0';
+
 // Userscript header metadata with wide matching
 const userscriptHeader = `// ==UserScript==
 // @name         hdjrzTools
 // @namespace    https://github.com/hdjrz/hdjrz-tools
-// @version      1.0.2
+// @version      ${version}
 // @description  Streamlines player escalations: extracts player info, formats User Notes, pins them, copies to clipboard, and opens Zoom workspace.
 // @author       hdjrz
 // @match        *://nano-admin.bet88.ph/*
