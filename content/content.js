@@ -120,7 +120,7 @@
     }
     if (!licenseRole) {
       api.remove(["hdjrzLicenseRole", "hdjrzLicenseKey"], () => {
-        clearLicenseSession(() => { if (cb) cb(); });
+        if (cb) cb();
       });
       return;
     }
@@ -128,7 +128,7 @@
     const savedKey = String(licenseKey || "").trim();
     if (savedKey) payload.hdjrzLicenseKey = savedKey;
     api.set(payload, () => {
-      markLicenseSessionAlive(() => { if (cb) cb(); });
+      if (cb) cb();
     });
   }
 
@@ -138,26 +138,10 @@
       if (cb) cb();
       return;
     }
-    const done = () => {
-      api.get(["hdjrzLicenseRole"], (data) => {
-        const r = data && data.hdjrzLicenseRole;
-        licenseRole = (r === "admin" || r === "guest") ? r : (r === "staff" ? "guest" : "");
-        if (licenseRole) markLicenseSessionAlive(() => { if (cb) cb(); });
-        else if (cb) cb();
-      });
-    };
-    const session = sessionStorageApi();
-    if (!session) {
-      done();
-      return;
-    }
-    session.get(["hdjrzLicenseAlive"], (s) => {
-      if (s && s.hdjrzLicenseAlive) {
-        done();
-        return;
-      }
-      licenseRole = "";
-      api.remove(["hdjrzLicenseRole"], () => { if (cb) cb(); });
+    api.get(["hdjrzLicenseRole"], (data) => {
+      const r = data && data.hdjrzLicenseRole;
+      licenseRole = (r === "admin" || r === "guest") ? r : (r === "staff" ? "guest" : "");
+      if (cb) cb();
     });
   }
 
