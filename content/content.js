@@ -931,6 +931,12 @@
    */
   function settingsPayload() {
     return {
+      escalationSettings: {
+        agentName: currentSettings.agentName,
+        zoomUrl: currentSettings.zoomUrl,
+        autoCopyClipboard: currentSettings.autoCopyClipboard,
+        autoPinNote: currentSettings.autoPinNote,
+        autoOpenZoom: currentSettings.autoOpenZoom,
         usersListUrl: currentSettings.usersListUrl,
         autoReturnToUsers: currentSettings.autoReturnToUsers,
         autoFindAndView: currentSettings.autoFindAndView,
