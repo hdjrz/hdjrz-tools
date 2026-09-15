@@ -240,7 +240,7 @@ Pasuyo po TLs`
 User ID: [User ID]
 CID: [CID]
 Name: [Name]
-Date of Birth: [DOB]
+Date of Birth: [DOB] ([AGE])
 
 Pasuyo po TLs`,
     noteChoices: [
@@ -258,7 +258,7 @@ Pasuyo po TLs`,
 User ID: [User ID]
 CID: [CID]
 Name: [Name]
-Date of Birth: [DOB]
+Date of Birth: [DOB] ([AGE])
 
 Pasuyo po TLs`
       }
@@ -336,7 +336,7 @@ Pasuyo po TLs`
 User ID: [User ID]
 CID: [CID]
 Name: [Name]
-DOB : [DOB]
+DOB : [DOB] ([AGE])
 
 Pasuyo po TLs`,
     noteChoices: [
@@ -354,7 +354,7 @@ Pasuyo po TLs`,
 User ID: [User ID]
 CID: [CID]
 Name: [Name]
-DOB : [DOB]
+DOB : [DOB] ([AGE])
 
 Pasuyo po TLs`
       }
@@ -376,7 +376,7 @@ Pasuyo po TLs`
 User ID: [User ID]
 CID: [CID]
 Name: [Name]
-DOB : [DOB]
+DOB : [DOB] ([AGE])
 
 Pasuyo po TLs`,
     noteChoices: [
@@ -393,7 +393,7 @@ Pasuyo po TLs`,
 User ID: [User ID]
 CID: [CID]
 Name: [Name]
-DOB : [DOB]
+DOB : [DOB] ([AGE])
 
 Pasuyo po TLs`
       }

@@ -857,7 +857,7 @@
     return list.map(normalizeEscalationOption);
   }
 
-  const BIT88_NOTES_WORDING_VERSION = 21;
+  const BIT88_NOTES_WORDING_VERSION = 22;
   let loadedWordingVersion = 0;
 
   function getPresetOptionsList() {
