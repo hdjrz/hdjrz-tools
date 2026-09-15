@@ -180,7 +180,7 @@ Pasuyo po TLs`
     defaultReason: "Not started",
     reasons: ["Not started","UA to legal"],
     userNotesText: "Reactivation - for reset KYC not started",
-    zoomText: `REACTIVATION - FOR RESET NOT STARTED
+    zoomText: `REACTIVATION - FOR RESET KYC NOT STARTED
 
 User ID: [User ID]
 CID: [CID]
@@ -200,7 +200,7 @@ Pasuyo po TLs`,
     zoomChoices: [
       {
         label: "Not started",
-        zoomText: `REACTIVATION - FOR RESET NOT STARTED
+        zoomText: `REACTIVATION - FOR RESET KYC NOT STARTED
 
 User ID: [User ID]
 CID: [CID]
