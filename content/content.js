@@ -857,7 +857,8 @@
     return list.map(normalizeEscalationOption);
   }
 
-  const BIT88_NOTES_WORDING_VERSION = 20;
+  const BIT88_NOTES_WORDING_VERSION = 21;
+  let loadedWordingVersion = 0;
 
   function getPresetOptionsList() {
     if (typeof window !== "undefined" && Array.isArray(window.DEFAULT_ESCALATION_OPTIONS) && window.DEFAULT_ESCALATION_OPTIONS.length) {
@@ -870,7 +871,7 @@
   }
 
   function applyBit88UserNotesToSavedOptions() {
-    if (Number(currentSettings.notesWordingVersion) === BIT88_NOTES_WORDING_VERSION) return false;
+    if (loadedWordingVersion === BIT88_NOTES_WORDING_VERSION) return false;
     const presets = getPresetOptionsList();
     const byCode = {};
     presets.forEach(opt => {
@@ -921,6 +922,7 @@
       });
     }
     currentSettings.notesWordingVersion = BIT88_NOTES_WORDING_VERSION;
+    loadedWordingVersion = BIT88_NOTES_WORDING_VERSION;
     return true;
   }
 
@@ -929,12 +931,6 @@
    */
   function settingsPayload() {
     return {
-      escalationSettings: {
-        agentName: currentSettings.agentName,
-        zoomUrl: currentSettings.zoomUrl,
-        autoCopyClipboard: currentSettings.autoCopyClipboard,
-        autoPinNote: currentSettings.autoPinNote,
-        autoOpenZoom: currentSettings.autoOpenZoom,
         usersListUrl: currentSettings.usersListUrl,
         autoReturnToUsers: currentSettings.autoReturnToUsers,
         autoFindAndView: currentSettings.autoFindAndView,
