@@ -17,15 +17,23 @@ const templatesCode = fs.readFileSync(templatesPath, 'utf8');
 const cssCode = fs.readFileSync(cssPath, 'utf8');
 const contentJsCode = fs.readFileSync(contentJsPath, 'utf8');
 
-// Userscript header metadata
+// Userscript header metadata with wide matching and fallbacks
 const userscriptHeader = `// ==UserScript==
 // @name         hdjrzTools
 // @namespace    https://github.com/hdjrz/hdjrz-tools
-// @version      1.0.0
+// @version      1.0.1
 // @description  Streamlines player escalations: extracts player info, formats User Notes, pins them, copies to clipboard, and opens Zoom workspace.
 // @author       hdjrz
+// @match        *://nano-admin.bet88.ph/*
+// @match        *://nano-admin.bet88.ph/
+// @match        *://nano-admin.bet88.ph
 // @match        https://nano-admin.bet88.ph/*
+// @match        https://nano-admin.bet88.ph/
+// @match        https://nano-admin.bet88.ph
 // @match        http://nano-admin.bet88.ph/*
+// @match        http://nano-admin.bet88.ph/
+// @match        http://nano-admin.bet88.ph
+// @include      *nano-admin.bet88.ph*
 // @icon         https://raw.githubusercontent.com/hdjrz/hdjrz-tools/main/icons/icon48.png
 // @updateURL    https://raw.githubusercontent.com/hdjrz/hdjrz-tools/main/hdjrzTools.user.js
 // @downloadURL  https://raw.githubusercontent.com/hdjrz/hdjrz-tools/main/hdjrzTools.user.js
@@ -35,29 +43,31 @@ const userscriptHeader = `// ==UserScript==
 // @grant        GM_listValues
 // @grant        GM_setClipboard
 // @grant        GM_addStyle
-// @run-at       document-idle
+// @run-at       document-end
 // ==/UserScript==
 `;
 
-// Compatibility shim for Tampermonkey environment
+// Standalone polyfill object that never mutates or depends on native window.chrome
 const polyfillCode = `
 /* --- hdjrzTools Tampermonkey Compatibility Shim --- */
-(function() {
-  if (typeof window === "undefined") return;
+var hdjrzChrome = (function() {
+  console.log("%c[hdjrzTools] Initializing userscript on: " + window.location.href, "background: #2563eb; color: #fff; font-weight: bold; padding: 3px 6px; border-radius: 3px;");
 
   // Polyfill clipboard if GM_setClipboard exists
   if (typeof GM_setClipboard === "function" && navigator.clipboard) {
-    const origWriteText = navigator.clipboard.writeText ? navigator.clipboard.writeText.bind(navigator.clipboard) : null;
-    navigator.clipboard.writeText = function(text) {
-      try {
-        GM_setClipboard(text);
-        if (origWriteText) return origWriteText(text).catch(function() { return Promise.resolve(); });
-        return Promise.resolve();
-      } catch (e) {
-        if (origWriteText) return origWriteText(text);
-        return Promise.reject(e);
-      }
-    };
+    try {
+      var origWriteText = navigator.clipboard.writeText ? navigator.clipboard.writeText.bind(navigator.clipboard) : null;
+      navigator.clipboard.writeText = function(text) {
+        try {
+          GM_setClipboard(text);
+          if (origWriteText) return origWriteText(text).catch(function() { return Promise.resolve(); });
+          return Promise.resolve();
+        } catch (e) {
+          if (origWriteText) return origWriteText(text);
+          return Promise.reject(e);
+        }
+      };
+    } catch (err) {}
   }
 
   // Cross-Tab BroadcastChannel for multi-tab KYC SWITCH support
@@ -67,134 +77,130 @@ const polyfillCode = `
       kycChannel = new BroadcastChannel("hdjrz_kyc_channel");
     }
   } catch (e) {
-    console.warn("hdjrzTools: BroadcastChannel unavailable:", e);
+    console.warn("[hdjrzTools] BroadcastChannel unavailable:", e);
   }
 
-  // Initialize chrome shim if running in userscript environment
-  if (typeof window.chrome === "undefined" || !window.chrome.storage) {
-    var getStored = function(key) {
-      if (typeof GM_getValue === "function") {
-        try { return GM_getValue(key); } catch (e) {}
-      }
+  var getStored = function(key) {
+    if (typeof GM_getValue === "function") {
       try {
-        var raw = localStorage.getItem("hdjrz_" + key);
-        return raw ? JSON.parse(raw) : null;
-      } catch (e) {
-        return null;
-      }
-    };
-
-    var setStored = function(key, val) {
-      if (typeof GM_setValue === "function") {
-        try { GM_setValue(key, val); return; } catch (e) {}
-      }
-      try {
-        localStorage.setItem("hdjrz_" + key, JSON.stringify(val));
+        var v = GM_getValue(key);
+        if (v !== undefined && v !== null) return v;
       } catch (e) {}
-    };
+    }
+    try {
+      var raw = localStorage.getItem("hdjrz_" + key);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  };
 
-    var removeStored = function(key) {
-      if (typeof GM_deleteValue === "function") {
-        try { GM_deleteValue(key); return; } catch (e) {}
+  var setStored = function(key, val) {
+    if (typeof GM_setValue === "function") {
+      try { GM_setValue(key, val); } catch (e) {}
+    }
+    try {
+      localStorage.setItem("hdjrz_" + key, JSON.stringify(val));
+    } catch (e) {}
+  };
+
+  var removeStored = function(key) {
+    if (typeof GM_deleteValue === "function") {
+      try { GM_deleteValue(key); } catch (e) {}
+    }
+    try {
+      localStorage.removeItem("hdjrz_" + key);
+    } catch (e) {}
+  };
+
+  var messageListeners = [];
+
+  var storageLocal = {
+    get: function(keys, cb) {
+      var res = {};
+      var list = Array.isArray(keys) ? keys : (typeof keys === "string" ? [keys] : Object.keys(keys || {}));
+      for (var i = 0; i < list.length; i++) {
+        var k = list[i];
+        var v = getStored(k);
+        if (v !== undefined && v !== null) res[k] = v;
       }
-      try {
-        localStorage.removeItem("hdjrz_" + key);
-      } catch (e) {}
-    };
-
-    var messageListeners = [];
-
-    window.chrome = window.chrome || {};
-
-    window.chrome.storage = {
-      local: {
-        get: function(keys, cb) {
-          var res = {};
-          var list = Array.isArray(keys) ? keys : (typeof keys === "string" ? [keys] : Object.keys(keys || {}));
-          for (var i = 0; i < list.length; i++) {
-            var k = list[i];
-            var v = getStored(k);
-            if (v !== undefined && v !== null) res[k] = v;
+      if (cb) setTimeout(function() { cb(res); }, 0);
+    },
+    set: function(obj, cb) {
+      if (obj) {
+        for (var k in obj) {
+          if (Object.prototype.hasOwnProperty.call(obj, k)) {
+            setStored(k, obj[k]);
           }
-          if (cb) setTimeout(function() { cb(res); }, 0);
-        },
-        set: function(obj, cb) {
-          if (obj) {
-            for (var k in obj) {
-              if (Object.prototype.hasOwnProperty.call(obj, k)) {
-                setStored(k, obj[k]);
-              }
-            }
-          }
-          if (cb) setTimeout(function() { cb(); }, 0);
-        },
-        remove: function(keys, cb) {
-          var list = Array.isArray(keys) ? keys : (typeof keys === "string" ? [keys] : Object.keys(keys || {}));
-          for (var i = 0; i < list.length; i++) {
-            removeStored(list[i]);
-          }
-          if (cb) setTimeout(function() { cb(); }, 0);
-        }
-      },
-      session: {
-        get: function(keys, cb) {
-          var res = {};
-          var list = Array.isArray(keys) ? keys : (typeof keys === "string" ? [keys] : Object.keys(keys || {}));
-          for (var i = 0; i < list.length; i++) {
-            var k = list[i];
-            try {
-              var v = sessionStorage.getItem("hdjrz_" + k);
-              if (v !== null && v !== undefined) res[k] = JSON.parse(v);
-            } catch (e) {}
-          }
-          if (cb) setTimeout(function() { cb(res); }, 0);
-        },
-        set: function(obj, cb) {
-          if (obj) {
-            for (var k in obj) {
-              if (Object.prototype.hasOwnProperty.call(obj, k)) {
-                try { sessionStorage.setItem("hdjrz_" + k, JSON.stringify(obj[k])); } catch (e) {}
-              }
-            }
-          }
-          if (cb) setTimeout(function() { cb(); }, 0);
-        },
-        remove: function(keys, cb) {
-          var list = Array.isArray(keys) ? keys : (typeof keys === "string" ? [keys] : Object.keys(keys || {}));
-          for (var i = 0; i < list.length; i++) {
-            try { sessionStorage.removeItem("hdjrz_" + list[i]); } catch (e) {}
-          }
-          if (cb) setTimeout(function() { cb(); }, 0);
-        }
-      },
-      onChanged: {
-        addListener: function(cb) {
-          window.addEventListener("storage", function(e) {
-            if (e.key && e.key.indexOf("hdjrz_") === 0) {
-              var realKey = e.key.substring(6);
-              var nv = null, ov = null;
-              try { nv = JSON.parse(e.newValue); } catch(err){}
-              try { ov = JSON.parse(e.oldValue); } catch(err){}
-              cb({ [realKey]: { newValue: nv, oldValue: ov } }, "local");
-            }
-          });
         }
       }
-    };
+      if (cb) setTimeout(function() { cb(); }, 0);
+    },
+    remove: function(keys, cb) {
+      var list = Array.isArray(keys) ? keys : (typeof keys === "string" ? [keys] : Object.keys(keys || {}));
+      for (var i = 0; i < list.length; i++) {
+        removeStored(list[i]);
+      }
+      if (cb) setTimeout(function() { cb(); }, 0);
+    }
+  };
 
-    window.chrome.runtime = window.chrome.runtime || {};
+  var storageSession = {
+    get: function(keys, cb) {
+      var res = {};
+      var list = Array.isArray(keys) ? keys : (typeof keys === "string" ? [keys] : Object.keys(keys || {}));
+      for (var i = 0; i < list.length; i++) {
+        var k = list[i];
+        try {
+          var v = sessionStorage.getItem("hdjrz_" + k);
+          if (v !== null && v !== undefined) res[k] = JSON.parse(v);
+        } catch (e) {}
+      }
+      if (cb) setTimeout(function() { cb(res); }, 0);
+    },
+    set: function(obj, cb) {
+      if (obj) {
+        for (var k in obj) {
+          if (Object.prototype.hasOwnProperty.call(obj, k)) {
+            try { sessionStorage.setItem("hdjrz_" + k, JSON.stringify(obj[k])); } catch (e) {}
+          }
+        }
+      }
+      if (cb) setTimeout(function() { cb(); }, 0);
+    },
+    remove: function(keys, cb) {
+      var list = Array.isArray(keys) ? keys : (typeof keys === "string" ? [keys] : Object.keys(keys || {}));
+      for (var i = 0; i < list.length; i++) {
+        try { sessionStorage.removeItem("hdjrz_" + list[i]); } catch (e) {}
+      }
+      if (cb) setTimeout(function() { cb(); }, 0);
+    }
+  };
 
-    window.chrome.runtime.getURL = function(path) {
+  var onChanged = {
+    addListener: function(cb) {
+      window.addEventListener("storage", function(e) {
+        if (e.key && e.key.indexOf("hdjrz_") === 0) {
+          var realKey = e.key.substring(6);
+          var nv = null, ov = null;
+          try { nv = JSON.parse(e.newValue); } catch(err){}
+          try { ov = JSON.parse(e.oldValue); } catch(err){}
+          cb({ [realKey]: { newValue: nv, oldValue: ov } }, "local");
+        }
+      });
+    }
+  };
+
+  var runtime = {
+    getURL: function(path) {
       return "https://raw.githubusercontent.com/hdjrz/hdjrz-tools/main/" + path;
-    };
-
-    window.chrome.runtime.onMessage = {
+    },
+    onMessage: {
       addListener: function(listener) {
         messageListeners.push(listener);
       }
-    };
-
-    window.chrome.runtime.sendMessage = function(request, cb) {
+    },
+    sendMessage: function(request, cb) {
       if (!request) {
         if (cb) cb({});
         return;
@@ -254,41 +260,51 @@ const polyfillCode = `
       }
 
       if (cb) cb({});
-    };
-
-    // Cross-tab broadcast listener for KYC queries
-    if (kycChannel) {
-      kycChannel.addEventListener("message", function(ev) {
-        var data = ev.data;
-        if (!data) return;
-
-        if (data.action === "KYC_PING") {
-          for (var i = 0; i < messageListeners.length; i++) {
-            try {
-              messageListeners[i]({ action: "GET_KYC_PLAYER" }, {}, function(res) {
-                if (res && res.publicId) {
-                  kycChannel.postMessage({
-                    action: "KYC_PONG",
-                    requestId: data.requestId,
-                    player: res
-                  });
-                }
-              });
-            } catch (err) {}
-          }
-        } else if (data.action === "KYC_INJECT_COMMAND") {
-          for (var j = 0; j < messageListeners.length; j++) {
-            try {
-              messageListeners[j]({
-                action: "INJECT_KYC_OLD_NOTE",
-                newAccountUid: data.newAccountUid
-              }, {}, function() {});
-            } catch (err) {}
-          }
-        }
-      });
     }
+  };
+
+  // Cross-tab broadcast listener for KYC queries
+  if (kycChannel) {
+    kycChannel.addEventListener("message", function(ev) {
+      var data = ev.data;
+      if (!data) return;
+
+      if (data.action === "KYC_PING") {
+        for (var i = 0; i < messageListeners.length; i++) {
+          try {
+            messageListeners[i]({ action: "GET_KYC_PLAYER" }, {}, function(res) {
+              if (res && res.publicId) {
+                kycChannel.postMessage({
+                  action: "KYC_PONG",
+                  requestId: data.requestId,
+                  player: res
+                });
+              }
+            });
+          } catch (err) {}
+        }
+      } else if (data.action === "KYC_INJECT_COMMAND") {
+        for (var j = 0; j < messageListeners.length; j++) {
+          try {
+            messageListeners[j]({
+              action: "INJECT_KYC_OLD_NOTE",
+              newAccountUid: data.newAccountUid
+            }, {}, function() {});
+          } catch (err) {}
+        }
+      }
+    });
   }
+
+  return {
+    storage: {
+      local: storageLocal,
+      session: storageSession,
+      sync: storageLocal,
+      onChanged: onChanged
+    },
+    runtime: runtime
+  };
 })();
 `;
 
@@ -308,6 +324,18 @@ const cssInjectionCode = `
 })();
 `;
 
+// Content script wrapped to receive hdjrzChrome as chrome
+const wrappedContentJs = `
+/* --- Execution Wrapper --- */
+(function(chrome) {
+  try {
+${contentJsCode}
+  } catch (err) {
+    console.error("[hdjrzTools] Fatal initialization error:", err);
+  }
+})(hdjrzChrome);
+`;
+
 // Combine into single userscript
 const fullBundle = [
   userscriptHeader,
@@ -324,7 +352,7 @@ const fullBundle = [
   templatesCode,
   '',
   '/* --- Main Content Script --- */',
-  contentJsCode
+  wrappedContentJs
 ].join('\n');
 
 console.log('Writing userscript to ' + outputPath + '...');
