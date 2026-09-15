@@ -259,6 +259,7 @@ var hdjrzChrome = (function() {
       if (request.action === "KYC_INJECT_OLD_NOTES" && kycChannel) {
         kycChannel.postMessage({
           action: "KYC_INJECT_COMMAND",
+          targetTabIds: request.targetTabIds,
           newAccountUid: request.newAccountUid
         });
         if (cb) cb({ success: true });
@@ -294,6 +295,7 @@ var hdjrzChrome = (function() {
           try {
             messageListeners[j]({
               action: "INJECT_KYC_OLD_NOTE",
+              targetTabIds: data.targetTabIds,
               newAccountUid: data.newAccountUid
             }, {}, function() {});
           } catch (err) {}

@@ -3605,11 +3605,11 @@
         const shouldReturn = isAdminLicense() && currentSettings.autoReturnToUsers !== false;
         const newUidForOldTab = kycPlainUid(enteredUserId || activePlayer.publicId || activePlayer.userId || "");
         const isKycNewVerified = String(item.code) === "KYC SWITCH" && selectedNoteChoice === 0 && shouldPin;
-        const pairTwo = isKycNewVerified && selectedZoomChoice === 0 && kycSibling && kycSibling.tabId;
+        const pairTwo = isKycNewVerified && selectedZoomChoice === 0 && kycSibling && (kycSibling.tabId || kycSibling.publicId || kycSibling.userId);
         const pairMany = isKycNewVerified && selectedZoomChoice === 1 && kycOthers.length > 0;
         const injectTabIds = pairTwo
-          ? [kycSibling.tabId]
-          : (pairMany ? kycOthers.map((row) => row && row.tabId).filter(Boolean) : []);
+          ? [kycSibling.tabId || kycSibling.publicId || kycSibling.userId]
+          : (pairMany ? kycOthers.map((row) => row && (row.tabId || row.publicId || row.userId)).filter(Boolean) : []);
 
         const nav = (typeof navigator !== "undefined") ? navigator : (typeof window !== "undefined" ? window.navigator : null);
         if (shouldCopy && nav && nav.clipboard && nav.clipboard.writeText) {
@@ -4605,8 +4605,25 @@
           dob: attrs.dob || p.dob || ""
         });
       } else if (request.action === "INJECT_KYC_OLD_NOTE") {
+        const rawTargets = request && request.targetTabIds;
+        const targetIds = Array.isArray(rawTargets) ? rawTargets.map(id => String(id).replace(/[()]/g, "").trim().toLowerCase()).filter(Boolean) : [];
+        const myP = scrapePlayerCredentials() || {};
+        const myPublic = String(myP.publicId || "").replace(/[()]/g, "").trim().toLowerCase();
+        const myUser = String(myP.userId || "").replace(/[()]/g, "").trim().toLowerCase();
+
+        if (targetIds.length > 0) {
+          const match = targetIds.some(tid => (myPublic && tid === myPublic) || (myUser && tid === myUser));
+          if (!match) {
+            sendResponse({ success: false, skipped: true });
+            return true;
+          }
+        }
+
         const note = buildKycOldAccountNote(request && request.newAccountUid);
         injectUserNoteOnPage(note, (injected) => {
+          if (injected) {
+            showToast("Old account User Note injected!", true);
+          }
           sendResponse({ success: !!injected });
         });
         return true;
