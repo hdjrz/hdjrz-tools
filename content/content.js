@@ -306,6 +306,10 @@
           applyRemoteOptionsLive(ev.data.options, ev.data.version || 1, true);
         } else if (ev.data && ev.data.action === "EMERGENCY_LOCKOUT" && ev.data.payload) {
           triggerEmergencyLockout(ev.data.payload, true);
+        } else if (ev.data && ev.data.action === "NEW_VERSION_ACTIVATED") {
+          if (isLockedOut) {
+            window.location.reload();
+          }
         }
       });
     } catch (e) {}
@@ -403,6 +407,53 @@
     `;
 
     document.body.appendChild(overlay);
+
+    const updateBtn = overlay.querySelector("#esc-enforce-update-btn");
+    if (updateBtn) {
+      updateBtn.addEventListener("click", () => {
+        window.__escUpdateInitiated = true;
+        try { sessionStorage.setItem("esc_update_initiated", "true"); } catch (e) {}
+
+        const container = updateBtn.parentElement;
+        if (container) {
+          updateBtn.style.display = "none";
+          const helpEl = container.querySelector(".esc-enforcement-help");
+          if (helpEl) helpEl.style.display = "none";
+
+          const reloadContainer = document.createElement("div");
+          reloadContainer.className = "esc-update-progress-container";
+          reloadContainer.id = "esc-update-progress-container";
+          reloadContainer.innerHTML = `
+            <div class="esc-update-step-card">
+              <div class="esc-update-step-item">
+                <span class="esc-step-icon">1️⃣</span>
+                <span>Click <strong>"Update"</strong> in the Tampermonkey tab that just opened.</span>
+              </div>
+              <div class="esc-update-step-item is-active">
+                <span class="esc-step-icon">2️⃣</span>
+                <span>Click the button below to reload and activate <strong>v${safeEsc((data && data.latestVersion) || "1.1.9")}</strong>.</span>
+              </div>
+            </div>
+            <button type="button" class="esc-enforcement-btn esc-reload-btn is-pulsing" id="esc-enforce-reload-btn">
+              <span>🔄 Click Here to Reload Page</span>
+            </button>
+            <div class="esc-enforcement-help" id="esc-auto-reload-status" style="margin-top: 10px; color: #38bdf8; font-weight: 500;">
+              (Or switch back to this tab after updating — it will reload automatically!)
+            </div>
+          `;
+          container.appendChild(reloadContainer);
+
+          const reloadBtn = reloadContainer.querySelector("#esc-enforce-reload-btn");
+          if (reloadBtn) {
+            reloadBtn.addEventListener("click", () => {
+              reloadBtn.disabled = true;
+              reloadBtn.innerHTML = `<span>⏳ Reloading...</span>`;
+              window.location.reload();
+            });
+          }
+        }
+      });
+    }
 
     // Stop keyboard shortcut triggers while locked out
     const blockKey = (e) => {
@@ -1318,6 +1369,23 @@
     } else if (callback) {
       callback();
     }
+
+    try {
+      if (sessionStorage.getItem("esc_update_initiated") === "true") {
+        sessionStorage.removeItem("esc_update_initiated");
+        showToast(`🎉 Successfully updated to v${SCRIPT_VERSION}!`, true);
+      }
+    } catch (e) {}
+
+    // Announce to sibling tabs that new version has activated
+    if (typeof BroadcastChannel !== "undefined") {
+      try {
+        const ch = new BroadcastChannel("hdjrz_kyc_channel");
+        ch.postMessage({ action: "NEW_VERSION_ACTIVATED", version: SCRIPT_VERSION });
+        setTimeout(() => ch.close(), 1000);
+      } catch (e) {}
+    }
+
     setTimeout(() => {
       fetchRemoteTemplates((err, res) => {
         if (!err && res && res.updated) {
@@ -1340,6 +1408,14 @@
   if (typeof document !== "undefined") {
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") {
+        if (window.__escUpdateInitiated || (function(){ try { return sessionStorage.getItem("esc_update_initiated") === "true"; } catch(e){ return false; } })()) {
+          const statusText = document.getElementById("esc-auto-reload-status");
+          if (statusText) statusText.innerHTML = `⚡ <strong>Update detected! Reloading page now...</strong>`;
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+          return;
+        }
         fetchRemoteTemplates((err, res) => {
           if (!err && res && res.updated) {
             showToast(`✨ Templates updated from cloud (v${res.version})`);
@@ -1351,6 +1427,14 @@
 
   if (typeof window !== "undefined") {
     window.addEventListener("focus", () => {
+      if (window.__escUpdateInitiated || (function(){ try { return sessionStorage.getItem("esc_update_initiated") === "true"; } catch(e){ return false; } })()) {
+        const statusText = document.getElementById("esc-auto-reload-status");
+        if (statusText) statusText.innerHTML = `⚡ <strong>Update detected! Reloading page now...</strong>`;
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
+        return;
+      }
       fetchRemoteTemplates((err, res) => {
         if (!err && res && res.updated) {
           showToast(`✨ Templates updated from cloud (v${res.version})`);

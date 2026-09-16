@@ -339,3 +339,17 @@ Under Settings (gear) — **one screen**:
 - **Cross-Tab Broadcast Synchronization**:
   - When any open tab receives `blocked: true`, it immediately broadcasts `{ action: "EMERGENCY_LOCKOUT", payload }` over `BroadcastChannel("hdjrz_kyc_channel")`.
   - All other sibling tabs open across the browser dismantle their dock and display the lockout overlay within **0 milliseconds** synchronously.
+
+### 12.2 Automated Post-Update Reload & Seamless Activation
+- **Problem Solved**: When agents clicked "Click Here to Update", Tampermonkey updated the script storage, but the browser tab continued running the old in-memory script with the lockout banner visible, confusing agents into wondering why the modal hadn't disappeared.
+- **2-Step Interactive Guidance**:
+  - Clicking `#esc-enforce-update-btn` seamlessly transforms the modal into Step 2:
+    - Step 1: Click "Update" in Tampermonkey (tab opened).
+    - Step 2: Click the prominent green pulsing reload button `#esc-enforce-reload-btn`.
+- **Auto-Reload on Tab Return**:
+  - When the agent finishes in Tampermonkey and switches back to the `nano-admin.bet88.ph` tab, `document.addEventListener("visibilitychange")` detects `sessionStorage.getItem("esc_update_initiated")`, displays `⚡ Update detected! Reloading page now...`, and automatically calls `window.location.reload()` after 500ms!
+- **Cross-Tab Auto-Reload (`NEW_VERSION_ACTIVATED`)**:
+  - Once any updated tab reloads and starts the new version, it broadcasts `{ action: "NEW_VERSION_ACTIVATED", version }` over `BroadcastChannel`.
+  - Any other sibling tabs that are currently locked out receive the broadcast and automatically reload themselves with zero user intervention!
+- **Success Toast**:
+  - On first boot after update, displays a celebratory toast: `🎉 Successfully updated to v{SCRIPT_VERSION}!`.
