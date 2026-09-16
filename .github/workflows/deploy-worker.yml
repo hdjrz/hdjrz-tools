@@ -18,16 +18,37 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Inject KV Namespace ID
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Validate Secrets & Prepare Configuration
         env:
+          API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           KV_ID: ${{ secrets.CLOUDFLARE_KV_ID }}
         run: |
-          if [ -n "$KV_ID" ]; then
-            sed -i "s/LICENSES_ID_PLACEHOLDER/$KV_ID/g" wrangler.toml
+          if [ -z "$API_TOKEN" ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN secret is missing! Add it under Settings -> Secrets and variables -> Actions."
+            exit 1
+          fi
+          if [ -z "$ACCOUNT_ID" ]; then
+            echo "::error::CLOUDFLARE_ACCOUNT_ID secret is missing! Add it under Settings -> Secrets and variables -> Actions."
+            exit 1
+          fi
+          if [ -z "$KV_ID" ]; then
+            echo "::error::CLOUDFLARE_KV_ID secret is missing! Add it under Settings -> Secrets and variables -> Actions."
+            exit 1
           fi
 
+          # Replace placeholder with actual KV Namespace ID
+          sed -i "s/LICENSES_ID_PLACEHOLDER/$KV_ID/g" wrangler.toml
+          echo "✅ Configuration prepared successfully."
+
       - name: Deploy to Cloudflare Workers
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx --yes wrangler deploy
