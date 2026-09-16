@@ -1932,3 +1932,157 @@ body.esc-modal-scroll-lock {
 .esc-sync-badge:empty {
   display: none;
 }
+
+/* ==========================================================================
+   Emergency Remote Enforcement & Version Lockout Modal
+   ========================================================================== */
+.esc-enforcement-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2147483647 !important;
+  background: rgba(5, 8, 16, 0.88) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  color: #f8fafc !important;
+  padding: 24px !important;
+  box-sizing: border-box !important;
+  user-select: none !important;
+  animation: escFadeIn 0.25s ease-out forwards;
+}
+
+.esc-enforcement-modal {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  background: #0f172a;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 16px;
+  padding: 32px 28px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 35px rgba(239, 68, 68, 0.2);
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.esc-enforcement-modal.is-killswitch {
+  border-color: rgba(245, 158, 11, 0.4);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 35px rgba(245, 158, 11, 0.2);
+}
+
+.esc-enforcement-icon-wrap {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ef4444;
+  font-size: 28px;
+  animation: escPulseGlow 2s infinite ease-in-out;
+}
+
+.esc-enforcement-modal.is-killswitch .esc-enforcement-icon-wrap {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #f59e0b;
+}
+
+@keyframes escPulseGlow {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.3); }
+  50% { transform: scale(1.05); box-shadow: 0 0 20px 4px rgba(239, 68, 68, 0.2); }
+}
+
+.esc-enforcement-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #f8fafc;
+  margin: 0 0 12px;
+  letter-spacing: -0.02em;
+}
+
+.esc-enforcement-text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #94a3b8;
+  margin: 0 0 24px;
+}
+
+.esc-enforcement-meta {
+  background: #090e1a;
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-around;
+  font-size: 13px;
+}
+
+.esc-enforcement-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.esc-enforcement-meta-label {
+  color: #64748b;
+  font-size: 11px;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.esc-enforcement-meta-value {
+  color: #f8fafc;
+  font-weight: 700;
+}
+
+.esc-enforcement-meta-value.is-bad {
+  color: #ef4444;
+}
+
+.esc-enforcement-meta-value.is-good {
+  color: #10b981;
+}
+
+.esc-enforcement-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 14px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  gap: 8px;
+}
+
+.esc-enforcement-btn:hover {
+  background: linear-gradient(135deg, #f87171, #ef4444);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.45);
+}
+
+.esc-enforcement-btn:active {
+  transform: translateY(0);
+}
+
+.esc-enforcement-help {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 14px;
+}

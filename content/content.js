@@ -52,6 +52,9 @@
   let lastModalOriginX = typeof window !== "undefined" ? window.innerWidth / 2 : 0;
   let lastModalOriginY = typeof window !== "undefined" ? window.innerHeight / 2 : 0;
   let licenseRole = "";
+  const SCRIPT_VERSION = (typeof GM_info !== "undefined" && GM_info && GM_info.script && GM_info.script.version)
+    || (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.getManifest && chrome.runtime.getManifest() && chrome.runtime.getManifest().version)
+    || "1.1.6";
   const LICENSE_ACTIVATE_URL = "https://hdjrz-license.rosechel05.workers.dev/";
 
   function isLicensed() {
@@ -178,9 +181,19 @@
 
   function activateLicenseOnServer(key, cb) {
     ensureLicenseDeviceId((deviceId) => {
-      postLicenseServer({ key, deviceId }, (err, data) => {
+      postLicenseServer({ key, deviceId, version: SCRIPT_VERSION }, (err, data) => {
         if (err) {
           cb(err);
+          return;
+        }
+        if (data && (data.error === "outdated_version" || data.error === "kill_switch")) {
+          triggerEmergencyLockout({
+            reason: data.error,
+            minRequiredVersion: data.minRequiredVersion,
+            latestVersion: data.latestVersion,
+            message: data.message
+          });
+          cb(data.error);
           return;
         }
         const role = data && data.role;
@@ -296,7 +309,99 @@
     } catch (e) {}
   }
 
+  let isLockedOut = false;
+  function triggerEmergencyLockout(data) {
+    if (isLockedOut) return;
+    isLockedOut = true;
+
+    // Remove toolbar dock from page
+    if (dockElement) {
+      try { dockElement.remove(); } catch (e) {}
+      dockElement = null;
+    }
+
+    // Close any open overlays
+    if (activeModal) {
+      try { activeModal.remove(); } catch (e) {}
+      activeModal = null;
+    }
+    const overlays = document.querySelectorAll(".esc-modal-overlay, #escalation-helper-dock");
+    overlays.forEach(el => {
+      try { el.remove(); } catch (e) {}
+    });
+
+    const isKill = data && data.reason === "kill_switch";
+    const isDomain = data && data.reason === "unauthorized_domain";
+
+    let title = "⚠️ Critical Update Required";
+    let message = (data && data.message) || "Your version of hdjrzTools is out of date.";
+    let icon = "⚠️";
+    let actionBtnHtml = "";
+
+    const safeEsc = (s) => String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+    if (isKill) {
+      title = "🛑 Emergency System Lock";
+      icon = "🛑";
+      message = (data && data.message) || "hdjrzTools is temporarily disabled for emergency maintenance.";
+      actionBtnHtml = `<div class="esc-enforcement-help">Contact your system administrator if you believe this is an error.</div>`;
+    } else if (isDomain) {
+      title = "🚫 Unauthorized Domain";
+      icon = "🚫";
+      const host = (data && data.domain) || (typeof window !== "undefined" && window.location && window.location.hostname) || "this domain";
+      message = `hdjrzTools is restricted to official authorized domains (${safeEsc(host)} is not permitted).`;
+      actionBtnHtml = `<div class="esc-enforcement-help">Contact your system administrator for domain access.</div>`;
+    } else {
+      // Outdated version
+      const minVer = (data && data.minRequiredVersion) || "1.1.6";
+      const latestVer = (data && data.latestVersion) || "1.1.6";
+      const updateUrl = (data && data.updateUrl) || "https://hdjrz-license.rosechel05.workers.dev/script.user.js";
+
+      actionBtnHtml = `
+        <div class="esc-enforcement-meta">
+          <div class="esc-enforcement-meta-item">
+            <span class="esc-enforcement-meta-label">Installed</span>
+            <span class="esc-enforcement-meta-value is-bad">v${safeEsc(SCRIPT_VERSION)}</span>
+          </div>
+          <div class="esc-enforcement-meta-item">
+            <span class="esc-enforcement-meta-label">Min Required</span>
+            <span class="esc-enforcement-meta-value">v${safeEsc(minVer)}</span>
+          </div>
+          <div class="esc-enforcement-meta-item">
+            <span class="esc-enforcement-meta-label">Latest</span>
+            <span class="esc-enforcement-meta-value is-good">v${safeEsc(latestVer)}</span>
+          </div>
+        </div>
+        <a href="${updateUrl}" target="_blank" rel="noopener noreferrer" class="esc-enforcement-btn" id="esc-enforce-update-btn">
+          <span>🚀 Click Here to Update to v${safeEsc(latestVer)}</span>
+        </a>
+        <div class="esc-enforcement-help">Tampermonkey will open and prompt you to click "Update" with one click.</div>
+      `;
+    }
+
+    const overlay = document.createElement("div");
+    overlay.className = "esc-enforcement-overlay";
+    overlay.id = "esc-enforcement-overlay";
+    overlay.innerHTML = `
+      <div class="esc-enforcement-modal ${isKill ? 'is-killswitch' : ''}" role="alertdialog" aria-modal="true">
+        <div class="esc-enforcement-icon-wrap">${icon}</div>
+        <div class="esc-enforcement-title">${safeEsc(title)}</div>
+        <div class="esc-enforcement-text">${safeEsc(message)}</div>
+        ${actionBtnHtml}
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    // Stop keyboard shortcut triggers while locked out
+    const blockKey = (e) => {
+      e.stopImmediatePropagation();
+    };
+    window.addEventListener("keydown", blockKey, true);
+  }
+
   function fetchRemoteTemplates(cb) {
+    if (isLockedOut) return;
     const api = localStorageApi();
     const getDevId = (done) => {
       if (!api) return done("");
@@ -305,8 +410,10 @@
 
     getDevId((devId) => {
       const agent = encodeURIComponent(currentSettings.agentName || "");
-      const v = currentSettings.remoteTemplatesVersion || 0;
-      const url = `${REMOTE_CONFIG_URL}?agent=${agent}&v=${v}&dev=${encodeURIComponent(devId)}`;
+      const v = encodeURIComponent(SCRIPT_VERSION);
+      const tmplVer = currentSettings.remoteTemplatesVersion || 0;
+      const domain = encodeURIComponent((typeof window !== "undefined" && window.location && window.location.hostname) || "");
+      const url = `${REMOTE_CONFIG_URL}?agent=${agent}&v=${v}&tmpl_v=${tmplVer}&dev=${encodeURIComponent(devId)}&domain=${domain}`;
 
       fetch(url, {
         method: "GET",
@@ -314,6 +421,11 @@
       })
       .then(res => res.json())
       .then(json => {
+        if (json && json.blocked) {
+          triggerEmergencyLockout(json);
+          if (cb) cb(json.message || "Execution blocked by remote policy", json);
+          return;
+        }
         if (!json || !json.ok || !Array.isArray(json.options)) {
           if (cb) cb((json && json.error) ? json.error : "No remote templates", json);
           return;
@@ -2628,6 +2740,7 @@
   }
 
   function renderHorizontalDock() {
+    if (isLockedOut) return;
     if (document.getElementById("escalation-helper-dock")) {
       dockElement = document.getElementById("escalation-helper-dock");
       updateHorizontalDockButtons();
@@ -3086,6 +3199,7 @@
   }
 
   function askReasonThenConfirm(code) {
+    if (isLockedOut) return;
     requireLicense(() => runAskReasonThenConfirm(code));
   }
 
@@ -3912,6 +4026,7 @@
    * Includes full Add Option, Remove Option, and "Reason when clicked" customization.
    */
   function openSettingsModal() {
+    if (isLockedOut) return;
     requireLicense(() => runOpenSettingsModal());
   }
 

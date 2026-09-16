@@ -263,4 +263,39 @@ Under Settings (gear) — **one screen**:
   - Background polling interval is set to 25 seconds (short lightweight KV reads).
   - Also listens to `window.addEventListener("focus", ...)`, ensuring that whenever an agent switches back to the Nano Admin tab, it checks for updates immediately.
 
+---
+
+## 10. Remote Emergency Forced Version Enforcement & Kill Switch
+
+### 10.1 Master Control in Cloudflare KV (`SYSTEM_CONFIG`)
+- Key `"SYSTEM_CONFIG"` in the `LICENSES` KV namespace holds the master security configuration:
+  ```json
+  {
+    "minRequiredVersion": "1.1.4",
+    "latestVersion": "1.1.6",
+    "killSwitch": false,
+    "killSwitchMessage": "hdjrzTools is temporarily disabled for emergency maintenance.",
+    "allowedDomains": ["nano-admin.bet88.ph"]
+  }
+  ```
+- **Endpoints**:
+  - `GET /config/system`: Returns active configuration.
+  - `POST /config/system`: Admin-only endpoint (authenticated with admin key) to update minimum required version, trigger kill switch, or update allowed domains.
+
+### 10.2 Gatekeeper & Semver Enforcement
+- `isVersionBelow(clientVer, minVer)`: Robust 3-part semver comparison (e.g. `1.0.8 < 1.1.4`).
+- **Enforcement triggers**:
+  - **License Activation**: Outdated versions or active kill switch blocks key binding.
+  - **Startup & Background Polling**: `GET /config/templates?v=...&domain=...` checks version, domain, and kill switch every 25 seconds and on tab focus.
+- **Unavoidable Lockout Modal (`triggerEmergencyLockout`)**:
+  - If blocked:
+    1. Immediately removes toolbar (`dockElement.remove()`) and active modals.
+    2. Sets `isLockedOut = true`, suppressing toolbar rendering, settings, and escalation shortcuts.
+    3. Traps keyboard events (`keydown`) to prevent closing.
+    4. Displays an unavoidable full-screen frosted overlay (`.esc-enforcement-overlay` with z-index `2147483647`):
+       - **Outdated version**: Displays `⚠️ Critical Update Required`, compares installed version against minimum/latest, and offers a 1-click update button linking to `/script.user.js`.
+       - **Kill switch**: Displays `🛑 Emergency System Lock` with admin maintenance message.
+       - **Unauthorized domain**: Displays `🚫 Unauthorized Domain` if the script is run on unauthorized hosts.
+
+
 

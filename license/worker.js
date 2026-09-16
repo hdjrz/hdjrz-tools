@@ -2,6 +2,40 @@
  * Paste this into Cloudflare: Workers → hdjrz-license → Edit code → Deploy.
  * Binding name must stay LICENSES.
  */
+
+const DEFAULT_SYSTEM_CONFIG = {
+  minRequiredVersion: "1.1.4",
+  latestVersion: "1.1.6",
+  killSwitch: false,
+  killSwitchMessage: "hdjrzTools is temporarily disabled for emergency maintenance.",
+  allowedDomains: ["nano-admin.bet88.ph"]
+};
+
+function parseSemver(v) {
+  const parts = String(v || "").replace(/[^0-9.]/g, "").split(".").map(n => parseInt(n, 10) || 0);
+  while (parts.length < 3) parts.push(0);
+  return parts;
+}
+
+function isVersionBelow(clientVer, minVer) {
+  if (!clientVer || !minVer) return false;
+  const a = parseSemver(clientVer);
+  const b = parseSemver(minVer);
+  for (let i = 0; i < 3; i++) {
+    if (a[i] < b[i]) return true;
+    if (a[i] > b[i]) return false;
+  }
+  return false;
+}
+
+async function getSystemConfig(env) {
+  try {
+    const raw = await env.LICENSES.get("SYSTEM_CONFIG");
+    if (raw) return { ...DEFAULT_SYSTEM_CONFIG, ...JSON.parse(raw) };
+  } catch (e) {}
+  return { ...DEFAULT_SYSTEM_CONFIG };
+}
+
 export default {
   async fetch(request, env) {
     const cors = {
@@ -42,9 +76,51 @@ export default {
       return new Response("// Error fetching script from GitHub", { status: 500 });
     }
 
-    // Remote Templates: GET endpoint to fetch live cloud templates and report agent presence
+    // Remote Templates & System Enforcement: GET endpoint
     if (request.method === "GET" && url.pathname === "/config/templates") {
       try {
+        const sysConfig = await getSystemConfig(env);
+        const clientVer = String(url.searchParams.get("v") || "0.0.0").trim();
+        const clientDomain = String(url.searchParams.get("domain") || "").trim();
+
+        // 1. Emergency Kill Switch check
+        if (sysConfig.killSwitch) {
+          return new Response(JSON.stringify({
+            ok: false,
+            blocked: true,
+            reason: "kill_switch",
+            message: sysConfig.killSwitchMessage || "hdjrzTools is temporarily disabled for emergency maintenance."
+          }), { headers: { ...cors, "Cache-Control": "no-cache, no-store" } });
+        }
+
+        // 2. Domain check
+        if (clientDomain && Array.isArray(sysConfig.allowedDomains) && sysConfig.allowedDomains.length > 0) {
+          const isAllowed = sysConfig.allowedDomains.some(d => clientDomain === d || clientDomain.endsWith("." + d));
+          if (!isAllowed) {
+            return new Response(JSON.stringify({
+              ok: false,
+              blocked: true,
+              reason: "unauthorized_domain",
+              domain: clientDomain,
+              message: "hdjrzTools is not authorized to run on " + clientDomain
+            }), { headers: { ...cors, "Cache-Control": "no-cache, no-store" } });
+          }
+        }
+
+        // 3. Minimum Version Enforcement
+        if (clientVer && isVersionBelow(clientVer, sysConfig.minRequiredVersion)) {
+          return new Response(JSON.stringify({
+            ok: false,
+            blocked: true,
+            reason: "outdated_version",
+            clientVersion: clientVer,
+            minRequiredVersion: sysConfig.minRequiredVersion,
+            latestVersion: sysConfig.latestVersion || "1.1.6",
+            updateUrl: "https://hdjrz-license.rosechel05.workers.dev/script.user.js",
+            message: `⚠️ Critical Update Required: Your version (v${clientVer}) is out of date. Update to v${sysConfig.latestVersion || "1.1.6"} to continue.`
+          }), { headers: { ...cors, "Cache-Control": "no-cache, no-store" } });
+        }
+
         const raw = await env.LICENSES.get("REMOTE_TEMPLATES");
         let tmplData = raw ? JSON.parse(raw) : null;
         if (!tmplData) {
@@ -53,7 +129,6 @@ export default {
 
         const agentName = String(url.searchParams.get("agent") || "").trim();
         const devId = String(url.searchParams.get("dev") || "").trim();
-        const agentVer = parseInt(url.searchParams.get("v") || "0", 10);
 
         let activeMap = {};
         try {
@@ -74,7 +149,7 @@ export default {
           const id = devId || ("agent_" + agentName);
           activeMap[id] = {
             agent: agentName || "Agent",
-            version: agentVer || 0,
+            version: clientVer || "1.0.0",
             lastSeen: now
           };
           try {
@@ -84,7 +159,7 @@ export default {
 
         const activeList = Object.values(activeMap);
         const syncedAgents = activeList
-          .filter(a => a.version === tmplData.version)
+          .filter(a => a.version === tmplData.version || a.version === String(tmplData.version))
           .map(a => a.agent);
 
         const responsePayload = {
@@ -94,7 +169,12 @@ export default {
           options: tmplData.options,
           totalActive: activeList.length,
           syncedCount: syncedAgents.length,
-          syncedAgents: syncedAgents
+          syncedAgents: syncedAgents,
+          systemConfig: {
+            minRequiredVersion: sysConfig.minRequiredVersion,
+            latestVersion: sysConfig.latestVersion,
+            killSwitch: sysConfig.killSwitch
+          }
         };
 
         return new Response(JSON.stringify(responsePayload), {
@@ -155,6 +235,37 @@ export default {
       return json({ ok: true, version: currentVersion, updatedAt: storePayload.updatedAt, totalActive }, cors);
     }
 
+    // System Enforcement Config: GET endpoint
+    if (request.method === "GET" && url.pathname === "/config/system") {
+      const sysConfig = await getSystemConfig(env);
+      return json({ ok: true, config: sysConfig }, cors);
+    }
+
+    // System Enforcement Config: POST endpoint (Admin only)
+    if (request.method === "POST" && url.pathname === "/config/system") {
+      let payload = {};
+      try { payload = await request.json(); } catch (e) {}
+      const adminKey = String(payload.key || "").trim();
+      if (!adminKey) return json({ ok: false, error: "unauthorized" }, cors);
+      const rawLicense = await env.LICENSES.get(adminKey);
+      if (!rawLicense) return json({ ok: false, error: "unauthorized" }, cors);
+      let row = {};
+      try { row = JSON.parse(rawLicense); } catch (e) {}
+      if (row.role !== "admin") return json({ ok: false, error: "admin_required" }, cors);
+
+      const current = await getSystemConfig(env);
+      const updated = {
+        ...current,
+        minRequiredVersion: payload.minRequiredVersion ? String(payload.minRequiredVersion).trim() : current.minRequiredVersion,
+        latestVersion: payload.latestVersion ? String(payload.latestVersion).trim() : current.latestVersion,
+        killSwitch: typeof payload.killSwitch === "boolean" ? payload.killSwitch : current.killSwitch,
+        killSwitchMessage: payload.killSwitchMessage ? String(payload.killSwitchMessage).trim() : current.killSwitchMessage,
+        allowedDomains: Array.isArray(payload.allowedDomains) ? payload.allowedDomains : current.allowedDomains
+      };
+      await env.LICENSES.put("SYSTEM_CONFIG", JSON.stringify(updated));
+      return json({ ok: true, config: updated }, cors);
+    }
+
     if (request.method !== "POST") {
       return json({ ok: false, error: "missing" }, cors);
     }
@@ -167,8 +278,25 @@ export default {
     const key = String(body.key || "").trim();
     const device = String(body.deviceId || "").trim();
     const action = String(body.action || "").trim();
+    const clientVer = String(body.version || "").trim();
+
     if (!key || !device) {
       return json({ ok: false, error: "missing" }, cors);
+    }
+
+    // Check emergency kill switch on license activation
+    const sysConfig = await getSystemConfig(env);
+    if (sysConfig.killSwitch) {
+      return json({ ok: false, error: "kill_switch", message: sysConfig.killSwitchMessage }, cors);
+    }
+    if (clientVer && isVersionBelow(clientVer, sysConfig.minRequiredVersion)) {
+      return json({
+        ok: false,
+        error: "outdated_version",
+        message: `Version v${clientVer} is obsolete. Minimum required is v${sysConfig.minRequiredVersion}.`,
+        minRequiredVersion: sysConfig.minRequiredVersion,
+        latestVersion: sysConfig.latestVersion
+      }, cors);
     }
 
     const raw = await env.LICENSES.get(key);
