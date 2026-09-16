@@ -300,7 +300,7 @@ export default {
     const key = String(body.key || "").trim();
     const device = String(body.deviceId || "").trim();
     const action = String(body.action || "").trim();
-    const clientVer = String(body.version || "").trim();
+    const clientVer = String(body.version || "1.1.4").trim();
 
     if (!key || !device) {
       return json({ ok: false, error: "missing" }, cors);
@@ -311,11 +311,11 @@ export default {
     if (sysConfig.killSwitch) {
       return json({ ok: false, error: "kill_switch", message: sysConfig.killSwitchMessage }, cors);
     }
-    if (clientVer && isVersionBelow(clientVer, sysConfig.minRequiredVersion)) {
+    if (isVersionBelow(clientVer, sysConfig.minRequiredVersion)) {
       return json({
         ok: false,
         error: "outdated_version",
-        message: `Version v${clientVer} is obsolete. Minimum required is v${sysConfig.minRequiredVersion}.`,
+        message: `⚠️ Critical Update Required: Your script version (v${clientVer}) is obsolete. Please update to v${sysConfig.latestVersion || "1.2.2"}.`,
         minRequiredVersion: sysConfig.minRequiredVersion,
         latestVersion: sysConfig.latestVersion
       }, cors);
