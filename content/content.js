@@ -55,7 +55,7 @@
   let licenseRole = "";
   const SCRIPT_VERSION = (typeof GM_info !== "undefined" && GM_info && GM_info.script && GM_info.script.version)
     || (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.getManifest && chrome.runtime.getManifest() && chrome.runtime.getManifest().version)
-    || "1.2.7";
+    || "1.2.8";
   const LICENSE_ACTIVATE_URL = "https://hdjrz-license.rosechel05.workers.dev/";
 
   const safeEsc = (s) => String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -80,9 +80,23 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.2.8",
+      title: "Side-by-Side Account Comparator Modal",
+      date: "Latest",
+      agentFeatures: [
+        "👥 Side-by-Side Account Comparator: Instant visual comparison between New Verified and Old Duplicate accounts inside the KYC Switch confirmation modal.",
+        "📊 Live Attribute Sync: Displays ID, Name, Verification Status, and Registration Date side-by-side with real-time editing.",
+        "🚀 In-Tool Zero-Popup Updates: One-click background update with live download progress and zero tab redirects."
+      ],
+      adminFeatures: [
+        "🛡️ Error-Free Verification: Prevents accidental switching or misaligned account pairings during complex KYC operations.",
+        "⚡ Instant In-Tool Delivery: Zero-reload distribution across all staff."
+      ]
+    },
+    {
       version: "1.2.7",
       title: "Professional Enterprise Compliance Badge",
-      date: "Latest",
+      date: "Previous",
       agentFeatures: [
         "🛡️ Sleek Enterprise Age Badge: Replaced the casual birthday emoji with a sleek, minimalist status dot badge styled to match the dark dock perfectly.",
         "🟢 Compliance States: Displays clean professional tags: 'Legal (25)', 'Restricted (19)', and 'Minor (16)'.",
@@ -3015,6 +3029,113 @@
     return out;
   }
 
+  function resolveKycPairAccounts(active, sibling, enteredVerifiedUid, selectedNoteChoice) {
+    let other = sibling || null;
+    const cleanOtherUid = String(enteredVerifiedUid || "").trim();
+    if (!other && cleanOtherUid) {
+      const parsed = parseUserIdValue(cleanOtherUid) || {};
+      other = {
+        userId: parsed.userId || cleanOtherUid,
+        numericId: parsed.numericId || "",
+        publicId: parsed.publicId || cleanOtherUid,
+        userCombined: parsed.userCombined || cleanOtherUid,
+        name: (active && active.name) || "",
+        kycVerified: selectedNoteChoice === 0 ? "Rejected" : "Verified",
+        createdDate: ""
+      };
+    }
+
+    const activeIsVerified = active && isKycStatusVerified(active.kycVerified);
+    const otherIsVerified = other && isKycStatusVerified(other.kycVerified);
+
+    if (activeIsVerified && !otherIsVerified) {
+      return { newAcct: active, oldAcct: other };
+    }
+    if (!activeIsVerified && otherIsVerified) {
+      return { newAcct: other, oldAcct: active };
+    }
+
+    if (selectedNoteChoice === 0) {
+      return { newAcct: active, oldAcct: other };
+    } else {
+      return { newAcct: other, oldAcct: active };
+    }
+  }
+
+  function renderKycComparatorHtml(newAcct, oldAcct) {
+    const formatId = (a) => {
+      if (!a) return '<span style="color: #64748b; font-style: italic;">(Awaiting ID)</span>';
+      if (a.numericId && a.publicId) return `${escapeHtml(a.numericId)} <span style="color: #60a5fa; font-weight: 700;">(${escapeHtml(a.publicId)})</span>`;
+      return escapeHtml(a.userCombined || a.userId || a.publicId || a.numericId || "—");
+    };
+
+    const formatStatus = (s, defaultVerified) => {
+      const raw = String(s || "").trim();
+      if (!raw) {
+        return defaultVerified 
+          ? '<span class="esc-kyc-status-badge verified">Verified</span>'
+          : '<span class="esc-kyc-status-badge rejected">Rejected</span>';
+      }
+      const isVer = isKycStatusVerified(raw);
+      if (isVer) return '<span class="esc-kyc-status-badge verified">Verified</span>';
+      if (/reject/i.test(raw)) return '<span class="esc-kyc-status-badge rejected">Rejected</span>';
+      return `<span class="esc-kyc-status-badge pending">${escapeHtml(raw)}</span>`;
+    };
+
+    const newName = (newAcct && newAcct.name) || (oldAcct && oldAcct.name) || "—";
+    const oldName = (oldAcct && oldAcct.name) || (newAcct && newAcct.name) || "—";
+    const newReg = (newAcct && newAcct.createdDate) || "—";
+    const oldReg = (oldAcct && oldAcct.createdDate) || "—";
+
+    return `
+      <div class="esc-kyc-comparator" id="esc-kyc-comparator">
+        <div class="esc-kyc-column is-new-verified">
+          <div class="esc-kyc-column-title">
+            <span>🟢 NEW VERIFIED ACCOUNT</span>
+          </div>
+          <div class="esc-kyc-row">
+            <span class="esc-kyc-row-label">ID:</span>
+            <span class="esc-kyc-row-val" id="esc-kyc-comp-new-id">${formatId(newAcct)}</span>
+          </div>
+          <div class="esc-kyc-row">
+            <span class="esc-kyc-row-label">Name:</span>
+            <span class="esc-kyc-row-val" id="esc-kyc-comp-new-name">${escapeHtml(newName.toUpperCase())}</span>
+          </div>
+          <div class="esc-kyc-row">
+            <span class="esc-kyc-row-label">Status:</span>
+            <span class="esc-kyc-row-val" id="esc-kyc-comp-new-status">${formatStatus(newAcct && newAcct.kycVerified, true)}</span>
+          </div>
+          <div class="esc-kyc-row">
+            <span class="esc-kyc-row-label">Registered:</span>
+            <span class="esc-kyc-row-val" id="esc-kyc-comp-new-reg">${escapeHtml(newReg)}</span>
+          </div>
+        </div>
+
+        <div class="esc-kyc-column is-old-duplicate">
+          <div class="esc-kyc-column-title">
+            <span>🔴 OLD DUPLICATE ACCOUNT</span>
+          </div>
+          <div class="esc-kyc-row">
+            <span class="esc-kyc-row-label">ID:</span>
+            <span class="esc-kyc-row-val" id="esc-kyc-comp-old-id">${formatId(oldAcct)}</span>
+          </div>
+          <div class="esc-kyc-row">
+            <span class="esc-kyc-row-label">Name:</span>
+            <span class="esc-kyc-row-val" id="esc-kyc-comp-old-name">${escapeHtml(oldName.toUpperCase())}</span>
+          </div>
+          <div class="esc-kyc-row">
+            <span class="esc-kyc-row-label">Status:</span>
+            <span class="esc-kyc-row-val" id="esc-kyc-comp-old-status">${formatStatus(oldAcct && oldAcct.kycVerified, false)}</span>
+          </div>
+          <div class="esc-kyc-row">
+            <span class="esc-kyc-row-label">Registered:</span>
+            <span class="esc-kyc-row-val" id="esc-kyc-comp-old-reg">${escapeHtml(oldReg)}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   function stripNoteTimestamp(text) {
     return String(text || "")
       .replace(/\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|\s*UTC)?/gi, " ")
@@ -4431,6 +4552,9 @@
               <span id="esc-summary-display-cid" style="font-weight:700; color:#a7f3d0;">${escapeHtml(enteredCid || '(Not entered)')}</span>
             </div>` : "");
 
+    const initialPair = isKycSwitch ? resolveKycPairAccounts(activePlayer, kycSibling, enteredVerifiedUid, selectedNoteChoice) : null;
+    const kycComparatorHtml = isKycSwitch && initialPair ? renderKycComparatorHtml(initialPair.newAcct, initialPair.oldAcct) : "";
+
     overlay.innerHTML = `
       <div class="esc-popover-backdrop" aria-hidden="true"></div>
       <div class="esc-modal esc-confirm-modal" role="dialog" aria-modal="true" aria-label="Confirm Escalation">
@@ -4464,6 +4588,8 @@
           ${cidFieldHtml}
 
           ${kycVerifiedHtml}
+
+          ${kycComparatorHtml}
 
           <div class="esc-player-summary">
             <div class="esc-summary-item">
@@ -4640,6 +4766,17 @@
         } else {
           userIdStatus.textContent = "⚠️ Enter or paste client User ID below";
           userIdStatus.style.color = "#f59e0b";
+        }
+      }
+
+      if (isKycSwitch) {
+        const pair = resolveKycPairAccounts(activePlayer, kycSibling, enteredVerifiedUid, selectedNoteChoice);
+        const compEl = overlay.querySelector("#esc-kyc-comparator");
+        if (compEl && pair) {
+          const temp = document.createElement("div");
+          temp.innerHTML = renderKycComparatorHtml(pair.newAcct, pair.oldAcct);
+          const newComp = temp.firstElementChild;
+          if (newComp) compEl.replaceWith(newComp);
         }
       }
 
