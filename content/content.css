@@ -1936,44 +1936,71 @@ body.esc-modal-scroll-lock {
 .esc-pagcor-badge {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 5px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   padding: 2px 8px;
-  border-radius: 9999px;
-  margin-left: 6px;
+  border-radius: 4px;
   vertical-align: middle;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.2px;
   white-space: nowrap;
   line-height: 1.35;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.esc-pagcor-badge .esc-age-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
 }
 
 .esc-pagcor-badge.is-minor {
-  background: rgba(239, 68, 68, 0.18);
+  background: rgba(239, 68, 68, 0.16);
   color: #fca5a5;
-  border: 1px solid rgba(239, 68, 68, 0.55);
-  box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+  border: 1px solid rgba(239, 68, 68, 0.45);
+}
+.esc-pagcor-badge.is-minor .esc-age-dot {
+  background: #ef4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.85);
+  animation: escPulseMinor 1.6s infinite ease-in-out;
+}
+
+@keyframes escPulseMinor {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
 }
 
 .esc-pagcor-badge.is-pagcor-restricted {
-  background: rgba(245, 158, 11, 0.18);
-  color: #fde047;
-  border: 1px solid rgba(245, 158, 11, 0.55);
-  box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+  background: rgba(245, 158, 11, 0.16);
+  color: #fcd34d;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+}
+.esc-pagcor-badge.is-pagcor-restricted .esc-age-dot {
+  background: #f59e0b;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.8);
 }
 
 .esc-pagcor-badge.is-legal {
-  background: rgba(16, 185, 129, 0.18);
-  color: #86efac;
-  border: 1px solid rgba(16, 185, 129, 0.55);
+  background: rgba(16, 185, 129, 0.14);
+  color: #6ee7b7;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+.esc-pagcor-badge.is-legal .esc-age-dot {
+  background: #10b981;
+  box-shadow: 0 0 5px rgba(16, 185, 129, 0.7);
 }
 
 .esc-pagcor-badge.is-empty {
-  background: rgba(148, 163, 184, 0.12);
+  background: #1e293b;
   color: #94a3b8;
-  border: 1px solid rgba(148, 163, 184, 0.25);
-  font-weight: 600;
-  opacity: 0.85;
+  border: 1px solid #334155;
+  font-weight: 500;
+}
+.esc-pagcor-badge.is-empty .esc-age-dot {
+  background: #64748b;
 }
 
 /* ==========================================================================

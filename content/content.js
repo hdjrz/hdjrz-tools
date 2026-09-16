@@ -55,7 +55,7 @@
   let licenseRole = "";
   const SCRIPT_VERSION = (typeof GM_info !== "undefined" && GM_info && GM_info.script && GM_info.script.version)
     || (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.getManifest && chrome.runtime.getManifest() && chrome.runtime.getManifest().version)
-    || "1.2.6";
+    || "1.2.7";
   const LICENSE_ACTIVATE_URL = "https://hdjrz-license.rosechel05.workers.dev/";
 
   const safeEsc = (s) => String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -80,9 +80,23 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.2.7",
+      title: "Professional Enterprise Compliance Badge",
+      date: "Latest",
+      agentFeatures: [
+        "🛡️ Sleek Enterprise Age Badge: Replaced the casual birthday emoji with a sleek, minimalist status dot badge styled to match the dark dock perfectly.",
+        "🟢 Compliance States: Displays clean professional tags: 'Legal (25)', 'Restricted (19)', and 'Minor (16)'.",
+        "⚡ Integrated Height & Alignment: Custom rectangular radius (4px) matches 'No Player Detected' seamlessly."
+      ],
+      adminFeatures: [
+        "🎯 Modernized Compliance UI: Elevates toolbar aesthetics for high-profile audits and operations.",
+        "🔄 Automated Version Sync: Cloudflare dynamically syncs GitHub releases without manual deployment."
+      ]
+    },
+    {
       version: "1.2.6",
       title: "Live Player Legal Age Evaluation Badge on Dock",
-      date: "Latest",
+      date: "Previous",
       agentFeatures: [
         "🎂 Live Player Age Badge: Instant compliance evaluation displayed directly beside 'No Player Detected' on the toolbar.",
         "🟢 Automatic Evaluation: Real-time visual tagging for 🟢 Legal (21+), 🟠 Restricted (18–20), or 🔴 Minor (<18) as soon as player info loads.",
@@ -1470,9 +1484,10 @@
       return {
         age,
         status: "Minor (< 18)",
+        bracketLabel: "Minor",
         badgeClass: "is-minor",
         badgeIcon: "🔴",
-        badgeText: `🔴 Minor (${age})`,
+        badgeText: `Minor (${age})`,
         bracket: "Minor (< 18)",
         noteText: `${age} (Minor < 18)`
       };
@@ -1480,9 +1495,10 @@
       return {
         age,
         status: "PAGCOR Restricted (18 to 20)",
+        bracketLabel: "Restricted",
         badgeClass: "is-pagcor-restricted",
         badgeIcon: "🟠",
-        badgeText: `🟠 PAGCOR Restricted (${age})`,
+        badgeText: `Restricted (${age})`,
         bracket: "PAGCOR Restricted (18 to 20)",
         noteText: `${age} (PAGCOR Restricted 18-20)`
       };
@@ -1490,9 +1506,10 @@
       return {
         age,
         status: "Legal (21+)",
+        bracketLabel: "Legal",
         badgeClass: "is-legal",
         badgeIcon: "🟢",
-        badgeText: `🟢 Legal (${age})`,
+        badgeText: `Legal (${age})`,
         bracket: "Legal (21+)",
         noteText: `${age} (Legal 21+)`
       };
@@ -3576,7 +3593,7 @@
             <span class="esc-brand-version" id="esc-brand-version" title="Installed Script Version">v${safeEsc(SCRIPT_VERSION)}</span>
           </span>
           <span class="esc-player-badge empty" id="esc-player-status">Searching player...</span>
-          <span class="esc-pagcor-badge is-empty" id="esc-player-age-badge" title="Player age verification">🎂 Age: —</span>
+          <span class="esc-pagcor-badge is-empty" id="esc-player-age-badge" title="Player compliance & age verification"><span class="esc-age-dot"></span><span class="esc-age-text">Age: —</span></span>
         </div>
         <div class="esc-header-controls">
           <button type="button" class="esc-icon-btn" id="esc-btn-refresh" title="Re-scan current player">
@@ -3734,12 +3751,17 @@
         const ageInfo = dob ? getPagcorAgeInfo(dob) : null;
         if (ageInfo) {
           ageBadge.className = `esc-pagcor-badge ${ageInfo.badgeClass}`;
-          ageBadge.innerHTML = compact ? `${ageInfo.badgeIcon} ${ageInfo.age}` : `${ageInfo.badgeIcon} ${escapeHtml(ageInfo.status)}`;
+          const displayStatus = ageInfo.age ? `${ageInfo.bracketLabel} (${ageInfo.age})` : ageInfo.status;
+          ageBadge.innerHTML = compact 
+            ? `<span class="esc-age-dot"></span><span>${ageInfo.age || "—"}</span>` 
+            : `<span class="esc-age-dot"></span><span>${escapeHtml(displayStatus)}</span>`;
           ageBadge.title = `Legal Age Evaluation: ${ageInfo.status} (DOB: ${dob})`;
           ageBadge.style.display = "inline-flex";
         } else {
           ageBadge.className = "esc-pagcor-badge is-empty";
-          ageBadge.innerHTML = compact ? "🎂 —" : "🎂 Age: N/A";
+          ageBadge.innerHTML = compact 
+            ? `<span class="esc-age-dot"></span><span>—</span>` 
+            : `<span class="esc-age-dot"></span><span>Age: N/A</span>`;
           ageBadge.title = "Player detected, but Date of Birth is not visible on current screen";
           ageBadge.style.display = "inline-flex";
         }
@@ -3751,7 +3773,9 @@
 
       if (ageBadge) {
         ageBadge.className = "esc-pagcor-badge is-empty";
-        ageBadge.innerHTML = compact ? "🎂 —" : "🎂 Age: —";
+        ageBadge.innerHTML = compact 
+          ? `<span class="esc-age-dot"></span><span>—</span>` 
+          : `<span class="esc-age-dot"></span><span>Age: —</span>`;
         ageBadge.title = "No player detected on current screen";
         ageBadge.style.display = "inline-flex";
       }
