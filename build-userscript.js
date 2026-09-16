@@ -392,72 +392,11 @@ if (shouldObfuscate) {
   }
 }
 
-const bootstrapperStart = `
-/* --- In-Place Self-Updating Dynamic Bootstrapper --- */
-(function() {
-  var BUILTIN_VERSION = "${version}";
-  var cachedBundle = null;
-  var cachedVer = null;
-
-  if (typeof GM_getValue === "function") {
-    try {
-      cachedBundle = GM_getValue("HDJRZ_DYNAMIC_BUNDLE");
-      cachedVer = GM_getValue("HDJRZ_DYNAMIC_VERSION");
-    } catch(e) {}
-  }
-  if (!cachedBundle) {
-    try {
-      cachedBundle = localStorage.getItem("hdjrz_dynamic_bundle");
-      cachedVer = localStorage.getItem("hdjrz_dynamic_version");
-    } catch(e) {}
-  }
-
-  function parseSemver(v) {
-    var parts = String(v || "").replace(/[^0-9.]/g, "").split(".").map(function(n) { return parseInt(n, 10) || 0; });
-    while (parts.length < 3) parts.push(0);
-    return parts;
-  }
-  function isVersionBelow(aStr, bStr) {
-    if (!aStr || !bStr) return false;
-    var a = parseSemver(aStr);
-    var b = parseSemver(bStr);
-    for (var i = 0; i < 3; i++) {
-      if (a[i] < b[i]) return true;
-      if (a[i] > b[i]) return false;
-    }
-    return false;
-  }
-
-  // If a newer cached bundle exists than this file's builtin version, execute it and return!
-  if (cachedBundle && cachedVer && isVersionBelow(BUILTIN_VERSION, cachedVer)) {
-    try {
-      console.log("%c[hdjrzTools] Running in-place updated bundle v" + cachedVer + " (base v" + BUILTIN_VERSION + ")", "background: #059669; color: #fff; font-weight: bold; padding: 2px 6px; border-radius: 3px;");
-      (new Function(cachedBundle))();
-      return;
-    } catch (err) {
-      console.error("[hdjrzTools] Failed to execute updated bundle, falling back to base version:", err);
-      try {
-        if (typeof GM_deleteValue === "function") {
-          GM_deleteValue("HDJRZ_DYNAMIC_BUNDLE");
-          GM_deleteValue("HDJRZ_DYNAMIC_VERSION");
-        }
-        localStorage.removeItem("hdjrz_dynamic_bundle");
-        localStorage.removeItem("hdjrz_dynamic_version");
-      } catch(e) {}
-    }
-  }
-
-  // Execute base code:
-`;
-
-const bootstrapperEnd = `
-})();
-`;
-
-const fullBundle = userscriptHeader + '\n' + bootstrapperStart + '\n' + finalCode + '\n' + bootstrapperEnd;
+const fullBundle = userscriptHeader + '\n' + finalCode;
 
 console.log('Writing userscript to ' + outputPath + '...');
 fs.writeFileSync(outputPath, fullBundle, 'utf8');
 
 console.log('✅ Build successful: hdjrzTools.user.js created (' + Math.round(fullBundle.length / 1024) + ' KB)');
+
 

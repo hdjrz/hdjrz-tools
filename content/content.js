@@ -7,7 +7,15 @@
 (function () {
   if (window.__ESCALATION_HELPER_LOADED__) return;
   window.__ESCALATION_HELPER_LOADED__ = true;
-  try { sessionStorage.removeItem("esc_update_initiated"); } catch (e) {}
+  try {
+    sessionStorage.removeItem("esc_update_initiated");
+    if (typeof GM_deleteValue === "function") {
+      GM_deleteValue("HDJRZ_DYNAMIC_BUNDLE");
+      GM_deleteValue("HDJRZ_DYNAMIC_VERSION");
+    }
+    localStorage.removeItem("hdjrz_dynamic_bundle");
+    localStorage.removeItem("hdjrz_dynamic_version");
+  } catch (e) {}
 
   const FALLBACK_ESCALATION_OPTIONS = [
     { code: "ACR", label: "ACR", meaning: "Account Closure Request", description: "Player requested to close/disable their account voluntarily.", group: "Account Closure", color: "#2563eb", chip: { text: "", color: "#dc2626" }, defaultReason: "Losing player", template: "{code} / {cid} / {reason}" },
@@ -23,30 +31,28 @@
     { code: "KYC SWITCH", label: "KYC SWITCH", meaning: "KYC Verification Switch", description: "Switching player's verification method (e.g. from SMS OTP to Manual or email).", group: "KYC & Verification", color: "#0891b2", chip: { text: "", color: "#0d9488" }, defaultReason: "Switch verification channel requested", template: "{code} / {cid} / {reason}" },
     { code: "GLIFE.1", label: "GLIFE.1", meaning: "GLife Escalation Tier 1", description: "First-level escalation for GCash GLife mini-app transactions or sync issues.", group: "GLife Partner", color: "#0d9488", chip: { text: "", color: "#dc2626" }, defaultReason: "GLife mini-app sync issue / Tier 1 inquiry", template: "{code} / {cid} / {reason}" },
     { code: "GLIFE.2", label: "GLIFE.2", meaning: "GLife Escalation Tier 2", description: "High-priority / urgent escalation for GLife payment failures or account locks.", group: "GLife Partner", color: "#115e59", chip: { text: "", color: "#dc2626" }, defaultReason: "GLife Tier 2 high-priority escalation", template: "{code} / {cid} / {reason}" },
-    { code: "ABUSER", label: "ABUSER", meaning: "Bonus / Promo Abuse Flag", description: "System or manual flag for exploiting promotions, multi-accounting, or fraud.", group: "Risk & Compliance", color: "#334155", chip: { text: "", color: "#dc2626" }, defaultReason: "Bonus / Promotional abuse flagged", template: "{code} / {cid} / {reason}" }
+    { code: "ABUSER", label: "ABUSER", meaning: "Bonus / Promo Abuse Flag", description: "System or manual flag for exploiting promotions, multi-accounting, or fraud.", group: "Risk & Compliance", color: "#334155", chip: { text: "", color: "#dc2626" }, defaultReason: "Bonus / Promotional abuse flagged", template: "{code} / {cid} / {reason}" },
+    { code: "DISCONNECT", label: "DISCONNECT", meaning: "Disconnect / Session Kill Request", description: "Request to terminate active game or provider session due to freeze or sync error.", group: "Technical & Game", color: "#475569", chip: { text: "", color: "#dc2626" }, defaultReason: "Session freeze / Disconnect requested", template: "{code} / {cid} / {reason}" }
   ];
 
-  const DEFAULT_FALLBACK_SETTINGS = {
-    agentName: "",
-    zoomUrl: "zoomus://",
-    autoOpenZoom: true,
-    autoPinNote: true,
-    autoCopyClipboard: true,
-    usersListUrl: "https://nano-admin.bet88.ph/users",
-    autoReturnToUsers: true,
+  let currentSettings = {
+    quickSelectMode: "click",
+    closeOnCopy: false,
+    autoCloseTimeout: 0,
+    toastDuration: 2.5,
     autoFindAndView: false,
-    barLayout: "horizontal",
-    soundFeedback: true,
+    dockPosition: "middle-right",
+    dockOrientation: "horizontal",
+    dockMinimized: false,
     customTemplates: {},
     customOptions: null,
-    notesWordingVersion: 0,
-    remoteTemplatesVersion: 0
+    remoteTemplatesVersion: 0,
+    theme: "dark"
   };
 
-  let currentSettings = {
-    ...DEFAULT_FALLBACK_SETTINGS,
-    ...((typeof window !== "undefined" && window.DefaultEscalationSettings) || (typeof globalThis !== "undefined" && globalThis.DefaultEscalationSettings) || {})
-  };
+  let workingOptions = [];
+  let optionToEditIndex = null;
+  let optionToDeleteIndex = null;
   let detectedPlayer = null;
   let activeModal = null;
   let dockElement = null;
@@ -75,7 +81,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.3.2";
+  const HARDCODED_VERSION = "1.3.3";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -95,9 +101,22 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.3.3",
+      title: "Direct Userscript Stability & Instant Tool Boot",
+      date: "Latest",
+      agentFeatures: [
+        "🛡️ Rock-Solid Execution: Direct native execution in Tampermonkey with zero storage conflicts.",
+        "⚡ 1-Click Native Installer: Instantly triggers official Tampermonkey update screen with full permissions.",
+        "🧹 Auto Cache Cleanup: Automatically purges any legacy corrupted storage cache on boot."
+      ],
+      adminFeatures: [
+        "🚀 Automated CI/CD Sync: GitHub Actions immediately publishes release metadata directly to Cloudflare Workers upon push."
+      ]
+    },
+    {
       version: "1.3.2",
       title: "Flawless Hot-Boot In-Place OTA Updater",
-      date: "Latest",
+      date: "Previous",
       agentFeatures: [
         "⚡ Zero-Friction Auto Update: In-tool 1-click update now seamlessly reboots with new features immediately on tab reload.",
         "🛡️ Self-Healing Bootstrapper: Robust fallback mechanism prevents any script load failure or missing dock."
@@ -771,55 +790,17 @@
 
   function performInToolUpdate(targetVersion, updateUrl, onStatusUpdate) {
     if (typeof onStatusUpdate === "function") {
-      onStatusUpdate(`⏳ Downloading v${safeEsc(targetVersion)}...`, false, false);
+      onStatusUpdate(`🚀 Opening installer (v${safeEsc(targetVersion)})...`, true, false);
     }
-
-    const url = (updateUrl || "https://hdjrz-license.rosechel05.workers.dev/script.user.js") + "?ts=" + Date.now();
-    sendWorkerRequest({ url: url, method: "GET" }, (err, responseText) => {
-      if (err || !responseText || !responseText.includes("hdjrzTools")) {
-        if (typeof onStatusUpdate === "function") {
-          onStatusUpdate("⚠️ Direct update failed, opening tab...", false, true);
-        }
-        setTimeout(() => {
-          window.open(updateUrl, "_blank", "noopener,noreferrer");
-        }, 800);
-        return;
+    const url = updateUrl || "https://hdjrz-license.rosechel05.workers.dev/script.user.js";
+    try {
+      if (typeof sessionStorage !== "undefined") {
+        sessionStorage.setItem("esc_dismissed_update_ver", String(targetVersion));
       }
-
-      const cleanCode = String(responseText)
-        .replace(/\/\/\s*==UserScript==[\s\S]*?\/\/\s*==\/UserScript==/, "")
-        .trim();
-
-      try {
-        const verStr = String(targetVersion || "").trim() || "1.3.1";
-        if (typeof GM_setValue === "function") {
-          GM_setValue("HDJRZ_DYNAMIC_BUNDLE", cleanCode);
-          GM_setValue("HDJRZ_DYNAMIC_VERSION", verStr);
-        }
-        try {
-          localStorage.setItem("hdjrz_dynamic_bundle", cleanCode);
-          localStorage.setItem("hdjrz_dynamic_version", verStr);
-        } catch (e) {}
-
-        if (typeof onStatusUpdate === "function") {
-          onStatusUpdate(`✅ Updated to v${safeEsc(targetVersion)}! Reloading...`, true, false);
-        }
-
-        try {
-          if (typeof sessionStorage !== "undefined") {
-            sessionStorage.setItem("esc_just_updated", String(targetVersion));
-            sessionStorage.setItem("esc_dismissed_update_ver", String(targetVersion));
-          }
-        } catch (e) {}
-
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
-      } catch (saveErr) {
-        console.error("[hdjrzTools] Dynamic update save error:", saveErr);
-        window.open(updateUrl, "_blank", "noopener,noreferrer");
-      }
-    });
+    } catch (e) {}
+    setTimeout(() => {
+      window.open(url, "_blank");
+    }, 400);
   }
 
   function renderSettingsUpdateControls() {
