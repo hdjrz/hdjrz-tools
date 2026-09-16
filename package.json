@@ -1,6 +1,6 @@
 {
   "name": "hdjrz-tools",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "description": "Streamlines player escalations: extracts player info, formats User Notes, pins them, copies to clipboard, and opens Zoom workspace.",
   "main": "hdjrzTools.user.js",
   "scripts": {
