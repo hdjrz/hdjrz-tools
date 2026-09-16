@@ -53,9 +53,10 @@
   let lastModalOriginX = typeof window !== "undefined" ? window.innerWidth / 2 : 0;
   let lastModalOriginY = typeof window !== "undefined" ? window.innerHeight / 2 : 0;
   let licenseRole = "";
+  let lastKnownActiveUsers = [];
   const SCRIPT_VERSION = (typeof GM_info !== "undefined" && GM_info && GM_info.script && GM_info.script.version)
     || (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.getManifest && chrome.runtime.getManifest() && chrome.runtime.getManifest().version)
-    || "1.2.8";
+    || "1.2.9";
   const LICENSE_ACTIVATE_URL = "https://hdjrz-license.rosechel05.workers.dev/";
 
   const safeEsc = (s) => String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -80,9 +81,25 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.2.9",
+      title: "Private Web Admin Portal & Active Users",
+      date: "Latest",
+      agentFeatures: [
+        "👥 Seamless Online Sync: Background telemetry tracks active agent sessions reliably with zero lag.",
+        "⚡ Instant Device Unlocking: Admin can reset device binding in 1 click so agents can switch PC/laptop without lockout."
+      ],
+      adminFeatures: [
+        "🌐 Private Web Admin Portal: Standalone web portal at /admin protected by Master Admin Password.",
+        "➕ Generate License Keys: Create Admin or Guest keys with format HDJRZ-GUEST-xxxx-xxxx in 1 click.",
+        "🔄 1-Click Device Binding Reset: Instantly unlocks keys when agents change PCs.",
+        "🚫 Revoke / Freeze Keys: Instantly deactivate delinquent or terminated users.",
+        "📋 In-Settings Active Users: Simple clean view of who is currently logged in directly within Extension Settings."
+      ]
+    },
+    {
       version: "1.2.8",
       title: "Side-by-Side Account Comparator Modal",
-      date: "Latest",
+      date: "Previous",
       agentFeatures: [
         "👥 Side-by-Side Account Comparator: Instant visual comparison between New Verified and Old Duplicate accounts inside the KYC Switch confirmation modal.",
         "📊 Live Attribute Sync: Displays ID, Name, Verification Status, and Registration Date side-by-side with real-time editing.",
@@ -1053,6 +1070,15 @@
         }
 
         console.log(`[hdjrzTools] Policy Heartbeat (Installed: v${SCRIPT_VERSION}):`, json);
+        if (Array.isArray(json.activeUsers)) {
+          lastKnownActiveUsers = json.activeUsers;
+          const userCountEl = document.getElementById("esc-active-users-count");
+          if (userCountEl) userCountEl.textContent = String(lastKnownActiveUsers.length);
+          const userListEl = document.getElementById("esc-active-users-list");
+          if (userListEl && typeof renderActiveUsersListHtml === "function") {
+            userListEl.innerHTML = renderActiveUsersListHtml();
+          }
+        }
         if (json.blocked) {
           if (json.reason === "outdated_version") {
             setLatestServerVersion(json);
@@ -5076,6 +5102,23 @@
     });
   }
 
+  function renderActiveUsersListHtml() {
+    if (!Array.isArray(lastKnownActiveUsers) || lastKnownActiveUsers.length === 0) {
+      return `<div style="color: #64748b; font-size: 11px; font-style: italic; padding: 4px 0;">No active agents detected</div>`;
+    }
+    return lastKnownActiveUsers.map(u => {
+      const name = safeEsc(u.agent || "Agent");
+      const ver = safeEsc(u.version || "1.0.0");
+      return `<div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); padding: 4px 8px; border-radius: 4px; margin-bottom: 3px;">
+        <span style="display: inline-flex; align-items: center; gap: 6px; color: #f1f5f9; font-weight: 500; font-size: 11px;">
+          <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #10b981; box-shadow: 0 0 6px #10b981;"></span>
+          ${name}
+        </span>
+        <span style="font-size: 10px; color: #64748b; font-family: ui-monospace, monospace;">v${ver}</span>
+      </div>`;
+    }).join("");
+  }
+
   /**
    * In-Page Settings Modal (triggered from gear icon on the bar)
    * Includes full Add Option, Remove Option, and "Reason when clicked" customization.
@@ -5172,6 +5215,19 @@
               <input type="checkbox" id="esc-set-return" ${currentSettings.autoReturnToUsers !== false ? "checked" : ""}>
               <span>Return to Users list</span>
             </label>
+            <div class="esc-admin-active-users-card" style="margin-top: 10px; margin-bottom: 6px; padding: 8px 10px; background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 6px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                <span style="font-size: 11px; font-weight: 700; color: #38bdf8; display: inline-flex; align-items: center; gap: 5px;">
+                  📋 Active Users Online <span id="esc-active-users-count" style="background: rgba(56, 189, 248, 0.2); padding: 1px 6px; border-radius: 10px; font-size: 10px; color: #7dd3fc;">${Array.isArray(lastKnownActiveUsers) ? lastKnownActiveUsers.length : 0}</span>
+                </span>
+                <a href="https://hdjrz-license.rosechel05.workers.dev/admin" target="_blank" rel="noopener noreferrer" style="font-size: 10px; color: #38bdf8; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 2px;">
+                  Admin Portal ↗
+                </a>
+              </div>
+              <div id="esc-active-users-list" style="max-height: 80px; overflow-y: auto; display: flex; flex-direction: column;">
+                ${renderActiveUsersListHtml()}
+              </div>
+            </div>
             `}
             <button type="button" class="esc-btn-small esc-btn-audit" id="esc-btn-audit">Audit</button>
           </div>
@@ -5207,6 +5263,9 @@
     activeModal = overlay;
     playModalOpen(overlay);
     renderSettingsUpdateControls();
+    if (!staffView) {
+      fetchRemoteTemplates(() => {});
+    }
 
     function insertChipsHtml(targetId) {
       return `
