@@ -35,6 +35,7 @@
     autoReturnToUsers: true,
     autoFindAndView: false,
     barLayout: "horizontal",
+    soundFeedback: true,
     customTemplates: {},
     customOptions: null,
     notesWordingVersion: 0,
@@ -54,7 +55,7 @@
   let licenseRole = "";
   const SCRIPT_VERSION = (typeof GM_info !== "undefined" && GM_info && GM_info.script && GM_info.script.version)
     || (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.getManifest && chrome.runtime.getManifest() && chrome.runtime.getManifest().version)
-    || "1.1.9";
+    || "1.2.0";
   const LICENSE_ACTIVATE_URL = "https://hdjrz-license.rosechel05.workers.dev/";
 
   function isLicensed() {
@@ -1299,6 +1300,7 @@
         autoReturnToUsers: currentSettings.autoReturnToUsers,
         autoFindAndView: currentSettings.autoFindAndView,
         barLayout: currentSettings.barLayout === "vertical" ? "vertical" : "horizontal",
+        soundFeedback: currentSettings.soundFeedback !== false,
         notesWordingVersion: currentSettings.notesWordingVersion || 0,
         remoteTemplatesVersion: currentSettings.remoteTemplatesVersion || 0
       },
@@ -2734,6 +2736,75 @@
     }, 60);
   }
 
+  let audioCtx = null;
+  function playSuccessChime() {
+    if (currentSettings.soundFeedback === false) return;
+    try {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return;
+      if (!audioCtx || audioCtx.state === "closed") {
+        audioCtx = new AudioContextClass();
+      }
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+
+      const now = audioCtx.currentTime;
+
+      // Note 1: 587.33 Hz (D5) - gentle melodic bell onset
+      const osc1 = audioCtx.createOscillator();
+      const gain1 = audioCtx.createGain();
+      osc1.type = "sine";
+      osc1.frequency.setValueAtTime(587.33, now);
+
+      gain1.gain.setValueAtTime(0.0001, now);
+      gain1.gain.linearRampToValueAtTime(0.12, now + 0.015);
+      gain1.gain.exponentialRampToValueAtTime(0.0001, now + 0.28);
+
+      osc1.connect(gain1);
+      gain1.connect(audioCtx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.3);
+
+      // Note 2: 880 Hz (A5) - sweet, uplifting harmonic sparkle (delayed 70ms)
+      const osc2 = audioCtx.createOscillator();
+      const gain2 = audioCtx.createGain();
+      osc2.type = "sine";
+      osc2.frequency.setValueAtTime(880, now + 0.07);
+
+      gain2.gain.setValueAtTime(0.0001, now + 0.07);
+      gain2.gain.linearRampToValueAtTime(0.15, now + 0.085);
+      gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.48);
+
+      osc2.connect(gain2);
+      gain2.connect(audioCtx.destination);
+      osc2.start(now + 0.07);
+      osc2.stop(now + 0.5);
+    } catch (e) {
+      console.warn("[hdjrzTools] Audio chime error:", e);
+    }
+  }
+
+  function triggerSuccessRipple() {
+    if (currentSettings.soundFeedback === false) return;
+    try {
+      const existing = document.querySelector(".esc-success-ripple");
+      if (existing) existing.remove();
+      const ripple = document.createElement("div");
+      ripple.className = "esc-success-ripple";
+      document.body.appendChild(ripple);
+      setTimeout(() => {
+        try { ripple.remove(); } catch (e) {}
+      }, 750);
+    } catch (e) {}
+  }
+
+  function notifyEscalationSuccess(force = false) {
+    if (!force && currentSettings.soundFeedback === false) return;
+    playSuccessChime();
+    triggerSuccessRipple();
+  }
+
   /**
    * Display a sleek toast notification (compact or rich template card)
    */
@@ -2741,8 +2812,12 @@
     const existing = document.querySelector(".esc-toast");
     if (existing) existing.remove();
 
+    if (isSuccess && (templateText || String(message).includes("Copied") || String(message).includes("User Notes") || String(message).includes("Success"))) {
+      notifyEscalationSuccess();
+    }
+
     const toast = document.createElement("div");
-    toast.className = templateText ? "esc-toast esc-toast-card" : "esc-toast";
+    toast.className = templateText ? "esc-toast esc-toast-card is-success-animated" : "esc-toast";
     if (!isSuccess) toast.style.borderLeftColor = "#f59e0b";
 
     let dismissTimeout = null;
@@ -4301,6 +4376,13 @@
               <input type="checkbox" id="esc-set-copy" ${currentSettings.autoCopyClipboard !== false ? "checked" : ""}>
               <span>Copy Zoom text to clipboard</span>
             </label>
+            <label class="esc-checkbox-label" style="display: flex; align-items: center; justify-content: space-between;">
+              <span style="display: inline-flex; align-items: center; gap: 6px;">
+                <input type="checkbox" id="esc-set-sound" ${currentSettings.soundFeedback !== false ? "checked" : ""}>
+                <span>🔔 Success Chime &amp; Green Ripple</span>
+              </span>
+              <button type="button" class="esc-btn-test-chime" id="esc-test-chime" title="Test Success Chime & Ripple">🔊 Test</button>
+            </label>
             ${staffView ? "" : `
             <label class="esc-checkbox-label">
               <input type="checkbox" id="esc-set-return" ${currentSettings.autoReturnToUsers !== false ? "checked" : ""}>
@@ -4963,7 +5045,17 @@
       setCheck("#esc-set-open-zoom", currentSettings.autoOpenZoom !== false);
       setCheck("#esc-set-pin-note", currentSettings.autoPinNote !== false);
       setCheck("#esc-set-copy", currentSettings.autoCopyClipboard !== false);
+      setCheck("#esc-set-sound", currentSettings.soundFeedback !== false);
       setCheck("#esc-set-return", currentSettings.autoReturnToUsers !== false);
+    }
+
+    const testChimeBtn = overlay.querySelector("#esc-test-chime");
+    if (testChimeBtn) {
+      testChimeBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        notifyEscalationSuccess(true);
+      });
     }
 
     const exportBtn = overlay.querySelector("#esc-settings-export");
@@ -5109,6 +5201,7 @@
         autoCopyClipboard: !!(overlay.querySelector("#esc-set-copy") && overlay.querySelector("#esc-set-copy").checked),
         autoPinNote: !!(overlay.querySelector("#esc-set-pin-note") && overlay.querySelector("#esc-set-pin-note").checked),
         autoOpenZoom: !!(overlay.querySelector("#esc-set-open-zoom") && overlay.querySelector("#esc-set-open-zoom").checked),
+        soundFeedback: !!(overlay.querySelector("#esc-set-sound") && overlay.querySelector("#esc-set-sound").checked),
         autoReturnToUsers: isAdminLicense()
           ? !!(overlay.querySelector("#esc-set-return") && overlay.querySelector("#esc-set-return").checked)
           : (currentSettings.autoReturnToUsers !== false),

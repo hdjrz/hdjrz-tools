@@ -353,3 +353,27 @@ Under Settings (gear) — **one screen**:
   - Any other sibling tabs that are currently locked out receive the broadcast and automatically reload themselves with zero user intervention!
 - **Success Toast**:
   - On first boot after update, displays a celebratory toast: `🎉 Successfully updated to v{SCRIPT_VERSION}!`.
+
+---
+
+## 13. Audio / Visual Haptic Chime on Success (v1.2.0)
+
+### 13.1 Feature Overview
+- **Why Agents Love It**: Provides instant auditory and visual confirmation during fast-paced multitasking shifts.
+- **Triggers**:
+  - ✅ **User Note safely pinned** into Nano admin.
+  - ✅ **Zoom escalation tracker copied** to clipboard.
+  - ✅ Clicking **"🔊 Test"** in Settings.
+- **Auditory Feedback (`playSuccessChime`)**:
+  - Synthesized via Web Audio API (`AudioContext`).
+  - Zero external media assets, zero CDN latency, works completely offline.
+  - Harmonically tuned dual-sine chime: 587.33 Hz (D5) transitioning to 880 Hz (A5) with smooth exponential decay.
+  - Soft, modern, non-fatiguing volume envelope (peak 0.15 gain).
+- **Visual Feedback (`triggerSuccessRipple`)**:
+  - Subtilt green edge ripple vignette (`.esc-success-ripple`) that pulses outward over 650ms.
+  - Toast entry pop animation (`.is-success-animated`) highlighting the green checkmark.
+- **Settings Toggle & Testing**:
+  - Setting: `currentSettings.soundFeedback` (default `true`).
+  - Checkbox in Settings modal: `🔔 Success Chime & Green Ripple`.
+  - Dedicated `🔊 Test` button next to the checkbox for instant auditioning.
+

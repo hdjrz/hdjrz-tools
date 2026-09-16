@@ -648,6 +648,7 @@ const DEFAULT_SETTINGS = {
   autoReturnToUsers: true,
   autoFindAndView: false,
   barLayout: "horizontal",
+  soundFeedback: true,
   customTemplates: {},
   customOptions: null,
   notesWordingVersion: 0,
