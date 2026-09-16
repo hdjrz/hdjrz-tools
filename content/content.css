@@ -1889,3 +1889,28 @@ body.esc-modal-scroll-lock {
   from { transform: translateY(8px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
+
+/* =========================================================
+   Sync Button & Animation
+   ========================================================= */
+.esc-btn-sync {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.esc-sync-icon {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.esc-sync-icon.is-spinning {
+  animation: escSpin 0.75s linear infinite;
+}
+
+@keyframes escSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

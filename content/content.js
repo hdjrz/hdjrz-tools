@@ -37,7 +37,8 @@
     barLayout: "horizontal",
     customTemplates: {},
     customOptions: null,
-    notesWordingVersion: 0
+    notesWordingVersion: 0,
+    remoteTemplatesVersion: 0
   };
 
   let currentSettings = {
@@ -211,6 +212,71 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key, deviceId, action: "release" })
       }).then(() => done()).catch(() => done());
+    });
+  }
+
+  const REMOTE_CONFIG_URL = "https://hdjrz-license.rosechel05.workers.dev/config/templates";
+
+  function publishTemplatesToCloud(options, cb) {
+    const api = localStorageApi();
+    if (!api) {
+      if (cb) cb("Storage API unavailable");
+      return;
+    }
+    api.get(["hdjrzLicenseKey"], (data) => {
+      const key = (data && String(data.hdjrzLicenseKey || "").trim()) || "";
+      if (!key) {
+        if (cb) cb("No license key found");
+        return;
+      }
+      fetch(REMOTE_CONFIG_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key, options })
+      })
+      .then(res => res.json())
+      .then(json => {
+        if (json && json.ok) {
+          currentSettings.remoteTemplatesVersion = json.version;
+          saveSettings({}, null, options, () => {
+            if (cb) cb(null, json);
+          });
+        } else {
+          if (cb) cb((json && json.error) || "Publish failed");
+        }
+      })
+      .catch(err => {
+        if (cb) cb(err && err.message ? err.message : "Network error");
+      });
+    });
+  }
+
+  function fetchRemoteTemplates(cb) {
+    fetch(REMOTE_CONFIG_URL, {
+      method: "GET",
+      headers: { "Accept": "application/json" }
+    })
+    .then(res => res.json())
+    .then(json => {
+      if (!json || !json.ok || !Array.isArray(json.options)) {
+        if (cb) cb((json && json.error) ? json.error : "No remote templates");
+        return;
+      }
+      const remoteVer = json.version || 1;
+      const currentVer = currentSettings.remoteTemplatesVersion || 0;
+      if (remoteVer > currentVer) {
+        const normalized = json.options.map(normalizeEscalationOption);
+        currentSettings.remoteTemplatesVersion = remoteVer;
+        saveSettings({}, null, normalized, () => {
+          updateHorizontalDockButtons();
+          if (cb) cb(null, { updated: true, version: remoteVer });
+        });
+      } else {
+        if (cb) cb(null, { updated: false, version: currentVer });
+      }
+    })
+    .catch(err => {
+      if (cb) cb(err && err.message ? err.message : "Network error");
     });
   }
 
@@ -930,7 +996,8 @@
         autoReturnToUsers: currentSettings.autoReturnToUsers,
         autoFindAndView: currentSettings.autoFindAndView,
         barLayout: currentSettings.barLayout === "vertical" ? "vertical" : "horizontal",
-        notesWordingVersion: currentSettings.notesWordingVersion || 0
+        notesWordingVersion: currentSettings.notesWordingVersion || 0,
+        remoteTemplatesVersion: currentSettings.remoteTemplatesVersion || 0
       },
       customTemplates: currentSettings.customTemplates || {},
       customOptions: currentSettings.customOptions
@@ -996,10 +1063,25 @@
     const shouldPersist = applyBit88UserNotesToSavedOptions();
     if (shouldPersist) {
       saveSettings({}, null, currentSettings.customOptions, callback);
-      return;
+    } else if (callback) {
+      callback();
     }
-    if (callback) callback();
+    setTimeout(() => {
+      fetchRemoteTemplates((err, res) => {
+        if (!err && res && res.updated) {
+          showToast(`✨ Templates updated from cloud (v${res.version})`);
+        }
+      });
+    }, 1500);
   }
+
+  setInterval(() => {
+    fetchRemoteTemplates((err, res) => {
+      if (!err && res && res.updated) {
+        showToast(`✨ Templates updated from cloud (v${res.version})`);
+      }
+    });
+  }, 5 * 60 * 1000);
 
   function loadSettings(callback) {
     const localApi = (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) || null;
@@ -3858,6 +3940,12 @@
             <button type="button" class="esc-btn-secondary" id="esc-settings-import">Import</button>
             <input type="file" id="esc-settings-import-file" accept=".json,application/json" hidden>
             `}
+            <button type="button" class="esc-btn-secondary esc-btn-sync" id="esc-settings-sync" title="Sync with Cloud">
+              <svg class="esc-sync-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+              </svg>
+              <span>Sync</span>
+            </button>
             <button type="button" class="esc-btn-secondary" id="esc-settings-signout">Sign out</button>
           </div>
           <div class="esc-settings-footer-right">
@@ -4532,6 +4620,43 @@
 
     overlay.querySelector("#esc-settings-close").addEventListener("click", closeSettings);
     overlay.querySelector("#esc-settings-cancel").addEventListener("click", closeSettings);
+
+    const syncBtn = overlay.querySelector("#esc-settings-sync");
+    if (syncBtn) {
+      syncBtn.addEventListener("click", () => {
+        const icon = syncBtn.querySelector(".esc-sync-icon");
+        if (icon) icon.classList.add("is-spinning");
+        syncBtn.disabled = true;
+
+        if (isAdminLicense()) {
+          syncCardInputsToWorkingOptions();
+          publishTemplatesToCloud(workingOptions, (err, res) => {
+            if (icon) icon.classList.remove("is-spinning");
+            syncBtn.disabled = false;
+            if (err) {
+              showToast("Cloud sync failed: " + err);
+            } else {
+              showToast(`✨ Published to Cloud (v${res.version})! All agents synced.`);
+            }
+          });
+        } else {
+          fetchRemoteTemplates((err, res) => {
+            if (icon) icon.classList.remove("is-spinning");
+            syncBtn.disabled = false;
+            if (err) {
+              showToast("Cloud sync: " + err);
+            } else if (res && res.updated) {
+              workingOptions = JSON.parse(JSON.stringify(getActiveOptions()));
+              renderOptionsList();
+              showToast(`✨ Synced with Cloud (v${res.version})!`);
+            } else {
+              showToast("Already up to date with Cloud.");
+            }
+          });
+        }
+      });
+    }
+
     overlay.querySelector("#esc-settings-signout").addEventListener("click", () => {
       releaseLicenseOnServer(() => {
         persistLicenseRole("", () => {

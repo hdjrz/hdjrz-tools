@@ -650,7 +650,8 @@ const DEFAULT_SETTINGS = {
   barLayout: "horizontal",
   customTemplates: {},
   customOptions: null,
-  notesWordingVersion: 0
+  notesWordingVersion: 0,
+  remoteTemplatesVersion: 0
 };
 
 function ageFromDob(dobStr) {

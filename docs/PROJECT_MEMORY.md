@@ -227,3 +227,27 @@ Under Settings (gear) — **one screen**:
     1. Clicking Confirm & Execute on the New Verified player tab broadcasts a `KYC_INJECT_COMMAND` message over `hdjrz_kyc_channel` with `targetTabIds` containing the target Old Account's `publicId`/`userId`.
     2. The Old Account player tab listening on `hdjrz_kyc_channel` receives the message, matches its own `publicId`/`userId`, and injects the Old Account User Note (`The Old account: KYC switch - New account UID:(...)`) into its own DOM automatically without requiring a second confirmation modal.
 
+---
+
+## 9. Live Remote Templates & Cloud Sync Architecture
+
+### 9.1 Overview & Benefits
+- Eliminates the need to rebuild userscripts, bump version numbers, commit to git, or wait for Tampermonkey CDN caching whenever reason lists or note templates are updated.
+- Admins update wording or reasons directly in their Settings modal and click **Sync** (or it updates automatically), instantly broadcasting the new templates to all active agents across the company within 30–60 seconds.
+
+### 9.2 Cloudflare Worker Endpoints (`license/worker.js`)
+- Uses the **existing `LICENSES` KV namespace** in Cloudflare (no new KV namespace needed):
+  - `GET /config/templates`: Public/client endpoint returning the active cloud templates `{ ok: true, version, updatedAt, options }` cached for 30s (`Cache-Control: public, max-age=30, s-maxage=30`).
+  - `POST /config/templates`: Admin-only endpoint requiring a valid `admin` license key. Increments version and stores `{ version, updatedAt, publishedBy, options }` under key `"REMOTE_TEMPLATES"` in KV.
+
+### 9.3 In-App UI & Sync Button
+- **Placement**: Situated in the Settings modal footer, placed **between Import and Sign out**:
+  `[Export] [Import] [Sync 🔄] [Sign out] ... [Cancel] [Save Changes]`
+- **Spinning Animation**: Clicking Sync engages a smooth CSS spin animation (`.esc-sync-icon.is-spinning` with `@keyframes escSpin`).
+- **Role-Based Action**:
+  - **Admin**: Syncs current working options to Cloudflare KV (`REMOTE_TEMPLATES`) so all agents receive it.
+  - **Guest / Staff**: Instantly pulls the latest cloud templates into the active session without page reload.
+- **Automated Background Polling**:
+  - The userscript silently checks `GET /config/templates` on startup (1.5s after load) and every 5 minutes while the tab is open, updating dock buttons dynamically if a newer cloud version exists.
+
+
