@@ -53,3 +53,8 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           npx --yes wrangler deploy --keep-vars
+
+      - name: Print Wrangler Logs on Failure
+        if: failure()
+        run: |
+          cat ~/.config/.wrangler/logs/*.log || true
