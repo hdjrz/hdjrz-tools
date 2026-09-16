@@ -323,6 +323,19 @@ Under Settings (gear) — **one screen**:
   - `[AGE WITH STATUS]`: Combined string (e.g. `19 (PAGCOR Restricted 18-20)`).
 - **Settings Chips**: Added `[PAGCOR AGE]` to the chip insert toolbar.
 
+---
 
+## 12. Live Zero-Refresh Lockout & Policy Enforcement (v1.1.9)
 
-
+### 12.1 Real-Time Triggering Without Tab Refresh
+- **Problem Solved**: Previously, background interval was 25 seconds and lacked visibility/activity hooks, causing agents to not see lockout banners until a manual tab reload occurred.
+- **7-Second Fast Polling**: Background check interval reduced from 25s to **7 seconds** (`7000ms`), with initial post-load check at 400ms.
+- **Zero-Cache Network Requests**: Appended `&_t=${Date.now()}` with `cache: "no-store"` and `Cache-Control: no-cache, no-store, must-revalidate` to eliminate any browser/proxy cache caching old responses.
+- **HTML5 Visibility & Focus Hooks**:
+  - `document.addEventListener("visibilitychange")`: When the agent switches into or un-minimizes the tab (`visibilityState === "visible"`), policy check fires immediately.
+  - `window.addEventListener("focus")`: Immediate check on window focus.
+- **User Activity Heartbeat**:
+  - Debounced listener on `mousemove`, `keydown`, `click`, `scroll`, `touchstart`: If > 6 seconds have elapsed since the last check, fires an immediate background policy audit.
+- **Cross-Tab Broadcast Synchronization**:
+  - When any open tab receives `blocked: true`, it immediately broadcasts `{ action: "EMERGENCY_LOCKOUT", payload }` over `BroadcastChannel("hdjrz_kyc_channel")`.
+  - All other sibling tabs open across the browser dismantle their dock and display the lockout overlay within **0 milliseconds** synchronously.

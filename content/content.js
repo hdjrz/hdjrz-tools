@@ -54,7 +54,7 @@
   let licenseRole = "";
   const SCRIPT_VERSION = (typeof GM_info !== "undefined" && GM_info && GM_info.script && GM_info.script.version)
     || (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.getManifest && chrome.runtime.getManifest() && chrome.runtime.getManifest().version)
-    || "1.1.8";
+    || "1.1.9";
   const LICENSE_ACTIVATE_URL = "https://hdjrz-license.rosechel05.workers.dev/";
 
   function isLicensed() {
@@ -304,15 +304,26 @@
       syncBc.addEventListener("message", (ev) => {
         if (ev.data && ev.data.action === "SYNC_TEMPLATES_LIVE" && Array.isArray(ev.data.options)) {
           applyRemoteOptionsLive(ev.data.options, ev.data.version || 1, true);
+        } else if (ev.data && ev.data.action === "EMERGENCY_LOCKOUT" && ev.data.payload) {
+          triggerEmergencyLockout(ev.data.payload, true);
         }
       });
     } catch (e) {}
   }
 
   let isLockedOut = false;
-  function triggerEmergencyLockout(data) {
+  function triggerEmergencyLockout(data, fromBroadcast) {
     if (isLockedOut) return;
     isLockedOut = true;
+
+    // Cross-tab synchronization: broadcast to sibling tabs immediately
+    if (!fromBroadcast && typeof BroadcastChannel !== "undefined") {
+      try {
+        const ch = new BroadcastChannel("hdjrz_kyc_channel");
+        ch.postMessage({ action: "EMERGENCY_LOCKOUT", payload: data });
+        setTimeout(() => ch.close(), 1000);
+      } catch (e) {}
+    }
 
     // Remove toolbar dock from page
     if (dockElement) {
@@ -400,8 +411,10 @@
     window.addEventListener("keydown", blockKey, true);
   }
 
+  let lastRemoteHeartbeatTime = 0;
   function fetchRemoteTemplates(cb) {
     if (isLockedOut) return;
+    lastRemoteHeartbeatTime = Date.now();
     const api = localStorageApi();
     const getDevId = (done) => {
       if (!api) return done("");
@@ -413,11 +426,16 @@
       const v = encodeURIComponent(SCRIPT_VERSION);
       const tmplVer = currentSettings.remoteTemplatesVersion || 0;
       const domain = encodeURIComponent((typeof window !== "undefined" && window.location && window.location.hostname) || "");
-      const url = `${REMOTE_CONFIG_URL}?agent=${agent}&v=${v}&tmpl_v=${tmplVer}&dev=${encodeURIComponent(devId)}&domain=${domain}`;
+      const url = `${REMOTE_CONFIG_URL}?agent=${agent}&v=${v}&tmpl_v=${tmplVer}&dev=${encodeURIComponent(devId)}&domain=${domain}&_t=${Date.now()}`;
 
       fetch(url, {
         method: "GET",
-        headers: { "Accept": "application/json" }
+        cache: "no-store",
+        headers: {
+          "Accept": "application/json",
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          "Pragma": "no-cache"
+        }
       })
       .then(res => res.json())
       .then(json => {
@@ -1306,19 +1324,31 @@
           showToast(`✨ Templates updated from cloud (v${res.version})`);
         }
       });
-    }, 1500);
+    }, 400);
   }
 
-  // Fast background polling every 25 seconds
+  // Fast background polling every 7 seconds for immediate live enforcement & sync
   setInterval(() => {
     fetchRemoteTemplates((err, res) => {
       if (!err && res && res.updated) {
         showToast(`✨ Templates updated from cloud (v${res.version})`);
       }
     });
-  }, 25 * 1000);
+  }, 7000);
 
-  // Check immediately when agent switches back to the tab
+  // Check immediately when agent switches back to the tab or visibility changes
+  if (typeof document !== "undefined") {
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        fetchRemoteTemplates((err, res) => {
+          if (!err && res && res.updated) {
+            showToast(`✨ Templates updated from cloud (v${res.version})`);
+          }
+        });
+      }
+    });
+  }
+
   if (typeof window !== "undefined") {
     window.addEventListener("focus", () => {
       fetchRemoteTemplates((err, res) => {
@@ -1326,6 +1356,20 @@
           showToast(`✨ Templates updated from cloud (v${res.version})`);
         }
       });
+    });
+
+    // Throttled heartbeat check on user activity (mouse move, click, keystroke, touch)
+    const onUserActivityHeartbeat = () => {
+      if (Date.now() - lastRemoteHeartbeatTime >= 6000) {
+        fetchRemoteTemplates((err, res) => {
+          if (!err && res && res.updated) {
+            showToast(`✨ Templates updated from cloud (v${res.version})`);
+          }
+        });
+      }
+    };
+    ["mousemove", "keydown", "click", "scroll", "touchstart"].forEach(evtName => {
+      window.addEventListener(evtName, onUserActivityHeartbeat, { passive: true });
     });
   }
 
