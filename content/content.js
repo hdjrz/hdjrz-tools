@@ -649,6 +649,29 @@
     }
   }
 
+  function checkScriptMetaVersion(cb) {
+    sendWorkerRequest({
+      url: "https://hdjrz-license.rosechel05.workers.dev/script.meta.js?ts=" + Date.now(),
+      method: "GET"
+    }, (err, text) => {
+      if (err || !text) {
+        if (cb) cb(err);
+        return;
+      }
+      const match = String(text).match(/\/\/\s*@version\s+([0-9.]+)/i);
+      if (match && match[1]) {
+        const metaVer = match[1].trim();
+        setLatestServerVersion({
+          latestVersion: metaVer,
+          updateUrl: "https://hdjrz-license.rosechel05.workers.dev/script.user.js"
+        });
+        if (cb) cb(null, metaVer);
+        return;
+      }
+      if (cb) cb(null, null);
+    });
+  }
+
   function renderSettingsUpdateControls() {
     const container = document.getElementById("esc-settings-update-container");
     if (!container) return;
@@ -688,21 +711,23 @@
         checkBtn.addEventListener("click", () => {
           checkBtn.disabled = true;
           checkBtn.innerHTML = `⏳ Checking...`;
-          fetchRemoteTemplates((err, res) => {
-            if (latestKnownServerVersion && isVersionBelow(SCRIPT_VERSION, latestKnownServerVersion)) {
-              renderSettingsUpdateControls();
-              if (latestUpdateData) showNonBlockingUpdateNotification(latestUpdateData);
-            } else {
-              checkBtn.disabled = false;
-              checkBtn.innerHTML = `✓ Up to date`;
-              checkBtn.style.color = "#34d399";
-              setTimeout(() => {
-                if (container && container.contains(checkBtn)) {
-                  checkBtn.innerHTML = `🔄 Check for Update`;
-                  checkBtn.style.color = "#94a3b8";
-                }
-              }, 3000);
-            }
+          fetchRemoteTemplates(() => {
+            checkScriptMetaVersion(() => {
+              if (latestKnownServerVersion && isVersionBelow(SCRIPT_VERSION, latestKnownServerVersion)) {
+                renderSettingsUpdateControls();
+                if (latestUpdateData) showNonBlockingUpdateNotification(latestUpdateData);
+              } else {
+                checkBtn.disabled = false;
+                checkBtn.innerHTML = `✓ Up to date`;
+                checkBtn.style.color = "#34d399";
+                setTimeout(() => {
+                  if (container && container.contains(checkBtn)) {
+                    checkBtn.innerHTML = `🔄 Check for Update`;
+                    checkBtn.style.color = "#94a3b8";
+                  }
+                }, 3000);
+              }
+            });
           });
         });
       }

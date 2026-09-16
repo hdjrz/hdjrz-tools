@@ -33,11 +33,22 @@ function isVersionBelow(clientVer, minVer) {
 }
 
 async function getSystemConfig(env) {
+  let cfg = { ...DEFAULT_SYSTEM_CONFIG };
   try {
     const raw = await env.LICENSES.get("SYSTEM_CONFIG");
-    if (raw) return { ...DEFAULT_SYSTEM_CONFIG, ...JSON.parse(raw) };
+    if (raw) {
+      const kv = JSON.parse(raw);
+      cfg = { ...cfg, ...kv };
+      // Code release version always takes precedence over stale KV values
+      if (isVersionBelow(cfg.latestVersion, DEFAULT_SYSTEM_CONFIG.latestVersion)) {
+        cfg.latestVersion = DEFAULT_SYSTEM_CONFIG.latestVersion;
+      }
+      if (isVersionBelow(cfg.minRequiredVersion, DEFAULT_SYSTEM_CONFIG.minRequiredVersion)) {
+        cfg.minRequiredVersion = DEFAULT_SYSTEM_CONFIG.minRequiredVersion;
+      }
+    }
   } catch (e) {}
-  return { ...DEFAULT_SYSTEM_CONFIG };
+  return cfg;
 }
 
 export default {
