@@ -1968,6 +1968,14 @@ body.esc-modal-scroll-lock {
   border: 1px solid rgba(16, 185, 129, 0.55);
 }
 
+.esc-pagcor-badge.is-empty {
+  background: rgba(148, 163, 184, 0.12);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  font-weight: 600;
+  opacity: 0.85;
+}
+
 /* ==========================================================================
    Emergency Remote Enforcement & Version Lockout Modal
    ========================================================================== */

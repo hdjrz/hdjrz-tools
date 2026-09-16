@@ -55,7 +55,7 @@
   let licenseRole = "";
   const SCRIPT_VERSION = (typeof GM_info !== "undefined" && GM_info && GM_info.script && GM_info.script.version)
     || (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.getManifest && chrome.runtime.getManifest() && chrome.runtime.getManifest().version)
-    || "1.2.5";
+    || "1.2.6";
   const LICENSE_ACTIVATE_URL = "https://hdjrz-license.rosechel05.workers.dev/";
 
   const safeEsc = (s) => String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -80,9 +80,24 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.2.6",
+      title: "Live Player Legal Age Evaluation Badge on Dock",
+      date: "Latest",
+      agentFeatures: [
+        "🎂 Live Player Age Badge: Instant compliance evaluation displayed directly beside 'No Player Detected' on the toolbar.",
+        "🟢 Automatic Evaluation: Real-time visual tagging for 🟢 Legal (21+), 🟠 Restricted (18–20), or 🔴 Minor (<18) as soon as player info loads.",
+        "🚀 Non-Intrusive Floating Updates: Live top-right notifications and in-Settings update buttons allow zero-downtime updates.",
+        "⚡ Fast Navigation: Press Enter inside Confirm to execute; press Esc to cancel or close any modal."
+      ],
+      adminFeatures: [
+        "🛡️ Compliance Visibility: Immediate age bracket flagging prevents accidental processing of underage accounts.",
+        "📡 Elevated Tampermonkey Pipeline: Zero-CSP heartbeat and template sync guarantees fleet consistency."
+      ]
+    },
+    {
       version: "1.2.5",
       title: "In-Settings One-Click Update & Real-Time Live Discovery",
-      date: "Latest",
+      date: "Previous",
       agentFeatures: [
         "🚀 In-Settings 'Update Now' Button: Dedicated instant-update button right in the Settings header when a new version is detected.",
         "🔄 In-Settings 'Check for Update': Manually trigger an instant version scan anytime with live status feedback.",
@@ -3536,6 +3551,7 @@
             <span class="esc-brand-version" id="esc-brand-version" title="Installed Script Version">v${safeEsc(SCRIPT_VERSION)}</span>
           </span>
           <span class="esc-player-badge empty" id="esc-player-status">Searching player...</span>
+          <span class="esc-pagcor-badge is-empty" id="esc-player-age-badge" title="Player age verification">🎂 Age: —</span>
         </div>
         <div class="esc-header-controls">
           <button type="button" class="esc-icon-btn" id="esc-btn-refresh" title="Re-scan current player">
@@ -3668,6 +3684,7 @@
    */
   function updatePlayerStatusBadge() {
     const badge = document.getElementById("esc-player-status");
+    const ageBadge = document.getElementById("esc-player-age-badge");
     if (!badge) return;
     const compact = !!(dockElement && dockElement.classList.contains("minimized") && !dockElement.classList.contains("esc-bar-vertical"));
 
@@ -3679,10 +3696,40 @@
       badge.innerHTML = compact ? escapeHtml(shortId) : `Player: ${displayLabel}`;
       badge.className = "esc-player-badge";
       badge.title = `Active Client User ID: ${detectedPlayer.userId} (Full: ${detectedPlayer.userCombined}) | Affiliate: ${detectedPlayer.affiliate || 'N/A'}`;
+
+      if (ageBadge) {
+        let dob = detectedPlayer.dob;
+        if (!dob) {
+          const attrs = scrapeUserAttributes();
+          if (attrs && attrs.dob) {
+            dob = attrs.dob;
+            detectedPlayer.dob = dob;
+          }
+        }
+        const ageInfo = dob ? getPagcorAgeInfo(dob) : null;
+        if (ageInfo) {
+          ageBadge.className = `esc-pagcor-badge ${ageInfo.badgeClass}`;
+          ageBadge.innerHTML = compact ? `${ageInfo.badgeIcon} ${ageInfo.age}` : `${ageInfo.badgeIcon} ${escapeHtml(ageInfo.status)}`;
+          ageBadge.title = `Legal Age Evaluation: ${ageInfo.status} (DOB: ${dob})`;
+          ageBadge.style.display = "inline-flex";
+        } else {
+          ageBadge.className = "esc-pagcor-badge is-empty";
+          ageBadge.innerHTML = compact ? "🎂 —" : "🎂 Age: N/A";
+          ageBadge.title = "Player detected, but Date of Birth is not visible on current screen";
+          ageBadge.style.display = "inline-flex";
+        }
+      }
     } else {
       badge.innerHTML = compact ? "—" : `<span style="opacity: 0.85;">No Player Detected</span>`;
       badge.className = "esc-player-badge empty";
       badge.title = "No client User ID found on this page. Click refresh or click any button to enter User ID.";
+
+      if (ageBadge) {
+        ageBadge.className = "esc-pagcor-badge is-empty";
+        ageBadge.innerHTML = compact ? "🎂 —" : "🎂 Age: —";
+        ageBadge.title = "No player detected on current screen";
+        ageBadge.style.display = "inline-flex";
+      }
     }
   }
 
