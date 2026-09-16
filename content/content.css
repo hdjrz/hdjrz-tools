@@ -1929,24 +1929,6 @@ body.esc-modal-scroll-lock {
   to { transform: rotate(360deg); }
 }
 
-.esc-sync-badge {
-  font-size: 11px;
-  color: #38bdf8;
-  background: rgba(56, 189, 248, 0.1);
-  border: 1px solid rgba(56, 189, 248, 0.25);
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-weight: 600;
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.esc-sync-badge:empty {
-  display: none;
-}
-
 .esc-pagcor-badge {
   display: inline-flex;
   align-items: center;

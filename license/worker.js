@@ -383,9 +383,9 @@ export default {
               reason: "outdated_version",
               clientVersion: clientVer,
               minRequiredVersion: sysConfig.minRequiredVersion,
-              latestVersion: sysConfig.latestVersion || "1.2.8",
+              latestVersion: sysConfig.latestVersion || "1.3.0",
               updateUrl: "https://hdjrz-license.rosechel05.workers.dev/script.user.js",
-              message: `⚠️ Critical Update Required: Your version (v${clientVer}) is out of date. Update to v${sysConfig.latestVersion || "1.2.8"} to continue.`
+              message: `⚠️ Critical Update Required: Your version (v${clientVer}) is out of date. Update to v${sysConfig.latestVersion || "1.3.0"} to continue.`
             }), { headers: { ...cors, "Cache-Control": "no-cache, no-store" } });
           }
 
@@ -561,7 +561,7 @@ export default {
         return json({
           ok: false,
           error: "outdated_version",
-          message: `⚠️ Critical Update Required: Your script version (v${clientVer}) is obsolete. Please update to v${sysConfig.latestVersion || "1.2.8"}.`,
+          message: `⚠️ Critical Update Required: Your script version (v${clientVer}) is obsolete. Please update to v${sysConfig.latestVersion || "1.3.0"}.`,
           minRequiredVersion: sysConfig.minRequiredVersion,
           latestVersion: sysConfig.latestVersion
         }, cors);

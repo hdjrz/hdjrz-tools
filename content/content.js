@@ -5309,7 +5309,6 @@
               </svg>
               <span>Sync</span>
             </button>
-            <span class="esc-sync-badge" id="esc-sync-badge"></span>
             <button type="button" class="esc-btn-secondary" id="esc-settings-signout">Sign out</button>
           </div>
           <div class="esc-settings-footer-right">
@@ -5871,9 +5870,6 @@
     overlay._escRenderOptionsList = () => {
       workingOptions = JSON.parse(JSON.stringify(getActiveOptions()));
       renderOptionsList();
-      if (typeof updateSyncBadge === "function") {
-        updateSyncBadge(null, currentSettings.remoteTemplatesVersion);
-      }
     };
 
     const addToggle = overlay.querySelector("#esc-add-toggle");
@@ -6010,31 +6006,6 @@
     overlay.querySelector("#esc-settings-cancel").addEventListener("click", closeSettings);
 
     const syncBtn = overlay.querySelector("#esc-settings-sync");
-    const syncBadge = overlay.querySelector("#esc-sync-badge");
-
-    const updateSyncBadge = (telemetry, ver) => {
-      if (!syncBadge) return;
-      const v = ver || (telemetry && telemetry.version) || currentSettings.remoteTemplatesVersion || 1;
-      if (isAdminLicense()) {
-        const count = (telemetry && typeof telemetry.totalActive === "number") ? telemetry.totalActive : 0;
-        const synced = (telemetry && typeof telemetry.syncedCount === "number") ? telemetry.syncedCount : 0;
-        syncBadge.innerHTML = `🟢 v${v} • ${synced}/${count} synced`;
-        syncBadge.title = telemetry && telemetry.syncedAgents && telemetry.syncedAgents.length
-          ? `Synced agents: ${telemetry.syncedAgents.join(", ")}`
-          : `${synced} of ${count} online agents have latest templates`;
-      } else {
-        syncBadge.innerHTML = `🟢 v${v} Cloud`;
-        syncBadge.title = `Template version ${v}`;
-      }
-    };
-
-    fetchRemoteTemplates((err, res) => {
-      if (!err && res && res.telemetry) {
-        updateSyncBadge(res.telemetry, res.version);
-      } else if (currentSettings.remoteTemplatesVersion && syncBadge) {
-        syncBadge.innerHTML = `v${currentSettings.remoteTemplatesVersion}`;
-      }
-    });
 
     if (syncBtn) {
       syncBtn.addEventListener("click", () => {
@@ -6051,15 +6022,7 @@
               showToast("Cloud sync failed: " + err);
             } else {
               const activeCount = (res && typeof res.totalActive === "number") ? res.totalActive : 0;
-              if (syncBadge) {
-                syncBadge.innerHTML = `🟢 v${res.version} • Syncing ${activeCount} agent(s)...`;
-              }
               showToast(`✨ Published to Cloud (v${res.version})! Broadcast sent to ${activeCount} active agent(s).`);
-              setTimeout(() => {
-                fetchRemoteTemplates((_, r) => {
-                  if (r && r.telemetry) updateSyncBadge(r.telemetry, r.version);
-                });
-              }, 2500);
             }
           });
         } else {
@@ -6071,10 +6034,8 @@
             } else if (res && res.updated) {
               workingOptions = JSON.parse(JSON.stringify(getActiveOptions()));
               renderOptionsList();
-              if (res.telemetry) updateSyncBadge(res.telemetry, res.version);
-              showToast(`✨ Synced with Cloud (v${res.version})!`);
+              showToast(`✨ Synced with Cloud!`);
             } else {
-              if (res && res.telemetry) updateSyncBadge(res.telemetry, res.version);
               showToast("Already up to date with Cloud.");
             }
           });
