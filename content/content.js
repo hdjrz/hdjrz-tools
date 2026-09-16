@@ -54,11 +54,6 @@
   let lastModalOriginY = typeof window !== "undefined" ? window.innerHeight / 2 : 0;
   let licenseRole = "";
   let lastKnownActiveUsers = [];
-  const SCRIPT_VERSION = (typeof GM_info !== "undefined" && GM_info && GM_info.script && GM_info.script.version)
-    || (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.getManifest && chrome.runtime.getManifest() && chrome.runtime.getManifest().version)
-    || "1.2.9";
-  const LICENSE_ACTIVATE_URL = "https://hdjrz-license.rosechel05.workers.dev/";
-
   const safeEsc = (s) => String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
   function parseSemver(v) {
@@ -78,6 +73,24 @@
     }
     return false;
   }
+
+  const HARDCODED_VERSION = "1.2.9";
+  const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
+    || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
+    || null;
+  const TM_VER = (typeof GM_info !== "undefined" && GM_info && GM_info.script && GM_info.script.version)
+    || (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.getManifest && chrome.runtime.getManifest() && chrome.runtime.getManifest().version)
+    || null;
+
+  let activeScriptVer = HARDCODED_VERSION;
+  if (TM_VER && !isVersionBelow(TM_VER, activeScriptVer)) {
+    activeScriptVer = TM_VER;
+  }
+  if (DYNAMIC_VER && !isVersionBelow(DYNAMIC_VER, activeScriptVer)) {
+    activeScriptVer = DYNAMIC_VER;
+  }
+  const SCRIPT_VERSION = activeScriptVer;
+  const LICENSE_ACTIVATE_URL = "https://hdjrz-license.rosechel05.workers.dev/";
 
   const CHANGELOG_HISTORY = [
     {
@@ -684,7 +697,7 @@
         pill.title = `Click to update to v${safeEsc(latestVer)} anytime`;
         pill.addEventListener("click", (e) => {
           e.stopPropagation();
-          showNonBlockingUpdateNotification(data || latestUpdateData);
+          showNonBlockingUpdateNotification(data || latestUpdateData, true);
         });
         brand.appendChild(pill);
       }
@@ -749,9 +762,16 @@
           onStatusUpdate(`✅ Updated to v${safeEsc(targetVersion)}! Reloading...`, true, false);
         }
 
+        try {
+          if (typeof sessionStorage !== "undefined") {
+            sessionStorage.setItem("esc_just_updated", String(targetVersion));
+            sessionStorage.setItem("esc_dismissed_update_ver", String(targetVersion));
+          }
+        } catch (e) {}
+
         setTimeout(() => {
           window.location.reload();
-        }, 1200);
+        }, 1000);
       } catch (saveErr) {
         console.error("[hdjrzTools] Dynamic update save error:", saveErr);
         window.open(updateUrl, "_blank", "noopener,noreferrer");
@@ -798,7 +818,7 @@
             checkScriptMetaVersion(() => {
               if (latestKnownServerVersion && isVersionBelow(SCRIPT_VERSION, latestKnownServerVersion)) {
                 renderSettingsUpdateControls();
-                if (latestUpdateData) showNonBlockingUpdateNotification(latestUpdateData);
+                if (latestUpdateData) showNonBlockingUpdateNotification(latestUpdateData, true);
               } else {
                 checkBtn.disabled = false;
                 checkBtn.innerHTML = `✓ Up to date`;
@@ -818,12 +838,24 @@
   }
 
   let activeUpdateBanner = null;
-  function showNonBlockingUpdateNotification(data) {
+  function showNonBlockingUpdateNotification(data, isManual) {
     setLatestServerVersion(data);
-    const latestVer = (data && data.latestVersion) || latestKnownServerVersion || "1.2.4";
+    const latestVer = (data && data.latestVersion) || latestKnownServerVersion || "1.2.9";
     const updateUrl = (data && data.updateUrl) || (latestUpdateData && latestUpdateData.updateUrl) || "https://hdjrz-license.rosechel05.workers.dev/script.user.js";
 
     attachDockUpdatePill(data);
+
+    // If installed version is already up to date, do not show banner
+    if (!isVersionBelow(SCRIPT_VERSION, latestVer)) {
+      return;
+    }
+
+    // If dismissed during this session, do not auto-popup unless manually clicked (dock pill or settings)
+    try {
+      if (!isManual && typeof sessionStorage !== "undefined" && sessionStorage.getItem("esc_dismissed_update_ver") === String(latestVer)) {
+        return;
+      }
+    } catch (e) {}
 
     if (activeUpdateBanner && document.body && document.body.contains(activeUpdateBanner)) {
       return;
@@ -858,6 +890,11 @@
     activeUpdateBanner = banner;
 
     const dismissBanner = () => {
+      try {
+        if (typeof sessionStorage !== "undefined") {
+          sessionStorage.setItem("esc_dismissed_update_ver", String(latestVer));
+        }
+      } catch (e) {}
       document.removeEventListener("keydown", onBannerKey, true);
       banner.classList.add("is-closing");
       setTimeout(() => {
@@ -6511,6 +6548,16 @@
       startPageMonitor();
       if (!isLicensed()) {
         setTimeout(() => openLicenseModal(), 300);
+      } else {
+        try {
+          if (typeof sessionStorage !== "undefined" && sessionStorage.getItem("esc_just_updated")) {
+            const updatedVer = sessionStorage.getItem("esc_just_updated");
+            sessionStorage.removeItem("esc_just_updated");
+            setTimeout(() => {
+              showToast(`🎉 Successfully updated to v${safeEsc(updatedVer)}!`);
+            }, 600);
+          }
+        } catch (e) {}
       }
     });
   });

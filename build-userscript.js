@@ -422,25 +422,29 @@ const bootstrapperStart = `
     return false;
   }
 
-  // Clear cache if the built-in script has caught up or surpassed the cached version
-  if (cachedVer && !isVersionBelow(BUILTIN_VERSION, cachedVer)) {
-    if (typeof GM_deleteValue === "function") {
-      try {
-        GM_deleteValue("HDJRZ_DYNAMIC_BUNDLE");
-        GM_deleteValue("HDJRZ_DYNAMIC_VERSION");
-      } catch(e) {}
+  // Clear cache if the built-in base script has caught up or surpassed the cached version
+  if (typeof window !== "undefined" && !window.__HDJRZ_HOT_BOOTED__) {
+    if (cachedVer && !isVersionBelow(BUILTIN_VERSION, cachedVer)) {
+      if (typeof GM_deleteValue === "function") {
+        try {
+          GM_deleteValue("HDJRZ_DYNAMIC_BUNDLE");
+          GM_deleteValue("HDJRZ_DYNAMIC_VERSION");
+        } catch(e) {}
+      }
+      cachedBundle = null;
+      cachedVer = null;
     }
-    cachedBundle = null;
-    cachedVer = null;
   }
 
   // If a newer cached bundle exists, execute it and return!
   if (cachedBundle && cachedVer && isVersionBelow(BUILTIN_VERSION, cachedVer)) {
     try {
+      if (typeof window !== "undefined") window.__HDJRZ_HOT_BOOTED__ = true;
       console.log("%c[hdjrzTools] Hot-booting in-place updated bundle v" + cachedVer + " (base v" + BUILTIN_VERSION + ")", "background: #059669; color: #fff; font-weight: bold; padding: 2px 6px; border-radius: 3px;");
       eval(cachedBundle);
       return;
     } catch (err) {
+      if (typeof window !== "undefined") window.__HDJRZ_HOT_BOOTED__ = false;
       console.error("[hdjrzTools] Failed to execute hot-updated bundle, falling back to base version:", err);
     }
   }
