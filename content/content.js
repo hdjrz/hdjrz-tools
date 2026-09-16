@@ -74,7 +74,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.2.9";
+  const HARDCODED_VERSION = "1.3.0";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -94,9 +94,23 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.3.0",
+      title: "Settings UI Polish & Horizontal Fleet Bar",
+      date: "Latest",
+      agentFeatures: [
+        "🎨 Tight Button Wrap: Zero empty gap beneath escalation buttons in Settings.",
+        "📋 Sleek Horizontal Fleet Bar: Real-time active users status strip for Admins with live status indicators.",
+        "⚡ Smooth One-Click Update: Instant download with session dismissal suppression."
+      ],
+      adminFeatures: [
+        "🌐 Full Web Admin Portal Live: Standalone management at /admin with Master Admin Password.",
+        "👥 Horizontal Fleet Overview: Cleanly displays online agents and version numbers directly in Settings without vertical scrolling."
+      ]
+    },
+    {
       version: "1.2.9",
       title: "Private Web Admin Portal & Active Users",
-      date: "Latest",
+      date: "Previous",
       agentFeatures: [
         "👥 Seamless Online Sync: Background telemetry tracks active agent sessions reliably with zero lag.",
         "⚡ Instant Device Unlocking: Admin can reset device binding in 1 click so agents can switch PC/laptop without lockout."
