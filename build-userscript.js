@@ -395,10 +395,6 @@ if (shouldObfuscate) {
 const bootstrapperStart = `
 /* --- In-Place Self-Updating Dynamic Bootstrapper --- */
 (function() {
-  if (typeof window !== "undefined" && window.__HDJRZ_HOT_BOOTED__) {
-    // Already running inside evaluated bundle, skip bootstrapper and run code directly
-    return;
-  }
   var BUILTIN_VERSION = "${version}";
   var cachedBundle = null;
   var cachedVer = null;
@@ -412,7 +408,7 @@ const bootstrapperStart = `
   if (!cachedBundle) {
     try {
       cachedBundle = localStorage.getItem("hdjrz_dynamic_bundle");
-      cachedVer = localStorage.getItem("hdjrz_dynamic_version") || "999.0.0";
+      cachedVer = localStorage.getItem("hdjrz_dynamic_version");
     } catch(e) {}
   }
 
@@ -432,16 +428,22 @@ const bootstrapperStart = `
     return false;
   }
 
-  // If a newer cached bundle exists, execute it and return!
+  // If a newer cached bundle exists than this file's builtin version, execute it and return!
   if (cachedBundle && cachedVer && isVersionBelow(BUILTIN_VERSION, cachedVer)) {
     try {
-      if (typeof window !== "undefined") window.__HDJRZ_HOT_BOOTED__ = true;
-      console.log("%c[hdjrzTools] Hot-booting in-place updated bundle v" + cachedVer + " (base v" + BUILTIN_VERSION + ")", "background: #059669; color: #fff; font-weight: bold; padding: 2px 6px; border-radius: 3px;");
-      eval(cachedBundle);
+      console.log("%c[hdjrzTools] Running in-place updated bundle v" + cachedVer + " (base v" + BUILTIN_VERSION + ")", "background: #059669; color: #fff; font-weight: bold; padding: 2px 6px; border-radius: 3px;");
+      (new Function(cachedBundle))();
       return;
     } catch (err) {
-      if (typeof window !== "undefined") window.__HDJRZ_HOT_BOOTED__ = false;
-      console.error("[hdjrzTools] Failed to execute hot-updated bundle, falling back to base version:", err);
+      console.error("[hdjrzTools] Failed to execute updated bundle, falling back to base version:", err);
+      try {
+        if (typeof GM_deleteValue === "function") {
+          GM_deleteValue("HDJRZ_DYNAMIC_BUNDLE");
+          GM_deleteValue("HDJRZ_DYNAMIC_VERSION");
+        }
+        localStorage.removeItem("hdjrz_dynamic_bundle");
+        localStorage.removeItem("hdjrz_dynamic_version");
+      } catch(e) {}
     }
   }
 

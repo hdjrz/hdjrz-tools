@@ -779,13 +779,14 @@
         .trim();
 
       try {
+        const verStr = String(targetVersion || "").trim() || "1.3.1";
         if (typeof GM_setValue === "function") {
           GM_setValue("HDJRZ_DYNAMIC_BUNDLE", cleanCode);
-          GM_setValue("HDJRZ_DYNAMIC_VERSION", "999.0.0");
+          GM_setValue("HDJRZ_DYNAMIC_VERSION", verStr);
         }
         try {
           localStorage.setItem("hdjrz_dynamic_bundle", cleanCode);
-          localStorage.setItem("hdjrz_dynamic_version", "999.0.0");
+          localStorage.setItem("hdjrz_dynamic_version", verStr);
         } catch (e) {}
 
         if (typeof onStatusUpdate === "function") {
