@@ -55,10 +55,176 @@
   let licenseRole = "";
   const SCRIPT_VERSION = (typeof GM_info !== "undefined" && GM_info && GM_info.script && GM_info.script.version)
     || (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.getManifest && chrome.runtime.getManifest() && chrome.runtime.getManifest().version)
-    || "1.2.2";
+    || "1.2.3";
   const LICENSE_ACTIVATE_URL = "https://hdjrz-license.rosechel05.workers.dev/";
 
   const safeEsc = (s) => String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+  function parseSemver(v) {
+    const parts = String(v || "").replace(/[^0-9.]/g, "").split(".").map(n => parseInt(n, 10) || 0);
+    while (parts.length < 3) parts.push(0);
+    return parts;
+  }
+
+  function isVersionBelow(clientVer, minVer) {
+    if (!clientVer || !minVer) return false;
+    if (clientVer === "1.9.0" || clientVer === "1.9") return true;
+    const a = parseSemver(clientVer);
+    const b = parseSemver(minVer);
+    for (let i = 0; i < 3; i++) {
+      if (a[i] < b[i]) return true;
+      if (a[i] > b[i]) return false;
+    }
+    return false;
+  }
+
+  const CHANGELOG_HISTORY = [
+    {
+      version: "1.2.3",
+      title: "Non-Blocking Updates & Role-Based Changelogs",
+      date: "Latest",
+      agentFeatures: [
+        "🚀 Non-Intrusive Updates: Work uninterrupted! New updates notify you via a sleek floating banner so you can update at your convenience without blocking player processing.",
+        "🔴 Dock Quick-Update Pill: If you postpone an update, a subtle glowing pill stays on your toolbar so you can update whenever you have downtime.",
+        "📜 What's New Release Notes: Access feature highlights anytime directly from the Settings menu.",
+        "🔔 Audio / Visual Haptic Feedback: Instant audio chime and emerald green ripple pulse when notes are pinned or copied."
+      ],
+      adminFeatures: [
+        "👑 Admin Confidentiality: Master control updates (KV rows, kill-switch, telemetry) are securely hidden from standard agent views.",
+        "📡 Real-time Fleet Telemetry: Monitor live active agent counts and template sync status in real time from the cloud.",
+        "🛡️ Zero-Downtime Fleet Updates: Staff can finish ongoing player tickets before reloading."
+      ]
+    },
+    {
+      version: "1.2.0",
+      title: "Audio & Visual Feedback System",
+      date: "Previous",
+      agentFeatures: [
+        "🔔 Soft Audio Success Chime: Pleasant synthesized audio feedback on note pin and tracker copy (zero external audio files needed).",
+        "🟢 Emerald Screen Glow: Subtle edge ripple confirms action success at a glance.",
+        "🎛️ Settings Audio Toggle: Easily mute or test the audio chime in Settings."
+      ],
+      adminFeatures: [
+        "🚨 Remote Emergency Kill Switch: Remote system freeze capability via Cloudflare KV.",
+        "🌐 Domain Security Restriction: Whitelist enforcement to prevent unauthorized distribution."
+      ]
+    },
+    {
+      version: "1.1.8",
+      title: "PAGCOR Legal Age Compliance",
+      date: "Previous",
+      agentFeatures: [
+        "🎂 PAGCOR Legal Age Calculator: Smart badge automatically evaluates 21+ (🟢 Legal) vs 18–20 (🟠 Restricted) vs <18 (🔴 Minor).",
+        "📝 Auto Note Formatting: Calculates exact age bracket and injects compliance notes into escalation templates automatically."
+      ],
+      adminFeatures: [
+        "☁️ Cloud Template Sync: Instant push and broadcast of custom escalation templates to all active agent workstations."
+      ]
+    }
+  ];
+
+  function openChangelogModal(forceRole) {
+    const existing = document.getElementById("esc-changelog-overlay");
+    if (existing) existing.remove();
+
+    const isAdmin = forceRole ? forceRole === "admin" : isAdminLicense();
+    const overlay = document.createElement("div");
+    overlay.className = "esc-changelog-overlay";
+    overlay.id = "esc-changelog-overlay";
+
+    const roleBadgeHtml = isAdmin
+      ? `<span class="esc-role-badge is-admin" title="Full Master Control View">👑 Admin View</span>`
+      : `<span class="esc-role-badge is-agent" title="Escalation Tools View">⚡ Agent View</span>`;
+
+    let cardsHtml = "";
+    CHANGELOG_HISTORY.forEach(item => {
+      let adminSecHtml = "";
+      if (isAdmin && Array.isArray(item.adminFeatures) && item.adminFeatures.length > 0) {
+        adminSecHtml = `
+          <div class="esc-release-section">
+            <div class="esc-release-section-title is-admin">
+              <span>🛡️ Admin & Master Controls</span>
+            </div>
+            <ul class="esc-release-list">
+              ${item.adminFeatures.map(f => `<li>${safeEsc(f)}</li>`).join("")}
+            </ul>
+          </div>
+        `;
+      }
+
+      let agentSecHtml = "";
+      if (Array.isArray(item.agentFeatures) && item.agentFeatures.length > 0) {
+        adminSecHtml += `
+          <div class="esc-release-section">
+            <div class="esc-release-section-title is-agent">
+              <span>✨ Agent & Workflow Features</span>
+            </div>
+            <ul class="esc-release-list">
+              ${item.agentFeatures.map(f => `<li>${safeEsc(f)}</li>`).join("")}
+            </ul>
+          </div>
+        `;
+      }
+
+      cardsHtml += `
+        <div class="esc-release-card">
+          <div class="esc-release-header">
+            <div class="esc-release-ver">
+              <span>v${safeEsc(item.version)}</span>
+              <span style="font-size: 13px; color: #94a3b8; font-weight: 600;">• ${safeEsc(item.title)}</span>
+            </div>
+            <span class="esc-release-tag">${safeEsc(item.date)}</span>
+          </div>
+          ${adminSecHtml}
+          ${agentSecHtml}
+        </div>
+      `;
+    });
+
+    overlay.innerHTML = `
+      <div class="esc-changelog-modal" role="dialog" aria-modal="true" aria-label="What's New">
+        <div class="esc-changelog-header">
+          <div class="esc-changelog-title-wrap">
+            <div class="esc-changelog-title">
+              <span>📜 What's New in hdjrzTools</span>
+            </div>
+            ${roleBadgeHtml}
+          </div>
+          <button type="button" class="esc-icon-btn" id="esc-changelog-close" title="Close (Esc)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <div class="esc-changelog-body">
+          ${cardsHtml}
+        </div>
+        <div class="esc-changelog-footer">
+          <button type="button" class="esc-changelog-gotit-btn" id="esc-changelog-gotit">Got It, Let's Work! 🚀</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    const close = () => {
+      overlay.remove();
+      document.removeEventListener("keydown", onKeyDown);
+    };
+
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") close();
+    };
+
+    const closeBtn = overlay.querySelector("#esc-changelog-close");
+    if (closeBtn) closeBtn.addEventListener("click", close);
+    const gotItBtn = overlay.querySelector("#esc-changelog-gotit");
+    if (gotItBtn) gotItBtn.addEventListener("click", close);
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) close();
+    });
+    document.addEventListener("keydown", onKeyDown);
+  }
 
   function isLicensed() {
     return licenseRole === "admin" || licenseRole === "guest" || licenseRole === "staff";
@@ -318,8 +484,116 @@
     } catch (e) {}
   }
 
+  let activeUpdateBanner = null;
+  function showNonBlockingUpdateNotification(data) {
+    const latestVer = (data && data.latestVersion) || "1.2.3";
+    const updateUrl = (data && data.updateUrl) || "https://hdjrz-license.rosechel05.workers.dev/script.user.js";
+
+    // Update or attach pill on dock so it's always accessible even if dismissed
+    const dock = document.getElementById("escalation-helper-dock");
+    if (dock) {
+      let pill = dock.querySelector("#esc-dock-update-pill");
+      if (!pill) {
+        const brand = dock.querySelector(".esc-brand");
+        if (brand) {
+          pill = document.createElement("span");
+          pill.className = "esc-dock-update-pill";
+          pill.id = "esc-dock-update-pill";
+          pill.innerHTML = `🔴 Update v${safeEsc(latestVer)}`;
+          pill.title = `Click to update to v${safeEsc(latestVer)} anytime`;
+          pill.addEventListener("click", (e) => {
+            e.stopPropagation();
+            showNonBlockingUpdateNotification(data);
+          });
+          brand.appendChild(pill);
+        }
+      } else {
+        pill.style.display = "inline-flex";
+        pill.innerHTML = `🔴 Update v${safeEsc(latestVer)}`;
+      }
+    }
+
+    if (activeUpdateBanner && document.body && document.body.contains(activeUpdateBanner)) {
+      return;
+    }
+
+    const banner = document.createElement("div");
+    banner.className = "esc-update-banner";
+    banner.id = "esc-update-banner";
+    banner.innerHTML = `
+      <div class="esc-banner-header">
+        <div class="esc-banner-title-wrap">
+          <span class="esc-banner-icon">🚀</span>
+          <div>
+            <div class="esc-banner-title">Update Available: v${safeEsc(latestVer)}</div>
+            <div style="font-size: 11px; color: #64748b;">Current: v${safeEsc(SCRIPT_VERSION)}</div>
+          </div>
+        </div>
+        <button type="button" class="esc-banner-close" id="esc-banner-dismiss" title="Dismiss for now">✕</button>
+      </div>
+      <div class="esc-banner-desc">
+        A new version is ready! You can continue working uninterrupted and update whenever you have free time.
+      </div>
+      <div class="esc-banner-actions" id="esc-banner-actions">
+        <a href="${updateUrl}" target="_blank" rel="noopener noreferrer" class="esc-banner-btn-primary" id="esc-banner-update-btn">
+          <span>🚀 Update Now</span>
+        </a>
+        <button type="button" class="esc-banner-btn-secondary" id="esc-banner-later-btn">Later</button>
+      </div>
+    `;
+
+    document.body.appendChild(banner);
+    activeUpdateBanner = banner;
+
+    const dismissBanner = () => {
+      banner.classList.add("is-closing");
+      setTimeout(() => {
+        try { banner.remove(); } catch (e) {}
+        if (activeUpdateBanner === banner) activeUpdateBanner = null;
+      }, 250);
+    };
+
+    const dismissBtn = banner.querySelector("#esc-banner-dismiss");
+    if (dismissBtn) dismissBtn.addEventListener("click", dismissBanner);
+    const laterBtn = banner.querySelector("#esc-banner-later-btn");
+    if (laterBtn) laterBtn.addEventListener("click", dismissBanner);
+
+    const updateBtn = banner.querySelector("#esc-banner-update-btn");
+    if (updateBtn) {
+      updateBtn.addEventListener("click", () => {
+        window.__escUpdateInitiated = true;
+        try { sessionStorage.setItem("esc_update_initiated", "true"); } catch (e) {}
+
+        const actionsContainer = banner.querySelector("#esc-banner-actions");
+        if (actionsContainer) {
+          actionsContainer.innerHTML = `
+            <button type="button" class="esc-banner-btn-primary" id="esc-banner-reload-btn" style="background: linear-gradient(135deg, #10b981, #059669);">
+              <span>🔄 Click to Reload Page</span>
+            </button>
+            <button type="button" class="esc-banner-btn-secondary" id="esc-banner-post-later-btn">Later</button>
+          `;
+          const reloadBtn = actionsContainer.querySelector("#esc-banner-reload-btn");
+          if (reloadBtn) {
+            reloadBtn.addEventListener("click", () => {
+              reloadBtn.disabled = true;
+              reloadBtn.innerHTML = `<span>⏳ Reloading...</span>`;
+              window.location.reload();
+            });
+          }
+          const postLater = actionsContainer.querySelector("#esc-banner-post-later-btn");
+          if (postLater) postLater.addEventListener("click", dismissBanner);
+        }
+      });
+    }
+  }
+
   let isLockedOut = false;
   function triggerEmergencyLockout(data, fromBroadcast) {
+    if (data && data.reason === "outdated_version") {
+      showNonBlockingUpdateNotification(data);
+      return;
+    }
+
     if (isLockedOut) return;
     isLockedOut = true;
 
@@ -490,9 +764,20 @@
       .then(json => {
         console.log(`[hdjrzTools] Policy Heartbeat (Installed: v${SCRIPT_VERSION}):`, json);
         if (json && json.blocked) {
-          triggerEmergencyLockout(json);
+          if (json.reason === "outdated_version") {
+            showNonBlockingUpdateNotification(json);
+          } else {
+            triggerEmergencyLockout(json);
+          }
           if (cb) cb(json.message || "Execution blocked by remote policy", json);
           return;
+        }
+        if (json && json.systemConfig && json.systemConfig.latestVersion && isVersionBelow(SCRIPT_VERSION, json.systemConfig.latestVersion)) {
+          showNonBlockingUpdateNotification({
+            latestVersion: json.systemConfig.latestVersion,
+            minRequiredVersion: json.systemConfig.minRequiredVersion,
+            updateUrl: "https://hdjrz-license.rosechel05.workers.dev/script.user.js"
+          });
         }
         if (!json || !json.ok || !Array.isArray(json.options)) {
           if (cb) cb((json && json.error) ? json.error : "No remote templates", json);
@@ -1375,8 +1660,24 @@
       if (sessionStorage.getItem("esc_update_initiated") === "true") {
         sessionStorage.removeItem("esc_update_initiated");
         showToast(`🎉 Successfully updated to v${SCRIPT_VERSION}!`, true);
+        setTimeout(() => {
+          openChangelogModal();
+        }, 600);
       }
     } catch (e) {}
+
+    const storage = localStorageApi();
+    if (storage) {
+      storage.get(["escLastSeenChangelogVer"], (d) => {
+        const lastVer = d && d.escLastSeenChangelogVer;
+        if (!lastVer || isVersionBelow(lastVer, SCRIPT_VERSION)) {
+          storage.set({ escLastSeenChangelogVer: SCRIPT_VERSION });
+          setTimeout(() => {
+            openChangelogModal();
+          }, 800);
+        }
+      });
+    }
 
     // Announce to sibling tabs that new version has activated
     if (typeof BroadcastChannel !== "undefined") {
@@ -4321,6 +4622,7 @@
             ${JET_LOGO_URL ? `<img class="esc-brand-logo" src="${JET_LOGO_URL}" alt="JET" style="width:20px;height:20px;">` : ""}
             <span>Settings</span>
             <span style="font-size: 11px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); padding: 1px 6px; border-radius: 4px; margin-left: 6px; font-weight: 700;">v${safeEsc(SCRIPT_VERSION)}</span>
+            <button type="button" class="esc-btn-small" id="esc-settings-changelog-btn" title="View release notes and new features" style="margin-left: 8px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: 700; cursor: pointer;">📜 What's New</button>
           </div>
           <button type="button" class="esc-icon-btn" id="esc-settings-close" title="Close (Esc)">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -5186,6 +5488,13 @@
         });
       });
     });
+
+    const changelogBtn = overlay.querySelector("#esc-settings-changelog-btn");
+    if (changelogBtn) {
+      changelogBtn.addEventListener("click", () => {
+        openChangelogModal();
+      });
+    }
 
     overlay.addEventListener("click", (e) => {
       if (e.target === overlay) closeSettings();

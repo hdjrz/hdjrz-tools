@@ -2222,3 +2222,360 @@ body.esc-modal-scroll-lock {
   border-color: #38bdf8;
   transform: translateY(-1px);
 }
+
+/* --- 🚀 Non-Blocking Update Banner & Dock Pill --- */
+.esc-update-banner {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  width: 330px;
+  max-width: calc(100vw - 32px);
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(11, 19, 43, 0.98));
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.6), 0 0 20px rgba(56, 189, 248, 0.2);
+  border-radius: 12px;
+  padding: 14px 16px;
+  z-index: 2147483640;
+  backdrop-filter: blur(12px);
+  font-family: var(--esc-font);
+  color: #e2e8f0;
+  box-sizing: border-box;
+  animation: escBannerSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  pointer-events: auto;
+}
+
+@keyframes escBannerSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.esc-update-banner.is-closing {
+  animation: escBannerSlideOut 0.25s ease forwards;
+}
+
+@keyframes escBannerSlideOut {
+  to {
+    opacity: 0;
+    transform: translateY(-16px) scale(0.95);
+    pointer-events: none;
+  }
+}
+
+.esc-banner-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.esc-banner-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.esc-banner-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.esc-banner-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #38bdf8;
+  letter-spacing: -0.01em;
+}
+
+.esc-banner-close {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 2px 4px;
+  font-size: 14px;
+  line-height: 1;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+
+.esc-banner-close:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.esc-banner-desc {
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.45;
+  margin-bottom: 12px;
+}
+
+.esc-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.esc-banner-btn-primary {
+  flex: 1;
+  background: linear-gradient(135deg, #0284c7, #2563eb);
+  color: #fff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.esc-banner-btn-primary:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+}
+
+.esc-banner-btn-secondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.esc-banner-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+/* Dock Update Pill */
+.esc-dock-update-pill {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  color: #f87171;
+  margin-left: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  animation: escPulseUpdatePill 2s infinite ease-in-out;
+  transition: all 0.2s;
+}
+
+.esc-dock-update-pill:hover {
+  background: rgba(239, 68, 68, 0.35);
+  border-color: #ef4444;
+  color: #fff;
+  transform: scale(1.05);
+}
+
+@keyframes escPulseUpdatePill {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0);
+  }
+}
+
+/* --- 📜 Role-Based Changelog Modal --- */
+.esc-changelog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 8, 18, 0.78);
+  backdrop-filter: blur(8px);
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+  animation: escFadeIn 0.2s ease forwards;
+}
+
+.esc-changelog-modal {
+  width: 580px;
+  max-width: calc(100vw - 32px);
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  background: #0d1527;
+  border: 1px solid #1e2e4a;
+  border-radius: 14px;
+  box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.75), 0 0 30px rgba(56, 189, 248, 0.15);
+  font-family: var(--esc-font);
+  color: #e2e8f0;
+  overflow: hidden;
+  box-sizing: border-box;
+  animation: escModalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.esc-changelog-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #1e2e4a;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #09101f;
+}
+
+.esc-changelog-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.esc-changelog-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #f8fafc;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.esc-role-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  letter-spacing: 0.02em;
+}
+
+.esc-role-badge.is-admin {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+}
+
+.esc-role-badge.is-agent {
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+}
+
+.esc-changelog-body {
+  padding: 18px 20px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.esc-release-card {
+  background: #111a31;
+  border: 1px solid #1e2d4d;
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.esc-release-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.esc-release-ver {
+  font-size: 14px;
+  font-weight: 800;
+  color: #38bdf8;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.esc-release-tag {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.esc-release-section {
+  margin-top: 10px;
+}
+
+.esc-release-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.esc-release-section-title.is-admin {
+  color: #fbbf24;
+}
+
+.esc-release-section-title.is-agent {
+  color: #94a3b8;
+}
+
+.esc-release-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #cbd5e1;
+}
+
+.esc-release-list li {
+  margin-bottom: 4px;
+}
+
+.esc-changelog-footer {
+  padding: 14px 20px;
+  background: #09101f;
+  border-top: 1px solid #1e2e4a;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.esc-changelog-gotit-btn {
+  background: linear-gradient(135deg, #0284c7, #2563eb);
+  color: #fff;
+  border: none;
+  padding: 7px 18px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.esc-changelog-gotit-btn:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+}
