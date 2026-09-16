@@ -482,11 +482,8 @@
 
       fetch(url, {
         method: "GET",
-        cache: "no-store",
         headers: {
-          "Accept": "application/json",
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          "Pragma": "no-cache"
+          "Accept": "application/json"
         }
       })
       .then(res => res.json())

@@ -19,6 +19,10 @@ function parseSemver(v) {
 
 function isVersionBelow(clientVer, minVer) {
   if (!clientVer || !minVer) return false;
+  // Handle typo versions like 1.9.0 if current release is 1.2.x
+  if (clientVer === "1.9.0" || clientVer === "1.9") {
+    return true;
+  }
   const a = parseSemver(clientVer);
   const b = parseSemver(minVer);
   for (let i = 0; i < 3; i++) {
@@ -40,8 +44,8 @@ export default {
   async fetch(request, env) {
     const cors = {
       "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Headers": "Content-Type",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "*, Content-Type, Cache-Control, Pragma, Authorization, X-Requested-With",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS, HEAD",
       "Content-Type": "application/json"
     };
 
