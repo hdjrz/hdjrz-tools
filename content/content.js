@@ -7,6 +7,7 @@
 (function () {
   if (window.__ESCALATION_HELPER_LOADED__) return;
   window.__ESCALATION_HELPER_LOADED__ = true;
+  try { sessionStorage.removeItem("esc_update_initiated"); } catch (e) {}
 
   const FALLBACK_ESCALATION_OPTIONS = [
     { code: "ACR", label: "ACR", meaning: "Account Closure Request", description: "Player requested to close/disable their account voluntarily.", group: "Account Closure", color: "#2563eb", chip: { text: "", color: "#dc2626" }, defaultReason: "Losing player", template: "{code} / {cid} / {reason}" },
@@ -2085,6 +2086,8 @@
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") {
         if (window.__escUpdateInitiated || (function(){ try { return sessionStorage.getItem("esc_update_initiated") === "true"; } catch(e){ return false; } })()) {
+          window.__escUpdateInitiated = false;
+          try { sessionStorage.removeItem("esc_update_initiated"); } catch(e) {}
           const statusText = document.getElementById("esc-auto-reload-status");
           if (statusText) statusText.innerHTML = `⚡ <strong>Update detected! Reloading page now...</strong>`;
           setTimeout(() => {
@@ -2104,6 +2107,8 @@
   if (typeof window !== "undefined") {
     window.addEventListener("focus", () => {
       if (window.__escUpdateInitiated || (function(){ try { return sessionStorage.getItem("esc_update_initiated") === "true"; } catch(e){ return false; } })()) {
+        window.__escUpdateInitiated = false;
+        try { sessionStorage.removeItem("esc_update_initiated"); } catch(e) {}
         const statusText = document.getElementById("esc-auto-reload-status");
         if (statusText) statusText.innerHTML = `⚡ <strong>Update detected! Reloading page now...</strong>`;
         setTimeout(() => {
