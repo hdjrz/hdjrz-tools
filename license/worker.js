@@ -32,6 +32,32 @@ function isVersionBelow(clientVer, minVer) {
   return false;
 }
 
+let cachedGhVersion = null;
+let cachedGhVersionTime = 0;
+
+async function getLiveGitHubVersion(env) {
+  const now = Date.now();
+  if (cachedGhVersion && (now - cachedGhVersionTime < 60000)) {
+    return cachedGhVersion;
+  }
+  try {
+    const headers = { "User-Agent": "hdjrz-version-sync" };
+    if (env && env.GITHUB_TOKEN) {
+      headers["Authorization"] = `token ${env.GITHUB_TOKEN}`;
+    }
+    const resp = await fetch(`https://raw.githubusercontent.com/hdjrz/hdjrz-tools/main/package.json?ts=${now}`, { headers });
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data && data.version) {
+        cachedGhVersion = String(data.version).trim();
+        cachedGhVersionTime = now;
+        return cachedGhVersion;
+      }
+    }
+  } catch (e) {}
+  return null;
+}
+
 async function getSystemConfig(env) {
   let cfg = { ...DEFAULT_SYSTEM_CONFIG };
   try {
@@ -39,15 +65,24 @@ async function getSystemConfig(env) {
     if (raw) {
       const kv = JSON.parse(raw);
       cfg = { ...cfg, ...kv };
-      // Code release version always takes precedence over stale KV values
-      if (isVersionBelow(cfg.latestVersion, DEFAULT_SYSTEM_CONFIG.latestVersion)) {
-        cfg.latestVersion = DEFAULT_SYSTEM_CONFIG.latestVersion;
-      }
-      if (isVersionBelow(cfg.minRequiredVersion, DEFAULT_SYSTEM_CONFIG.minRequiredVersion)) {
-        cfg.minRequiredVersion = DEFAULT_SYSTEM_CONFIG.minRequiredVersion;
-      }
     }
   } catch (e) {}
+
+  // Auto-sync version from GitHub repo so manual Cloudflare redeploys are NEVER needed for version bumps!
+  try {
+    const liveGhVer = await getLiveGitHubVersion(env);
+    if (liveGhVer && !isVersionBelow(liveGhVer, cfg.latestVersion)) {
+      cfg.latestVersion = liveGhVer;
+    }
+  } catch (e) {}
+
+  // Code release version always takes precedence over stale KV values
+  if (isVersionBelow(cfg.latestVersion, DEFAULT_SYSTEM_CONFIG.latestVersion)) {
+    cfg.latestVersion = DEFAULT_SYSTEM_CONFIG.latestVersion;
+  }
+  if (isVersionBelow(cfg.minRequiredVersion, DEFAULT_SYSTEM_CONFIG.minRequiredVersion)) {
+    cfg.minRequiredVersion = DEFAULT_SYSTEM_CONFIG.minRequiredVersion;
+  }
   return cfg;
 }
 
