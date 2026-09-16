@@ -7,12 +7,41 @@ export default {
     const cors = {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Headers": "Content-Type",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       "Content-Type": "application/json"
     };
+
+    const url = new URL(request.url);
+
     if (request.method === "OPTIONS") {
       return new Response(null, { headers: cors });
     }
+
+    // Zero-cache Userscript endpoint for instant Tampermonkey updates
+    if (request.method === "GET" && (url.pathname === "/script.user.js" || url.pathname === "/hdjrzTools.user.js")) {
+      try {
+        const headers = { "User-Agent": "Tampermonkey-Updater" };
+        if (env.GITHUB_TOKEN) {
+          headers["Authorization"] = `token ${env.GITHUB_TOKEN}`;
+        }
+        const ghUrl = `https://raw.githubusercontent.com/hdjrz/hdjrz-tools/main/hdjrzTools.user.js?ts=${Date.now()}`;
+        const resp = await fetch(ghUrl, { headers });
+        if (resp.ok) {
+          const scriptText = await resp.text();
+          return new Response(scriptText, {
+            headers: {
+              "Content-Type": "text/javascript; charset=utf-8",
+              "Access-Control-Allow-Origin": "*",
+              "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+              "Pragma": "no-cache",
+              "Expires": "0"
+            }
+          });
+        }
+      } catch (e) {}
+      return new Response("// Error fetching script from GitHub", { status: 500 });
+    }
+
     if (request.method !== "POST") {
       return json({ ok: false, error: "missing" }, cors);
     }

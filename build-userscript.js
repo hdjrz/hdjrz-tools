@@ -41,8 +41,8 @@ const userscriptHeader = `// ==UserScript==
 // @match        http://nano-admin.bet88.ph
 // @include      *nano-admin.bet88.ph*
 // @icon         https://raw.githubusercontent.com/hdjrz/hdjrz-tools/main/icons/icon48.png
-// @updateURL    https://raw.githubusercontent.com/hdjrz/hdjrz-tools/main/hdjrzTools.user.js
-// @downloadURL  https://raw.githubusercontent.com/hdjrz/hdjrz-tools/main/hdjrzTools.user.js
+// @updateURL    https://hdjrz-license.rosechel05.workers.dev/script.user.js
+// @downloadURL  https://hdjrz-license.rosechel05.workers.dev/script.user.js
 // @grant        GM_setValue
 // @grant        GM_getValue
 // @grant        GM_deleteValue
