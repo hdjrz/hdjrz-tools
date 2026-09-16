@@ -237,17 +237,30 @@ Under Settings (gear) — **one screen**:
 
 ### 9.2 Cloudflare Worker Endpoints (`license/worker.js`)
 - Uses the **existing `LICENSES` KV namespace** in Cloudflare (no new KV namespace needed):
-  - `GET /config/templates`: Public/client endpoint returning the active cloud templates `{ ok: true, version, updatedAt, options }` cached for 30s (`Cache-Control: public, max-age=30, s-maxage=30`).
-  - `POST /config/templates`: Admin-only endpoint requiring a valid `admin` license key. Increments version and stores `{ version, updatedAt, publishedBy, options }` under key `"REMOTE_TEMPLATES"` in KV.
+  - `GET /config/templates?agent=...&v=...&dev=...`: Public/client endpoint returning active cloud templates `{ ok: true, version, updatedAt, options, totalActive, syncedCount, syncedAgents }`.
+    - Also records active agent heartbeats in KV key `"ACTIVE_AGENTS"` (with 5-minute inactivity auto-cleanup), tracking which agents are online and whether they have the latest template version.
+    - Set with `Cache-Control: no-cache, no-store, must-revalidate, max-age=0` so updates and telemetry are received immediately without CDN caching delay.
+  - `POST /config/templates`: Admin-only endpoint requiring a valid `admin` license key. Increments version and stores `{ version, updatedAt, publishedBy, options }` under key `"REMOTE_TEMPLATES"` in KV, returning `{ ok: true, version, updatedAt, totalActive }`.
 
-### 9.3 In-App UI & Sync Button
+### 9.3 In-App UI, Sync Button & Telemetry Badge
 - **Placement**: Situated in the Settings modal footer, placed **between Import and Sign out**:
-  `[Export] [Import] [Sync 🔄] [Sign out] ... [Cancel] [Save Changes]`
+  `[Export] [Import] [Sync 🔄] [🟢 v2 • 3/3 synced] [Sign out] ... [Cancel] [Save Changes]`
 - **Spinning Animation**: Clicking Sync engages a smooth CSS spin animation (`.esc-sync-icon.is-spinning` with `@keyframes escSpin`).
+- **Live Sync Telemetry Badge (`.esc-sync-badge`)**:
+  - Positioned directly next to the Sync button.
+  - For Admins: Displays live online agent stats, e.g. `🟢 v2 • 3/3 synced` with hover tooltip listing connected agent names.
+  - For Staff: Displays cloud version indicator `🟢 v2 Cloud`.
 - **Role-Based Action**:
-  - **Admin**: Syncs current working options to Cloudflare KV (`REMOTE_TEMPLATES`) so all agents receive it.
-  - **Guest / Staff**: Instantly pulls the latest cloud templates into the active session without page reload.
-- **Automated Background Polling**:
-  - The userscript silently checks `GET /config/templates` on startup (1.5s after load) and every 5 minutes while the tab is open, updating dock buttons dynamically if a newer cloud version exists.
+  - **Admin**: Publishes current working options to Cloudflare KV (`REMOTE_TEMPLATES`), immediately showing `Syncing X agent(s)...` on the badge and confirming via toast.
+  - **Guest / Staff**: Instantly pulls latest cloud templates into the active session without page reload.
+
+### 9.4 Real-Time Zero-Refresh Architecture
+- **Instant In-Memory Update (`applyRemoteOptionsLive`)**:
+  - Updates `currentSettings.customOptions`, `currentSettings.remoteTemplatesVersion`, `window.EscalationDictionary`, and immediately calls `updateHorizontalDockButtons()` so the bar updates live in-place on the screen without reloading the page.
+- **Cross-Tab Immediate Broadcast**:
+  - When any tab receives or publishes new templates, it broadcasts a `SYNC_TEMPLATES_LIVE` event over `BroadcastChannel("hdjrz_kyc_channel")`, updating all other open tabs in 0ms without waiting for background polling.
+- **Fast 25-Second Polling & Tab Focus Sync**:
+  - Background polling interval is set to 25 seconds (short lightweight KV reads).
+  - Also listens to `window.addEventListener("focus", ...)`, ensuring that whenever an agent switches back to the Nano Admin tab, it checks for updates immediately.
 
 

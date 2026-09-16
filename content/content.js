@@ -251,32 +251,87 @@
     });
   }
 
+  function updateEscalationDictionary(options) {
+    const list = Array.isArray(options) ? options : [];
+    list.forEach(opt => {
+      if (opt && opt.code) {
+        if (typeof window !== "undefined" && window.EscalationDictionary) {
+          window.EscalationDictionary[opt.code] = opt;
+        }
+        if (typeof globalThis !== "undefined" && globalThis.EscalationDictionary) {
+          globalThis.EscalationDictionary[opt.code] = opt;
+        }
+      }
+    });
+  }
+
+  function applyRemoteOptionsLive(normalized, remoteVer, isBroadcast) {
+    currentSettings.customOptions = normalized;
+    currentSettings.remoteTemplatesVersion = remoteVer;
+    updateEscalationDictionary(normalized);
+    saveSettings({}, null, normalized, () => {
+      updateHorizontalDockButtons();
+      const modal = document.getElementById("esc-settings-overlay");
+      if (modal && typeof modal._escRenderOptionsList === "function") {
+        modal._escRenderOptionsList();
+      }
+    });
+    if (!isBroadcast && typeof BroadcastChannel !== "undefined") {
+      try {
+        const ch = new BroadcastChannel("hdjrz_kyc_channel");
+        ch.postMessage({ action: "SYNC_TEMPLATES_LIVE", version: remoteVer, options: normalized });
+        setTimeout(() => ch.close(), 1000);
+      } catch (e) {}
+    }
+  }
+
+  if (typeof BroadcastChannel !== "undefined") {
+    try {
+      const syncBc = new BroadcastChannel("hdjrz_kyc_channel");
+      syncBc.addEventListener("message", (ev) => {
+        if (ev.data && ev.data.action === "SYNC_TEMPLATES_LIVE" && Array.isArray(ev.data.options)) {
+          applyRemoteOptionsLive(ev.data.options, ev.data.version || 1, true);
+        }
+      });
+    } catch (e) {}
+  }
+
   function fetchRemoteTemplates(cb) {
-    fetch(REMOTE_CONFIG_URL, {
-      method: "GET",
-      headers: { "Accept": "application/json" }
-    })
-    .then(res => res.json())
-    .then(json => {
-      if (!json || !json.ok || !Array.isArray(json.options)) {
-        if (cb) cb((json && json.error) ? json.error : "No remote templates");
-        return;
-      }
-      const remoteVer = json.version || 1;
-      const currentVer = currentSettings.remoteTemplatesVersion || 0;
-      if (remoteVer > currentVer) {
+    const api = localStorageApi();
+    const getDevId = (done) => {
+      if (!api) return done("");
+      api.get(["hdjrzLicenseDeviceId"], (d) => done((d && d.hdjrzLicenseDeviceId) || ""));
+    };
+
+    getDevId((devId) => {
+      const agent = encodeURIComponent(currentSettings.agentName || "");
+      const v = currentSettings.remoteTemplatesVersion || 0;
+      const url = `${REMOTE_CONFIG_URL}?agent=${agent}&v=${v}&dev=${encodeURIComponent(devId)}`;
+
+      fetch(url, {
+        method: "GET",
+        headers: { "Accept": "application/json" }
+      })
+      .then(res => res.json())
+      .then(json => {
+        if (!json || !json.ok || !Array.isArray(json.options)) {
+          if (cb) cb((json && json.error) ? json.error : "No remote templates", json);
+          return;
+        }
+        const remoteVer = json.version || 1;
+        const currentVer = currentSettings.remoteTemplatesVersion || 0;
         const normalized = json.options.map(normalizeEscalationOption);
-        currentSettings.remoteTemplatesVersion = remoteVer;
-        saveSettings({}, null, normalized, () => {
-          updateHorizontalDockButtons();
-          if (cb) cb(null, { updated: true, version: remoteVer });
-        });
-      } else {
-        if (cb) cb(null, { updated: false, version: currentVer });
-      }
-    })
-    .catch(err => {
-      if (cb) cb(err && err.message ? err.message : "Network error");
+
+        if (remoteVer > currentVer) {
+          applyRemoteOptionsLive(normalized, remoteVer, false);
+          if (cb) cb(null, { updated: true, version: remoteVer, telemetry: json });
+        } else {
+          if (cb) cb(null, { updated: false, version: currentVer, telemetry: json });
+        }
+      })
+      .catch(err => {
+        if (cb) cb(err && err.message ? err.message : "Network error");
+      });
     });
   }
 
@@ -1075,13 +1130,25 @@
     }, 1500);
   }
 
+  // Fast background polling every 25 seconds
   setInterval(() => {
     fetchRemoteTemplates((err, res) => {
       if (!err && res && res.updated) {
         showToast(`✨ Templates updated from cloud (v${res.version})`);
       }
     });
-  }, 5 * 60 * 1000);
+  }, 25 * 1000);
+
+  // Check immediately when agent switches back to the tab
+  if (typeof window !== "undefined") {
+    window.addEventListener("focus", () => {
+      fetchRemoteTemplates((err, res) => {
+        if (!err && res && res.updated) {
+          showToast(`✨ Templates updated from cloud (v${res.version})`);
+        }
+      });
+    });
+  }
 
   function loadSettings(callback) {
     const localApi = (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) || null;
@@ -3946,6 +4013,7 @@
               </svg>
               <span>Sync</span>
             </button>
+            <span class="esc-sync-badge" id="esc-sync-badge"></span>
             <button type="button" class="esc-btn-secondary" id="esc-settings-signout">Sign out</button>
           </div>
           <div class="esc-settings-footer-right">
@@ -4499,6 +4567,13 @@
     }
 
     renderOptionsList();
+    overlay._escRenderOptionsList = () => {
+      workingOptions = JSON.parse(JSON.stringify(getActiveOptions()));
+      renderOptionsList();
+      if (typeof updateSyncBadge === "function") {
+        updateSyncBadge(null, currentSettings.remoteTemplatesVersion);
+      }
+    };
 
     const addToggle = overlay.querySelector("#esc-add-toggle");
     if (addToggle) {
@@ -4622,6 +4697,32 @@
     overlay.querySelector("#esc-settings-cancel").addEventListener("click", closeSettings);
 
     const syncBtn = overlay.querySelector("#esc-settings-sync");
+    const syncBadge = overlay.querySelector("#esc-sync-badge");
+
+    const updateSyncBadge = (telemetry, ver) => {
+      if (!syncBadge) return;
+      const v = ver || (telemetry && telemetry.version) || currentSettings.remoteTemplatesVersion || 1;
+      if (isAdminLicense()) {
+        const count = (telemetry && typeof telemetry.totalActive === "number") ? telemetry.totalActive : 0;
+        const synced = (telemetry && typeof telemetry.syncedCount === "number") ? telemetry.syncedCount : 0;
+        syncBadge.innerHTML = `🟢 v${v} • ${synced}/${count} synced`;
+        syncBadge.title = telemetry && telemetry.syncedAgents && telemetry.syncedAgents.length
+          ? `Synced agents: ${telemetry.syncedAgents.join(", ")}`
+          : `${synced} of ${count} online agents have latest templates`;
+      } else {
+        syncBadge.innerHTML = `🟢 v${v} Cloud`;
+        syncBadge.title = `Template version ${v}`;
+      }
+    };
+
+    fetchRemoteTemplates((err, res) => {
+      if (!err && res && res.telemetry) {
+        updateSyncBadge(res.telemetry, res.version);
+      } else if (currentSettings.remoteTemplatesVersion && syncBadge) {
+        syncBadge.innerHTML = `v${currentSettings.remoteTemplatesVersion}`;
+      }
+    });
+
     if (syncBtn) {
       syncBtn.addEventListener("click", () => {
         const icon = syncBtn.querySelector(".esc-sync-icon");
@@ -4636,7 +4737,16 @@
             if (err) {
               showToast("Cloud sync failed: " + err);
             } else {
-              showToast(`✨ Published to Cloud (v${res.version})! All agents synced.`);
+              const activeCount = (res && typeof res.totalActive === "number") ? res.totalActive : 0;
+              if (syncBadge) {
+                syncBadge.innerHTML = `🟢 v${res.version} • Syncing ${activeCount} agent(s)...`;
+              }
+              showToast(`✨ Published to Cloud (v${res.version})! Broadcast sent to ${activeCount} active agent(s).`);
+              setTimeout(() => {
+                fetchRemoteTemplates((_, r) => {
+                  if (r && r.telemetry) updateSyncBadge(r.telemetry, r.version);
+                });
+              }, 2500);
             }
           });
         } else {
@@ -4648,8 +4758,10 @@
             } else if (res && res.updated) {
               workingOptions = JSON.parse(JSON.stringify(getActiveOptions()));
               renderOptionsList();
+              if (res.telemetry) updateSyncBadge(res.telemetry, res.version);
               showToast(`✨ Synced with Cloud (v${res.version})!`);
             } else {
+              if (res && res.telemetry) updateSyncBadge(res.telemetry, res.version);
               showToast("Already up to date with Cloud.");
             }
           });

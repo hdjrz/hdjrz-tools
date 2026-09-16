@@ -42,21 +42,66 @@ export default {
       return new Response("// Error fetching script from GitHub", { status: 500 });
     }
 
-    // Remote Templates: GET endpoint to fetch live cloud templates
+    // Remote Templates: GET endpoint to fetch live cloud templates and report agent presence
     if (request.method === "GET" && url.pathname === "/config/templates") {
       try {
         const raw = await env.LICENSES.get("REMOTE_TEMPLATES");
-        if (raw) {
-          const data = JSON.parse(raw);
-          return new Response(JSON.stringify({ ok: true, ...data }), {
-            headers: {
-              ...cors,
-              "Cache-Control": "public, max-age=30, s-maxage=30"
-            }
-          });
+        let tmplData = raw ? JSON.parse(raw) : null;
+        if (!tmplData) {
+          return new Response(JSON.stringify({ ok: false, error: "not_configured" }), { headers: cors });
         }
-        return new Response(JSON.stringify({ ok: false, error: "not_configured" }), {
-          headers: cors
+
+        const agentName = String(url.searchParams.get("agent") || "").trim();
+        const devId = String(url.searchParams.get("dev") || "").trim();
+        const agentVer = parseInt(url.searchParams.get("v") || "0", 10);
+
+        let activeMap = {};
+        try {
+          const rawActive = await env.LICENSES.get("ACTIVE_AGENTS");
+          if (rawActive) activeMap = JSON.parse(rawActive);
+        } catch (e) {}
+
+        const now = Date.now();
+        // Clean up agents inactive for more than 5 minutes
+        for (const k in activeMap) {
+          if (!activeMap[k] || (now - (activeMap[k].lastSeen || 0)) > 5 * 60 * 1000) {
+            delete activeMap[k];
+          }
+        }
+
+        // Register current ping if device ID or agent name provided
+        if (devId || agentName) {
+          const id = devId || ("agent_" + agentName);
+          activeMap[id] = {
+            agent: agentName || "Agent",
+            version: agentVer || 0,
+            lastSeen: now
+          };
+          try {
+            await env.LICENSES.put("ACTIVE_AGENTS", JSON.stringify(activeMap));
+          } catch (e) {}
+        }
+
+        const activeList = Object.values(activeMap);
+        const syncedAgents = activeList
+          .filter(a => a.version === tmplData.version)
+          .map(a => a.agent);
+
+        const responsePayload = {
+          ok: true,
+          version: tmplData.version,
+          updatedAt: tmplData.updatedAt,
+          options: tmplData.options,
+          totalActive: activeList.length,
+          syncedCount: syncedAgents.length,
+          syncedAgents: syncedAgents
+        };
+
+        return new Response(JSON.stringify(responsePayload), {
+          headers: {
+            ...cors,
+            "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0"
+          }
         });
       } catch (e) {
         return new Response(JSON.stringify({ ok: false, error: "server_error" }), {
@@ -93,6 +138,13 @@ export default {
         }
       } catch (e) {}
 
+      let activeMap = {};
+      try {
+        const rawActive = await env.LICENSES.get("ACTIVE_AGENTS");
+        if (rawActive) activeMap = JSON.parse(rawActive);
+      } catch (e) {}
+      const totalActive = Object.keys(activeMap).length;
+
       const storePayload = {
         version: currentVersion,
         updatedAt: new Date().toISOString(),
@@ -100,7 +152,7 @@ export default {
         options: options
       };
       await env.LICENSES.put("REMOTE_TEMPLATES", JSON.stringify(storePayload));
-      return json({ ok: true, version: currentVersion, updatedAt: storePayload.updatedAt }, cors);
+      return json({ ok: true, version: currentVersion, updatedAt: storePayload.updatedAt, totalActive }, cors);
     }
 
     if (request.method !== "POST") {
