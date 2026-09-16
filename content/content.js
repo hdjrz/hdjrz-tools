@@ -491,6 +491,7 @@
       })
       .then(res => res.json())
       .then(json => {
+        console.log(`[hdjrzTools] Policy Heartbeat (Installed: v${SCRIPT_VERSION}):`, json);
         if (json && json.blocked) {
           triggerEmergencyLockout(json);
           if (cb) cb(json.message || "Execution blocked by remote policy", json);
@@ -512,6 +513,7 @@
         }
       })
       .catch(err => {
+        console.warn(`[hdjrzTools] Policy Heartbeat network error (Installed: v${SCRIPT_VERSION}):`, err);
         if (cb) cb(err && err.message ? err.message : "Network error");
       });
     });
@@ -3030,6 +3032,7 @@
               <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
             </svg>`}
             <span class="esc-brand-text">hdjrzTools</span>
+            <span class="esc-brand-version" id="esc-brand-version" title="Installed Script Version">v${safeEsc(SCRIPT_VERSION)}</span>
           </span>
           <span class="esc-player-badge empty" id="esc-player-status">Searching player...</span>
         </div>
@@ -4320,6 +4323,7 @@
           <div class="esc-modal-title">
             ${JET_LOGO_URL ? `<img class="esc-brand-logo" src="${JET_LOGO_URL}" alt="JET" style="width:20px;height:20px;">` : ""}
             <span>Settings</span>
+            <span style="font-size: 11px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); padding: 1px 6px; border-radius: 4px; margin-left: 6px; font-weight: 700;">v${safeEsc(SCRIPT_VERSION)}</span>
           </div>
           <button type="button" class="esc-icon-btn" id="esc-settings-close" title="Close (Esc)">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
