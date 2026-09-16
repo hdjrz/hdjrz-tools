@@ -53,6 +53,17 @@ export default {
 
     // Zero-cache Userscript & Metadata endpoint for instant Tampermonkey updates
     if ((request.method === "GET" || request.method === "HEAD") && (url.pathname === "/script.user.js" || url.pathname === "/script.meta.js" || url.pathname === "/hdjrzTools.user.js")) {
+      if (request.method === "HEAD") {
+        return new Response(null, {
+          headers: {
+            "Content-Type": "text/javascript; charset=utf-8",
+            "Access-Control-Allow-Origin": "*",
+            "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0"
+          }
+        });
+      }
       try {
         const headers = { "User-Agent": "Tampermonkey-Updater" };
         if (env.GITHUB_TOKEN) {
@@ -67,18 +78,6 @@ export default {
           if (url.pathname.endsWith(".meta.js")) {
             const metaMatch = scriptText.match(/\/\/\s*==UserScript==[\s\S]*?\/\/\s*==\/UserScript==/);
             if (metaMatch) responseBody = metaMatch[0] + "\n";
-          }
-
-          if (request.method === "HEAD") {
-            return new Response(null, {
-              headers: {
-                "Content-Type": "text/javascript; charset=utf-8",
-                "Access-Control-Allow-Origin": "*",
-                "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
-                "Pragma": "no-cache",
-                "Expires": "0"
-              }
-            });
           }
 
           return new Response(responseBody, {
