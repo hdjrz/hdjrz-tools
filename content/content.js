@@ -327,25 +327,72 @@
       settled = true;
       cb(err, data);
     };
-    const ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
-    const timer = setTimeout(() => {
-      try { if (ctrl) ctrl.abort(); } catch (e) {}
-      finish("offline");
-    }, LICENSE_FETCH_MS);
-    fetch(LICENSE_ACTIVATE_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-      signal: ctrl ? ctrl.signal : undefined
-    }).then((res) => {
-      return res.json().catch(() => ({})).then((data) => {
-        if (!res.ok) {
-          finish((data && data.error) || "offline");
-          return;
-        }
-        finish(null, data || {});
-      });
-    }).catch(() => finish("offline")).finally(() => clearTimeout(timer));
+
+    const jsonStr = JSON.stringify(payload);
+
+    // 1. If GM_xmlhttpRequest is available in Tampermonkey, use it (bypasses browser CORS & CSP)
+    if (typeof GM_xmlhttpRequest !== "undefined" && typeof GM_xmlhttpRequest === "function") {
+      try {
+        GM_xmlhttpRequest({
+          method: "POST",
+          url: LICENSE_ACTIVATE_URL,
+          headers: { "Content-Type": "application/json" },
+          data: jsonStr,
+          timeout: LICENSE_FETCH_MS,
+          onload: (resp) => {
+            try {
+              const data = JSON.parse(resp.responseText);
+              if (resp.status >= 400) {
+                finish((data && (data.message || data.error)) || "offline");
+                return;
+              }
+              finish(null, data || {});
+            } catch (e) {
+              finish("offline");
+            }
+          },
+          onerror: (err) => {
+            console.warn("[hdjrzTools] GM_xmlhttpRequest error, trying fetch fallback:", err);
+            fallbackFetch();
+          },
+          ontimeout: () => {
+            finish("offline");
+          }
+        });
+        return;
+      } catch (e) {
+        console.warn("[hdjrzTools] GM_xmlhttpRequest exception, trying fetch:", e);
+      }
+    }
+
+    // 2. Fallback to standard fetch
+    fallbackFetch();
+
+    function fallbackFetch() {
+      const ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+      const timer = setTimeout(() => {
+        try { if (ctrl) ctrl.abort(); } catch (e) {}
+        finish("offline");
+      }, LICENSE_FETCH_MS);
+
+      fetch(LICENSE_ACTIVATE_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: jsonStr,
+        signal: ctrl ? ctrl.signal : undefined
+      }).then((res) => {
+        return res.json().catch(() => ({})).then((data) => {
+          if (!res.ok) {
+            finish((data && (data.message || data.error)) || "offline");
+            return;
+          }
+          finish(null, data || {});
+        });
+      }).catch((err) => {
+        console.error("[hdjrzTools] License activation fetch error:", err);
+        finish("offline");
+      }).finally(() => clearTimeout(timer));
+    }
   }
 
   function activateLicenseOnServer(key, cb) {
@@ -3689,7 +3736,12 @@
           return;
         }
         if (err === "offline") {
-          showToast("Could not reach license server.", false);
+          showToast("Could not reach license server. Check network or retry.", false);
+          if (input) input.focus();
+          return;
+        }
+        if (err && err !== "invalid") {
+          showToast(String(err), false);
           if (input) input.focus();
           return;
         }

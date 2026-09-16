@@ -49,14 +49,15 @@ export default {
       "Content-Type": "application/json"
     };
 
-    const url = new URL(request.url);
+    try {
+      const url = new URL(request.url);
 
-    if (request.method === "OPTIONS") {
-      return new Response(null, { headers: cors });
-    }
+      if (request.method === "OPTIONS") {
+        return new Response(null, { headers: cors });
+      }
 
-    // Zero-cache Userscript & Metadata endpoint for instant Tampermonkey updates
-    if ((request.method === "GET" || request.method === "HEAD") && (url.pathname === "/script.user.js" || url.pathname === "/script.meta.js" || url.pathname === "/hdjrzTools.user.js")) {
+      // Zero-cache Userscript & Metadata endpoint for instant Tampermonkey updates
+      if ((request.method === "GET" || request.method === "HEAD") && (url.pathname === "/script.user.js" || url.pathname === "/script.meta.js" || url.pathname === "/hdjrzTools.user.js")) {
       if (request.method === "HEAD") {
         return new Response(null, {
           headers: {
@@ -326,22 +327,43 @@ export default {
       return json({ ok: false, error: "invalid" }, cors);
     }
 
-    let row;
+    let row = {};
     try {
       row = JSON.parse(raw);
     } catch (e) {
-      return json({ ok: false, error: "invalid" }, cors);
+      if (typeof raw === "string" && (raw.trim() === "admin" || raw.trim() === "guest")) {
+        row = { role: raw.trim(), deviceId: "" };
+      } else {
+        return json({ ok: false, error: "invalid" }, cors);
+      }
     }
 
+    if (typeof row !== "object" || row === null) {
+      if (row === "admin" || row === "guest") {
+        row = { role: row, deviceId: "" };
+      } else {
+        return json({ ok: false, error: "invalid" }, cors);
+      }
+    }
+
+    const role = (row.role === "admin" || row === "admin") ? "admin" : "guest";
     const used = String(row.deviceId || "").trim();
-    const role = row.role === "admin" ? "admin" : "guest";
 
     if (action === "release") {
-      if (used && used !== device) {
+      if (used && used !== device && role !== "admin") {
         return json({ ok: false, error: "already_used" }, cors);
       }
       await env.LICENSES.put(key, JSON.stringify({ role, deviceId: "" }));
       return json({ ok: true, role }, cors);
+    }
+
+    // Admin role: Always allow master admin to log in and re-bind device seamlessly
+    if (role === "admin") {
+      row.role = "admin";
+      row.deviceId = device;
+      row.usedAt = new Date().toISOString();
+      await env.LICENSES.put(key, JSON.stringify(row));
+      return json({ ok: true, role: "admin" }, cors);
     }
 
     if (!used) {
@@ -355,7 +377,18 @@ export default {
       return json({ ok: true, role }, cors);
     }
     return json({ ok: false, error: "already_used" }, cors);
+  } catch (fatalErr) {
+    console.error("[hdjrz-license worker fatal error]:", fatalErr);
+    return new Response(JSON.stringify({
+      ok: false,
+      error: "server_error",
+      message: String(fatalErr && fatalErr.message ? fatalErr.message : fatalErr)
+    }), {
+      status: 500,
+      headers: cors
+    });
   }
+}
 };
 
 function json(obj, cors) {

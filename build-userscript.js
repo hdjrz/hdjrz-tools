@@ -49,6 +49,7 @@ const userscriptHeader = `// ==UserScript==
 // @grant        GM_listValues
 // @grant        GM_setClipboard
 // @grant        GM_addStyle
+// @grant        GM_xmlhttpRequest
 // @run-at       document-end
 // ==/UserScript==
 `;
