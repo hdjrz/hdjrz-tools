@@ -88,7 +88,7 @@ Under Settings (gear) — **one screen**:
 | 7 | **NDRP** | Non-Deposit Reward Program | Financial & Rewards | Red | `#6d28d9` (Purple) | `Non-Deposit Reward credited / claim inquiry` |
 | 8 | **UA W/FUNDS** | Unauthorized Access / Underage with Funds | Security & Fraud | Red (`For escalation`) | `#7c3aed` (Bright Purple) | `Suspected account takeover with remaining balance` |
 | 9 | **UA WO/FUNDS** | Underage without funds | Security & Fraud | Red | `#6d28d9` (Purple) | `Underage without funds` |
-| 10 | **MANUAL KYC** | Manual KYC Document Review | KYC & Verification | Red | `#db2777` (Pink) | `Manual ID verification required` |
+| 10 | **MANUAL KYC** | Manual KYC Document Review | KYC & Verification | Red | `#db2777` (Pink) | `Review Needed` |
 | 11 | **KYC SWITCH** | KYC Verification Switch | KYC & Verification | Teal | `#0891b2` (Cyan) | `Switch verification channel requested` |
 | 12 | **GLIFE.1** | GLife Escalation Tier 1 | GLife Partner | Red | `#0d9488` (Teal) | `GLife mini-app sync issue / Tier 1 inquiry` |
 | 13 | **GLIFE.2** | GLife Escalation Tier 2 | GLife Partner | Red | `#115e59` (Deep Teal) | `GLife Tier 2 high-priority escalation` |

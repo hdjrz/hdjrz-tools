@@ -407,17 +407,17 @@ Pasuyo po TLs`
     group: "KYC & Verification",
     color: "#db2777",
     chip: { text: "", color: "#dc2626" },
-    defaultReason: "Manual ID verification required",
-    reasons: ["Manual ID verification required"],
+    defaultReason: "Review Needed",
+    reasons: ["Review Needed","Rejected","Not Started","Pending"],
     userNotesText: "For Manual Verification | [Name] | [DOB]",
     zoomText: `For manual verification
-Review needed in nano / verified in meta
+[Reason] in nano / verified in meta
 
 User ID: [User ID]
 Name: [Name]
 Date of Birth: [DOB]
 
-Pasuyo tl`,
+Pasuyo po TLs`,
     noteChoices: [
       {
         "label": "User Notes",
@@ -428,13 +428,13 @@ Pasuyo tl`,
       {
         label: "Zoom",
         zoomText: `For manual verification
-Review needed in nano / verified in meta
+[Reason] in nano / verified in meta
 
 User ID: [User ID]
 Name: [Name]
 Date of Birth: [DOB]
 
-Pasuyo tl`
+Pasuyo po TLs`
       }
     ]
   },

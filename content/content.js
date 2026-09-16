@@ -18,7 +18,7 @@
     { code: "NDRP", label: "NDRP", meaning: "Non-Deposit Reward Program", description: "Issues concerning free credits, vouchers, or no-deposit rewards.", group: "Financial & Rewards", color: "#6d28d9", chip: { text: "", color: "#dc2626" }, defaultReason: "Non-Deposit Reward credited / claim inquiry", template: "{code} / {cid} / {reason}" },
     { code: "UA W/FUNDS", label: "UA W/FUNDS", meaning: "Unauthorized Access with Funds", description: "Compromised or hacked account that currently holds a cash balance.", group: "Security & Fraud", color: "#7c3aed", chip: { text: "For escalation", color: "#b91c1c" }, defaultReason: "Suspected account takeover with remaining balance", template: "{code} / {cid} / {reason}" },
     { code: "UA WO/FUNDS", label: "UA WO/FUNDS", meaning: "Underage without funds", description: "Underage player with no remaining balance.", group: "Security & Fraud", color: "#6d28d9", chip: { text: "", color: "#dc2626" }, defaultReason: "Underage without funds", template: "{code} / {cid} / {reason}" },
-    { code: "MANUAL KYC", label: "MANUAL KYC", meaning: "Manual KYC Document Review", description: "Automated verification failed; manual review of submitted IDs needed.", group: "KYC & Verification", color: "#db2777", chip: { text: "", color: "#dc2626" }, defaultReason: "Manual ID verification required", template: "{code} / {cid} / {reason}" },
+    { code: "MANUAL KYC", label: "MANUAL KYC", meaning: "Manual KYC Document Review", description: "Automated verification failed; manual review of submitted IDs needed.", group: "KYC & Verification", color: "#db2777", chip: { text: "", color: "#dc2626" }, defaultReason: "Review Needed", template: "{code} / {cid} / {reason}" },
     { code: "KYC SWITCH", label: "KYC SWITCH", meaning: "KYC Verification Switch", description: "Switching player's verification method (e.g. from SMS OTP to Manual or email).", group: "KYC & Verification", color: "#0891b2", chip: { text: "", color: "#0d9488" }, defaultReason: "Switch verification channel requested", template: "{code} / {cid} / {reason}" },
     { code: "GLIFE.1", label: "GLIFE.1", meaning: "GLife Escalation Tier 1", description: "First-level escalation for GCash GLife mini-app transactions or sync issues.", group: "GLife Partner", color: "#0d9488", chip: { text: "", color: "#dc2626" }, defaultReason: "GLife mini-app sync issue / Tier 1 inquiry", template: "{code} / {cid} / {reason}" },
     { code: "GLIFE.2", label: "GLIFE.2", meaning: "GLife Escalation Tier 2", description: "High-priority / urgent escalation for GLife payment failures or account locks.", group: "GLife Partner", color: "#115e59", chip: { text: "", color: "#dc2626" }, defaultReason: "GLife Tier 2 high-priority escalation", template: "{code} / {cid} / {reason}" },
@@ -841,7 +841,7 @@
     return list.map(normalizeEscalationOption);
   }
 
-  const BIT88_NOTES_WORDING_VERSION = 23;
+  const BIT88_NOTES_WORDING_VERSION = 24;
   let loadedWordingVersion = 0;
 
   function getPresetOptionsList() {
@@ -855,6 +855,11 @@
   }
 
   function applyBit88UserNotesToSavedOptions() {
+    const storedVer = currentSettings.notesWordingVersion || 0;
+    if (storedVer >= BIT88_NOTES_WORDING_VERSION) {
+      loadedWordingVersion = storedVer;
+      return false;
+    }
     if (loadedWordingVersion === BIT88_NOTES_WORDING_VERSION) return false;
     const presets = getPresetOptionsList();
     const byCode = {};
@@ -867,24 +872,30 @@
         const preset = byCode[opt && opt.code];
         if (!preset) return opt;
         const copy = { ...opt };
-        if (preset.noteChoices && preset.noteChoices.length) {
-          copy.noteChoices = JSON.parse(JSON.stringify(preset.noteChoices));
-          copy.userNotesText = copy.noteChoices[0].userNotesText;
-        } else {
-          copy.userNotesText = preset.userNotesText != null ? preset.userNotesText : (copy.userNotesText || "");
-          copy.noteChoices = [{ label: "User Notes", userNotesText: copy.userNotesText }];
+        if (!copy.noteChoices || !copy.noteChoices.length) {
+          if (preset.noteChoices && preset.noteChoices.length) {
+            copy.noteChoices = JSON.parse(JSON.stringify(preset.noteChoices));
+            copy.userNotesText = copy.noteChoices[0].userNotesText;
+          } else {
+            copy.userNotesText = preset.userNotesText != null ? preset.userNotesText : (copy.userNotesText || "");
+            copy.noteChoices = [{ label: "User Notes", userNotesText: copy.userNotesText }];
+          }
         }
-        if (preset.zoomChoices && preset.zoomChoices.length) {
-          copy.zoomChoices = JSON.parse(JSON.stringify(preset.zoomChoices));
-          copy.zoomText = copy.zoomChoices[0].zoomText;
-        } else if (preset.zoomText != null) {
-          copy.zoomText = preset.zoomText;
-          copy.zoomChoices = [{ label: "Zoom", zoomText: preset.zoomText }];
+        if (!copy.zoomChoices || !copy.zoomChoices.length) {
+          if (preset.zoomChoices && preset.zoomChoices.length) {
+            copy.zoomChoices = JSON.parse(JSON.stringify(preset.zoomChoices));
+            copy.zoomText = copy.zoomChoices[0].zoomText;
+          } else if (preset.zoomText != null) {
+            copy.zoomText = preset.zoomText;
+            copy.zoomChoices = [{ label: "Zoom", zoomText: preset.zoomText }];
+          }
         }
-        const factoryReasons = (preset.reasons || []).map((r) => String(r || "").trim()).filter(Boolean);
-        if (factoryReasons.length) {
-          copy.reasons = factoryReasons.slice();
-          copy.defaultReason = String(preset.defaultReason || factoryReasons[0]).trim() || factoryReasons[0];
+        if (!Array.isArray(copy.reasons) || !copy.reasons.length) {
+          const factoryReasons = (preset.reasons || []).map((r) => String(r || "").trim()).filter(Boolean);
+          if (factoryReasons.length) {
+            copy.reasons = factoryReasons.slice();
+            copy.defaultReason = String(preset.defaultReason || factoryReasons[0]).trim() || factoryReasons[0];
+          }
         }
         return copy;
       });
@@ -1029,6 +1040,8 @@
    */
   function saveSettings(newSettings, newTemplates, newOptions, callback) {
     currentSettings = { ...currentSettings, ...newSettings };
+    currentSettings.notesWordingVersion = BIT88_NOTES_WORDING_VERSION;
+    loadedWordingVersion = BIT88_NOTES_WORDING_VERSION;
     if (newTemplates) currentSettings.customTemplates = { ...newTemplates };
     if (newOptions) currentSettings.customOptions = [...newOptions];
 
