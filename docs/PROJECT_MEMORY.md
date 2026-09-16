@@ -295,7 +295,34 @@ Under Settings (gear) — **one screen**:
     4. Displays an unavoidable full-screen frosted overlay (`.esc-enforcement-overlay` with z-index `2147483647`):
        - **Outdated version**: Displays `⚠️ Critical Update Required`, compares installed version against minimum/latest, and offers a 1-click update button linking to `/script.user.js`.
        - **Kill switch**: Displays `🛑 Emergency System Lock` with admin maintenance message.
-       - **Unauthorized domain**: Displays `🚫 Unauthorized Domain` if the script is run on unauthorized hosts.
+---
+
+## 11. PAGCOR Legal Age Calculator & Smart Badging
+
+### 11.1 Regulatory Purpose
+- Under Philippine PAGCOR regulations, casino gaming legal age is **21**, not 18.
+- To eliminate mental math errors during high-pressure shifts, the extension automatically parses the player's Date of Birth (DOB) and computes their precise legal standing.
+
+### 11.2 Age Brackets & Smart Badges
+- **🔴 Minor (< 18)**:
+  - Strict ban; unauthorized under civil and gaming law.
+  - Rendered with `.esc-pagcor-badge.is-minor`: `🔴 Minor ({age})`.
+- **🟠 PAGCOR Restricted (18 to 20)**:
+  - Legal adult under civil law (18+), but strictly underage for casino operations under PAGCOR rules (< 21).
+  - Rendered with `.esc-pagcor-badge.is-pagcor-restricted`: `🟠 PAGCOR Restricted ({age})`.
+- **🟢 Legal (21+)**:
+  - Eligible adult for all gaming operations.
+  - Rendered with `.esc-pagcor-badge.is-legal`: `🟢 Legal ({age})`.
+
+### 11.3 UI & Template Integration
+- **Confirmation Modal**: Rendered in the `esc-player-summary` next to `Name / DOB`:
+  `Name / DOB: Juan Dela Cruz / 15 Mar, 2007  [🟠 PAGCOR Restricted (19)]`
+- **Template Tokens**:
+  - `[AGE]`: Numeric age string (e.g. `19`).
+  - `[PAGCOR AGE]` / `[AGE BRACKET]`: Legal status text (e.g. `PAGCOR Restricted (18 to 20)`).
+  - `[AGE WITH STATUS]`: Combined string (e.g. `19 (PAGCOR Restricted 18-20)`).
+- **Settings Chips**: Added `[PAGCOR AGE]` to the chip insert toolbar.
+
 
 
 

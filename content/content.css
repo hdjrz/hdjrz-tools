@@ -1933,6 +1933,41 @@ body.esc-modal-scroll-lock {
   display: none;
 }
 
+.esc-pagcor-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  margin-left: 6px;
+  vertical-align: middle;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  line-height: 1.35;
+}
+
+.esc-pagcor-badge.is-minor {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.55);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+}
+
+.esc-pagcor-badge.is-pagcor-restricted {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fde047;
+  border: 1px solid rgba(245, 158, 11, 0.55);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+}
+
+.esc-pagcor-badge.is-legal {
+  background: rgba(16, 185, 129, 0.18);
+  color: #86efac;
+  border: 1px solid rgba(16, 185, 129, 0.55);
+}
+
 /* ==========================================================================
    Emergency Remote Enforcement & Version Lockout Modal
    ========================================================================== */

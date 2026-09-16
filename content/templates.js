@@ -671,6 +671,45 @@ function ageFromDob(dobStr) {
   return String(age);
 }
 
+function getPagcorAgeInfo(dobStr) {
+  const ageStr = ageFromDob(dobStr);
+  if (!ageStr) return null;
+  const age = parseInt(ageStr, 10);
+  if (isNaN(age)) return null;
+
+  if (age < 18) {
+    return {
+      age,
+      status: "Minor (< 18)",
+      badgeClass: "is-minor",
+      badgeIcon: "🔴",
+      badgeText: `🔴 Minor (${age})`,
+      bracket: "Minor (< 18)",
+      noteText: `${age} (Minor < 18)`
+    };
+  } else if (age < 21) {
+    return {
+      age,
+      status: "PAGCOR Restricted (18 to 20)",
+      badgeClass: "is-pagcor-restricted",
+      badgeIcon: "🟠",
+      badgeText: `🟠 PAGCOR Restricted (${age})`,
+      bracket: "PAGCOR Restricted (18 to 20)",
+      noteText: `${age} (PAGCOR Restricted 18-20)`
+    };
+  } else {
+    return {
+      age,
+      status: "Legal (21+)",
+      badgeClass: "is-legal",
+      badgeIcon: "🟢",
+      badgeText: `🟢 Legal (${age})`,
+      bracket: "Legal (21+)",
+      noteText: `${age} (Legal 21+)`
+    };
+  }
+}
+
 /**
  * Fills [User ID], [CID], [Reason], [Name], [DOB], [AGE] and legacy curly tokens.
  */
@@ -689,6 +728,7 @@ function renderEscalationNote(templateStr, data) {
   const nameVal = data.name || "";
   const dobVal = data.dob || data.dateOfBirth || "";
   const ageVal = data.age || ageFromDob(dobVal);
+  const pagcorInfo = getPagcorAgeInfo(dobVal);
 
   const replacements = {
     "[User ID]": combined || effectiveUserId,
@@ -700,6 +740,9 @@ function renderEscalationNote(templateStr, data) {
     "[DOB]": dobVal,
     "[Dob]": dobVal,
     "[AGE]": ageVal,
+    "[PAGCOR AGE]": pagcorInfo ? pagcorInfo.bracket : "",
+    "[AGE BRACKET]": pagcorInfo ? pagcorInfo.bracket : "",
+    "[AGE WITH STATUS]": pagcorInfo ? pagcorInfo.noteText : ageVal,
     "[Verified UID]": data.verifiedUid || "",
     "[New Account UID]": data.newAccountUid || "",
     "[Rejected accounts]": data.rejectedAccounts || "",
@@ -752,6 +795,7 @@ if (typeof window !== "undefined") {
   window.DefaultEscalationSettings = DEFAULT_SETTINGS;
   window.renderEscalationNote = renderEscalationNote;
   window.renderFinalEscalationNote = renderFinalEscalationNote;
+  window.getPagcorAgeInfo = getPagcorAgeInfo;
 }
 
 if (typeof globalThis !== "undefined") {
@@ -762,6 +806,7 @@ if (typeof globalThis !== "undefined") {
   globalThis.DefaultEscalationSettings = DEFAULT_SETTINGS;
   globalThis.renderEscalationNote = renderEscalationNote;
   globalThis.renderFinalEscalationNote = renderFinalEscalationNote;
+  globalThis.getPagcorAgeInfo = getPagcorAgeInfo;
 }
 
 if (typeof module !== "undefined" && module.exports) {
@@ -772,6 +817,7 @@ if (typeof module !== "undefined" && module.exports) {
     ESCALATION_KEYS_ORDER,
     DEFAULT_SETTINGS,
     renderEscalationNote,
-    renderFinalEscalationNote
+    renderFinalEscalationNote,
+    getPagcorAgeInfo
   };
 }

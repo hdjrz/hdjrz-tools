@@ -54,7 +54,7 @@
   let licenseRole = "";
   const SCRIPT_VERSION = (typeof GM_info !== "undefined" && GM_info && GM_info.script && GM_info.script.version)
     || (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.getManifest && chrome.runtime.getManifest() && chrome.runtime.getManifest().version)
-    || "1.1.7";
+    || "1.1.8";
   const LICENSE_ACTIVATE_URL = "https://hdjrz-license.rosechel05.workers.dev/";
 
   function isLicensed() {
@@ -840,6 +840,68 @@
       .replace(/'/g, "&#39;");
   }
 
+  function ageFromDob(dobStr) {
+    if (typeof window !== "undefined" && typeof window.ageFromDob === "function") {
+      return window.ageFromDob(dobStr);
+    }
+    const raw = String(dobStr || "").trim();
+    if (!raw) return "";
+    let d = new Date(raw);
+    if (isNaN(d.getTime())) {
+      const m = raw.match(/^(\d{1,2})\s+([A-Za-z]{3,9}),?\s+(\d{4})$/);
+      if (m) d = new Date(`${m[2]} ${m[1]}, ${m[3]}`);
+    }
+    if (isNaN(d.getTime())) return "";
+    const today = new Date();
+    let age = today.getFullYear() - d.getFullYear();
+    const monthDiff = today.getMonth() - d.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < d.getDate())) age -= 1;
+    if (age < 0 || age > 120) return "";
+    return String(age);
+  }
+
+  function getPagcorAgeInfo(dobStr) {
+    if (typeof window !== "undefined" && typeof window.getPagcorAgeInfo === "function") {
+      return window.getPagcorAgeInfo(dobStr);
+    }
+    const ageStr = ageFromDob(dobStr);
+    if (!ageStr) return null;
+    const age = parseInt(ageStr, 10);
+    if (isNaN(age)) return null;
+
+    if (age < 18) {
+      return {
+        age,
+        status: "Minor (< 18)",
+        badgeClass: "is-minor",
+        badgeIcon: "🔴",
+        badgeText: `🔴 Minor (${age})`,
+        bracket: "Minor (< 18)",
+        noteText: `${age} (Minor < 18)`
+      };
+    } else if (age < 21) {
+      return {
+        age,
+        status: "PAGCOR Restricted (18 to 20)",
+        badgeClass: "is-pagcor-restricted",
+        badgeIcon: "🟠",
+        badgeText: `🟠 PAGCOR Restricted (${age})`,
+        bracket: "PAGCOR Restricted (18 to 20)",
+        noteText: `${age} (PAGCOR Restricted 18-20)`
+      };
+    } else {
+      return {
+        age,
+        status: "Legal (21+)",
+        badgeClass: "is-legal",
+        badgeIcon: "🟢",
+        badgeText: `🟢 Legal (${age})`,
+        bracket: "Legal (21+)",
+        noteText: `${age} (Legal 21+)`
+      };
+    }
+  }
+
   /**
    * Safe renderer for User Notes: guarantees no crashes if external template script isn't loaded
    */
@@ -868,6 +930,8 @@
     const reasonVal = (data && data.reason) || "";
     const meaningVal = (data && data.meaning) || "";
     const codeVal = (data && data.code) || "";
+    const rawDob = (data && (data.dob || data.dateOfBirth)) || "";
+    const pagcor = getPagcorAgeInfo(rawDob);
 
     const replacements = {
       "[User ID]": combined || effectiveUserId,
@@ -876,11 +940,14 @@
       "[CODE]": codeVal,
       "[Meaning]": meaningVal,
       "[Name]": (data && data.name) || "",
-      "[DOB]": (data && (data.dob || data.dateOfBirth)) || "",
-      "[Dob]": (data && (data.dob || data.dateOfBirth)) || "",
+      "[DOB]": rawDob,
+      "[Dob]": rawDob,
+      "[AGE]": (data && data.age) || ageFromDob(rawDob),
+      "[PAGCOR AGE]": pagcor ? pagcor.bracket : "",
+      "[AGE BRACKET]": pagcor ? pagcor.bracket : "",
+      "[AGE WITH STATUS]": pagcor ? pagcor.noteText : ((data && data.age) || ageFromDob(rawDob)),
       "[Verified UID]": (data && data.verifiedUid) || "",
       "[New Account UID]": (data && data.newAccountUid) || "",
-      "[AGE]": (data && data.age) || ageFromDob((data && (data.dob || data.dateOfBirth)) || ""),
       "[Rejected accounts]": (data && data.rejectedAccounts) || "",
       "[Note Date]": (data && data.noteDate) || "",
       "[Date]": (data && data.noteDate) || "",
@@ -897,7 +964,7 @@
       "{createdDate}": (data && data.createdDate) || "",
       "{agentName}": (data && data.agentName) || "",
       "{name}": (data && data.name) || "",
-      "{dob}": (data && (data.dob || data.dateOfBirth)) || "",
+      "{dob}": rawDob,
       "{reason}": reasonVal,
       "{cid}": cidVal,
       "{CID}": cidVal,
@@ -3297,7 +3364,11 @@
       const n = isBlankPersonValue(name) ? "" : String(name).trim();
       const d = isBlankPersonValue(dob) ? "" : String(dob).trim();
       if (!n && !d) return "—";
-      return `${n || "—"}${d ? " / " + d : ""}`;
+      const info = d ? getPagcorAgeInfo(d) : null;
+      const badgeHtml = info
+        ? ` <span class="esc-pagcor-badge ${info.badgeClass}" title="${escapeHtml(info.status)}">${escapeHtml(info.badgeText)}</span>`
+        : "";
+      return `${escapeHtml(n || "—")}${d ? " / " + escapeHtml(d) : ""}${badgeHtml}`;
     }
 
     // Default reason configured for this option ("Reason when clicked")
@@ -3577,7 +3648,7 @@
             </div>
             <div class="esc-summary-item">
               <span>Name / DOB:</span>
-              <span id="esc-summary-display-namedob">${escapeHtml(formatNameDobSummary(activePlayer.name, activePlayer.dob))}</span>
+              <span id="esc-summary-display-namedob">${formatNameDobSummary(activePlayer.name, activePlayer.dob)}</span>
             </div>
           </div>
 
@@ -3714,7 +3785,7 @@
         const person = String(item.code) === "KYC SWITCH"
           ? pickKycPersonFields(extras.name, extras.dob)
           : { name: extras.name || activePlayer.name || "", dob: extras.dob || activePlayer.dob || "" };
-        summaryDisplayNameDob.textContent = formatNameDobSummary(person.name, person.dob);
+        summaryDisplayNameDob.innerHTML = formatNameDobSummary(person.name, person.dob);
       }
       if (cidStatus) {
         if (enteredCid) {
@@ -4152,6 +4223,7 @@
                   <button type="button" class="esc-insert-chip" data-insert="[Name]">Insert Name</button>
                   <button type="button" class="esc-insert-chip" data-insert="[DOB]">Insert DOB</button>
                   <button type="button" class="esc-insert-chip" data-insert="[AGE]">Insert Age</button>
+                  <button type="button" class="esc-insert-chip" data-insert="[PAGCOR AGE]">Insert PAGCOR Age</button>
                   <button type="button" class="esc-insert-chip" data-insert="[GLife ID]">Insert GLife ID</button>
                 </div>`;
     }
