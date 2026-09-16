@@ -5,7 +5,7 @@
 
 const DEFAULT_SYSTEM_CONFIG = {
   minRequiredVersion: "1.1.4",
-  latestVersion: "1.2.4",
+  latestVersion: "1.2.5",
   killSwitch: false,
   killSwitchMessage: "hdjrzTools is temporarily disabled for emergency maintenance.",
   allowedDomains: ["nano-admin.bet88.ph"]
@@ -145,10 +145,7 @@ export default {
         }
 
         const raw = await env.LICENSES.get("REMOTE_TEMPLATES");
-        let tmplData = raw ? JSON.parse(raw) : null;
-        if (!tmplData) {
-          return new Response(JSON.stringify({ ok: false, error: "not_configured" }), { headers: cors });
-        }
+        let tmplData = raw ? JSON.parse(raw) : { version: 0, updatedAt: null, options: [] };
 
         const agentName = String(url.searchParams.get("agent") || "").trim();
         const devId = String(url.searchParams.get("dev") || "").trim();
@@ -357,13 +354,19 @@ export default {
       return json({ ok: true, role }, cors);
     }
 
+    const verMeta = {
+      latestVersion: sysConfig.latestVersion,
+      minRequiredVersion: sysConfig.minRequiredVersion,
+      updateUrl: "https://hdjrz-license.rosechel05.workers.dev/script.user.js"
+    };
+
     // Admin role: Always allow master admin to log in and re-bind device seamlessly
     if (role === "admin") {
       row.role = "admin";
       row.deviceId = device;
       row.usedAt = new Date().toISOString();
       await env.LICENSES.put(key, JSON.stringify(row));
-      return json({ ok: true, role: "admin" }, cors);
+      return json({ ok: true, role: "admin", ...verMeta }, cors);
     }
 
     if (!used) {
@@ -371,10 +374,10 @@ export default {
       row.deviceId = device;
       row.usedAt = new Date().toISOString();
       await env.LICENSES.put(key, JSON.stringify(row));
-      return json({ ok: true, role }, cors);
+      return json({ ok: true, role, ...verMeta }, cors);
     }
     if (used === device) {
-      return json({ ok: true, role }, cors);
+      return json({ ok: true, role, ...verMeta }, cors);
     }
     return json({ ok: false, error: "already_used" }, cors);
   } catch (fatalErr) {

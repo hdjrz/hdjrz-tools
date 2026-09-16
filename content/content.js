@@ -55,7 +55,7 @@
   let licenseRole = "";
   const SCRIPT_VERSION = (typeof GM_info !== "undefined" && GM_info && GM_info.script && GM_info.script.version)
     || (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.getManifest && chrome.runtime.getManifest() && chrome.runtime.getManifest().version)
-    || "1.2.4";
+    || "1.2.5";
   const LICENSE_ACTIVATE_URL = "https://hdjrz-license.rosechel05.workers.dev/";
 
   const safeEsc = (s) => String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -80,9 +80,24 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.2.5",
+      title: "In-Settings One-Click Update & Real-Time Live Discovery",
+      date: "Latest",
+      agentFeatures: [
+        "🚀 In-Settings 'Update Now' Button: Dedicated instant-update button right in the Settings header when a new version is detected.",
+        "🔄 In-Settings 'Check for Update': Manually trigger an instant version scan anytime with live status feedback.",
+        "🛡️ Zero-CSP Tampermonkey Bridge: Remote template sync and policy heartbeats now route through elevated GM_xmlhttpRequest, guaranteeing updates are never blocked by website security policies.",
+        "⚡ Enter to Execute & Esc to Cancel: Full keyboard navigation throughout the escalation workflow."
+      ],
+      adminFeatures: [
+        "👑 Real-time Fleet Version Discovery: Automatically broadcasts the latest version to all active agents even before remote templates are configured in KV.",
+        "📡 Reliable Telemetry & Presence: Worker now reports live fleet metrics on every request."
+      ]
+    },
+    {
       version: "1.2.4",
       title: "Fast Navigation & Universal Modal Controls",
-      date: "Latest",
+      date: "Previous",
       agentFeatures: [
         "⚡ Enter to Execute: Pressing Enter inside the Confirm Escalation modal executes the escalation immediately — no mouse click needed!",
         "⌨️ Esc to Cancel: Instantly cancels and closes any open modal (Confirm, Settings, Changelog, or Reason Picker) with a single keystroke.",
@@ -341,35 +356,43 @@
 
   const LICENSE_FETCH_MS = 12000;
 
-  function postLicenseServer(payload, cb) {
+  function sendWorkerRequest(opts, cb) {
+    const url = opts.url;
+    const method = opts.method || "GET";
+    const data = opts.data || null;
+    const headers = opts.headers || {};
+    const timeout = opts.timeout || LICENSE_FETCH_MS;
+
     let settled = false;
-    const finish = (err, data) => {
+    const finish = (err, respData, status) => {
       if (settled) return;
       settled = true;
-      cb(err, data);
+      if (cb) cb(err, respData, status);
     };
 
-    const jsonStr = JSON.stringify(payload);
-
-    // 1. If GM_xmlhttpRequest is available in Tampermonkey, use it (bypasses browser CORS & CSP)
-    if (typeof GM_xmlhttpRequest !== "undefined" && typeof GM_xmlhttpRequest === "function") {
+    const hasGM = typeof GM_xmlhttpRequest !== "undefined" && typeof GM_xmlhttpRequest === "function";
+    if (hasGM) {
       try {
+        const payloadStr = data ? (typeof data === "string" ? data : JSON.stringify(data)) : undefined;
+        const reqHeaders = { "Accept": "application/json", ...headers };
+        if (payloadStr && !reqHeaders["Content-Type"]) reqHeaders["Content-Type"] = "application/json";
+
         GM_xmlhttpRequest({
-          method: "POST",
-          url: LICENSE_ACTIVATE_URL,
-          headers: { "Content-Type": "application/json" },
-          data: jsonStr,
-          timeout: LICENSE_FETCH_MS,
+          method,
+          url,
+          headers: reqHeaders,
+          data: payloadStr,
+          timeout,
           onload: (resp) => {
             try {
-              const data = JSON.parse(resp.responseText);
+              const parsed = JSON.parse(resp.responseText);
               if (resp.status >= 400) {
-                finish((data && (data.message || data.error)) || "offline");
+                finish((parsed && (parsed.message || parsed.error)) || `HTTP ${resp.status}`, parsed, resp.status);
                 return;
               }
-              finish(null, data || {});
+              finish(null, parsed, resp.status);
             } catch (e) {
-              finish("offline");
+              finish(null, resp.responseText, resp.status);
             }
           },
           onerror: (err) => {
@@ -377,7 +400,7 @@
             fallbackFetch();
           },
           ontimeout: () => {
-            finish("offline");
+            finish("timeout", null, 0);
           }
         });
         return;
@@ -386,34 +409,50 @@
       }
     }
 
-    // 2. Fallback to standard fetch
     fallbackFetch();
 
     function fallbackFetch() {
       const ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
       const timer = setTimeout(() => {
         try { if (ctrl) ctrl.abort(); } catch (e) {}
-        finish("offline");
-      }, LICENSE_FETCH_MS);
+        finish("timeout", null, 0);
+      }, timeout);
 
-      fetch(LICENSE_ACTIVATE_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: jsonStr,
+      const reqHeaders = { "Accept": "application/json", ...headers };
+      const body = data ? (typeof data === "string" ? data : JSON.stringify(data)) : undefined;
+      if (body && !reqHeaders["Content-Type"]) reqHeaders["Content-Type"] = "application/json";
+
+      fetch(url, {
+        method,
+        headers: reqHeaders,
+        body,
         signal: ctrl ? ctrl.signal : undefined
-      }).then((res) => {
-        return res.json().catch(() => ({})).then((data) => {
+      })
+      .then(res => {
+        clearTimeout(timer);
+        return res.json().catch(() => ({})).then(json => {
           if (!res.ok) {
-            finish((data && (data.message || data.error)) || "offline");
+            finish((json && (json.message || json.error)) || `HTTP ${res.status}`, json, res.status);
             return;
           }
-          finish(null, data || {});
+          finish(null, json, res.status);
         });
-      }).catch((err) => {
-        console.error("[hdjrzTools] License activation fetch error:", err);
-        finish("offline");
-      }).finally(() => clearTimeout(timer));
+      })
+      .catch(err => {
+        clearTimeout(timer);
+        finish(err && err.message ? err.message : "offline", null, 0);
+      });
     }
+  }
+
+  function postLicenseServer(payload, cb) {
+    sendWorkerRequest({
+      url: LICENSE_ACTIVATE_URL,
+      method: "POST",
+      data: payload
+    }, (err, data) => {
+      cb(err, data || {});
+    });
   }
 
   function activateLicenseOnServer(key, cb) {
@@ -433,8 +472,11 @@
           cb(data.error);
           return;
         }
+        if (data && data.latestVersion) {
+          setLatestServerVersion(data);
+        }
         const role = data && data.role;
-        if (data && data.ok && (role === "admin" || role === "guest")) {
+        if (data && data.ok && (role === "admin" || role === "guest" || role === "staff")) {
           cb(null, role);
           return;
         }
@@ -457,11 +499,11 @@
         done();
         return;
       }
-      fetch(LICENSE_ACTIVATE_URL, {
+      sendWorkerRequest({
+        url: LICENSE_ACTIVATE_URL,
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key, deviceId, action: "release" })
-      }).then(() => done()).catch(() => done());
+        data: { key, deviceId, action: "release" }
+      }, () => done());
     });
   }
 
@@ -479,24 +521,19 @@
         if (cb) cb("No license key found");
         return;
       }
-      fetch(REMOTE_CONFIG_URL, {
+      sendWorkerRequest({
+        url: REMOTE_CONFIG_URL,
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key, options })
-      })
-      .then(res => res.json())
-      .then(json => {
-        if (json && json.ok) {
+        data: { key, options }
+      }, (err, json) => {
+        if (!err && json && json.ok) {
           currentSettings.remoteTemplatesVersion = json.version;
           saveSettings({}, null, options, () => {
             if (cb) cb(null, json);
           });
         } else {
-          if (cb) cb((json && json.error) || "Publish failed");
+          if (cb) cb(err || (json && json.error) || "Publish failed");
         }
-      })
-      .catch(err => {
-        if (cb) cb(err && err.message ? err.message : "Network error");
       });
     });
   }
@@ -552,34 +589,118 @@
     } catch (e) {}
   }
 
-  let activeUpdateBanner = null;
-  function showNonBlockingUpdateNotification(data) {
-    const latestVer = (data && data.latestVersion) || "1.2.3";
-    const updateUrl = (data && data.updateUrl) || "https://hdjrz-license.rosechel05.workers.dev/script.user.js";
+  let latestKnownServerVersion = null;
+  let latestUpdateData = null;
 
-    // Update or attach pill on dock so it's always accessible even if dismissed
+  function setLatestServerVersion(data) {
+    if (!data) return;
+    const v = data.latestVersion || (data.systemConfig && data.systemConfig.latestVersion);
+    if (!v) return;
+    latestKnownServerVersion = v;
+    latestUpdateData = {
+      latestVersion: v,
+      minRequiredVersion: (data.systemConfig && data.systemConfig.minRequiredVersion) || data.minRequiredVersion || "1.1.4",
+      updateUrl: data.updateUrl || "https://hdjrz-license.rosechel05.workers.dev/script.user.js"
+    };
+    if (isVersionBelow(SCRIPT_VERSION, v)) {
+      attachDockUpdatePill(latestUpdateData);
+      renderSettingsUpdateControls();
+    }
+  }
+
+  function attachDockUpdatePill(data) {
+    const latestVer = (data && data.latestVersion) || latestKnownServerVersion;
+    if (!latestVer || !isVersionBelow(SCRIPT_VERSION, latestVer)) return;
     const dock = document.getElementById("escalation-helper-dock");
-    if (dock) {
-      let pill = dock.querySelector("#esc-dock-update-pill");
-      if (!pill) {
-        const brand = dock.querySelector(".esc-brand");
-        if (brand) {
-          pill = document.createElement("span");
-          pill.className = "esc-dock-update-pill";
-          pill.id = "esc-dock-update-pill";
-          pill.innerHTML = `🔴 Update v${safeEsc(latestVer)}`;
-          pill.title = `Click to update to v${safeEsc(latestVer)} anytime`;
-          pill.addEventListener("click", (e) => {
-            e.stopPropagation();
-            showNonBlockingUpdateNotification(data);
-          });
-          brand.appendChild(pill);
-        }
-      } else {
-        pill.style.display = "inline-flex";
+    if (!dock) return;
+    let pill = dock.querySelector("#esc-dock-update-pill");
+    if (!pill) {
+      const brand = dock.querySelector(".esc-brand");
+      if (brand) {
+        pill = document.createElement("span");
+        pill.className = "esc-dock-update-pill";
+        pill.id = "esc-dock-update-pill";
         pill.innerHTML = `🔴 Update v${safeEsc(latestVer)}`;
+        pill.title = `Click to update to v${safeEsc(latestVer)} anytime`;
+        pill.addEventListener("click", (e) => {
+          e.stopPropagation();
+          showNonBlockingUpdateNotification(data || latestUpdateData);
+        });
+        brand.appendChild(pill);
+      }
+    } else {
+      pill.style.display = "inline-flex";
+      pill.innerHTML = `🔴 Update v${safeEsc(latestVer)}`;
+    }
+  }
+
+  function renderSettingsUpdateControls() {
+    const container = document.getElementById("esc-settings-update-container");
+    if (!container) return;
+
+    if (latestKnownServerVersion && isVersionBelow(SCRIPT_VERSION, latestKnownServerVersion)) {
+      container.innerHTML = `
+        <button type="button" class="esc-settings-update-btn" id="esc-settings-update-now" style="margin-left: 8px; background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; border: 1px solid #f87171; border-radius: 4px; padding: 2px 10px; font-size: 11px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);">
+          🚀 Update Now (v${safeEsc(latestKnownServerVersion)})
+        </button>
+      `;
+      const btn = container.querySelector("#esc-settings-update-now");
+      if (btn) {
+        btn.addEventListener("click", () => {
+          const updateUrl = (latestUpdateData && latestUpdateData.updateUrl) || "https://hdjrz-license.rosechel05.workers.dev/script.user.js";
+          window.open(updateUrl, "_blank", "noopener,noreferrer");
+          window.__escUpdateInitiated = true;
+          try { sessionStorage.setItem("esc_update_initiated", "true"); } catch (e) {}
+
+          btn.style.background = "linear-gradient(135deg, #10b981, #059669)";
+          btn.style.borderColor = "#34d399";
+          btn.innerHTML = `🔄 Click to Reload Page`;
+          btn.onclick = () => {
+            btn.disabled = true;
+            btn.innerHTML = `⏳ Reloading...`;
+            window.location.reload();
+          };
+        });
+      }
+    } else {
+      container.innerHTML = `
+        <button type="button" class="esc-btn-small" id="esc-settings-check-update" style="margin-left: 8px; background: rgba(148, 163, 184, 0.12); border: 1px solid rgba(148, 163, 184, 0.25); color: #94a3b8; border-radius: 4px; padding: 2px 8px; font-size: 11px; cursor: pointer;" title="Check server for newest version">
+          🔄 Check for Update
+        </button>
+      `;
+      const checkBtn = container.querySelector("#esc-settings-check-update");
+      if (checkBtn) {
+        checkBtn.addEventListener("click", () => {
+          checkBtn.disabled = true;
+          checkBtn.innerHTML = `⏳ Checking...`;
+          fetchRemoteTemplates((err, res) => {
+            if (latestKnownServerVersion && isVersionBelow(SCRIPT_VERSION, latestKnownServerVersion)) {
+              renderSettingsUpdateControls();
+              if (latestUpdateData) showNonBlockingUpdateNotification(latestUpdateData);
+            } else {
+              checkBtn.disabled = false;
+              checkBtn.innerHTML = `✓ Up to date`;
+              checkBtn.style.color = "#34d399";
+              setTimeout(() => {
+                if (container && container.contains(checkBtn)) {
+                  checkBtn.innerHTML = `🔄 Check for Update`;
+                  checkBtn.style.color = "#94a3b8";
+                }
+              }, 3000);
+            }
+          });
+        });
       }
     }
+  }
+
+  let activeUpdateBanner = null;
+  function showNonBlockingUpdateNotification(data) {
+    setLatestServerVersion(data);
+    const latestVer = (data && data.latestVersion) || latestKnownServerVersion || "1.2.4";
+    const updateUrl = (data && data.updateUrl) || (latestUpdateData && latestUpdateData.updateUrl) || "https://hdjrz-license.rosechel05.workers.dev/script.user.js";
+
+    attachDockUpdatePill(data);
 
     if (activeUpdateBanner && document.body && document.body.contains(activeUpdateBanner)) {
       return;
@@ -833,17 +954,17 @@
       const domain = encodeURIComponent((typeof window !== "undefined" && window.location && window.location.hostname) || "");
       const url = `${REMOTE_CONFIG_URL}?agent=${agent}&v=${v}&tmpl_v=${tmplVer}&dev=${encodeURIComponent(devId)}&domain=${domain}&_t=${Date.now()}`;
 
-      fetch(url, {
-        method: "GET",
-        headers: {
-          "Accept": "application/json"
+      sendWorkerRequest({ url, method: "GET" }, (err, json) => {
+        if (err || !json) {
+          console.warn(`[hdjrzTools] Policy Heartbeat network error (Installed: v${SCRIPT_VERSION}):`, err);
+          if (cb) cb(err || "Network error");
+          return;
         }
-      })
-      .then(res => res.json())
-      .then(json => {
+
         console.log(`[hdjrzTools] Policy Heartbeat (Installed: v${SCRIPT_VERSION}):`, json);
-        if (json && json.blocked) {
+        if (json.blocked) {
           if (json.reason === "outdated_version") {
+            setLatestServerVersion(json);
             showNonBlockingUpdateNotification(json);
           } else {
             triggerEmergencyLockout(json);
@@ -851,17 +972,24 @@
           if (cb) cb(json.message || "Execution blocked by remote policy", json);
           return;
         }
-        if (json && json.systemConfig && json.systemConfig.latestVersion && isVersionBelow(SCRIPT_VERSION, json.systemConfig.latestVersion)) {
-          showNonBlockingUpdateNotification({
-            latestVersion: json.systemConfig.latestVersion,
-            minRequiredVersion: json.systemConfig.minRequiredVersion,
-            updateUrl: "https://hdjrz-license.rosechel05.workers.dev/script.user.js"
-          });
+
+        const latestVer = (json.systemConfig && json.systemConfig.latestVersion) || json.latestVersion;
+        if (latestVer) {
+          setLatestServerVersion(json);
+          if (isVersionBelow(SCRIPT_VERSION, latestVer)) {
+            showNonBlockingUpdateNotification({
+              latestVersion: latestVer,
+              minRequiredVersion: (json.systemConfig && json.systemConfig.minRequiredVersion) || json.minRequiredVersion || "1.1.4",
+              updateUrl: json.updateUrl || "https://hdjrz-license.rosechel05.workers.dev/script.user.js"
+            });
+          }
         }
-        if (!json || !json.ok || !Array.isArray(json.options)) {
-          if (cb) cb((json && json.error) ? json.error : "No remote templates", json);
+
+        if (!json.ok || !Array.isArray(json.options) || json.options.length === 0) {
+          if (cb) cb((json && json.error) ? json.error : null, json);
           return;
         }
+
         const remoteVer = json.version || 1;
         const currentVer = currentSettings.remoteTemplatesVersion || 0;
         const normalized = json.options.map(normalizeEscalationOption);
@@ -872,10 +1000,6 @@
         } else {
           if (cb) cb(null, { updated: false, version: currentVer, telemetry: json });
         }
-      })
-      .catch(err => {
-        console.warn(`[hdjrzTools] Policy Heartbeat network error (Installed: v${SCRIPT_VERSION}):`, err);
-        if (cb) cb(err && err.message ? err.message : "Network error");
       });
     });
   }
@@ -3449,6 +3573,7 @@
     updateHorizontalDockButtons();
     bindDockEvents(dock);
     updatePlayerStatusBadge();
+    attachDockUpdatePill(latestUpdateData);
   }
 
   /**
@@ -4722,6 +4847,7 @@
             <span>Settings</span>
             <span style="font-size: 11px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); padding: 1px 6px; border-radius: 4px; margin-left: 6px; font-weight: 700;">v${safeEsc(SCRIPT_VERSION)}</span>
             <button type="button" class="esc-btn-small" id="esc-settings-changelog-btn" title="View release notes and new features" style="margin-left: 8px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: 700; cursor: pointer;">📜 What's New</button>
+            <span id="esc-settings-update-container"></span>
           </div>
           <button type="button" class="esc-icon-btn" id="esc-settings-close" title="Close (Esc)">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -4824,6 +4950,7 @@
     document.body.appendChild(overlay);
     activeModal = overlay;
     playModalOpen(overlay);
+    renderSettingsUpdateControls();
 
     function insertChipsHtml(targetId) {
       return `
