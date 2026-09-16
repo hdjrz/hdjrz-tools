@@ -392,9 +392,70 @@ if (shouldObfuscate) {
   }
 }
 
-const fullBundle = userscriptHeader + '\n' + finalCode;
+const bootstrapperStart = `
+/* --- In-Place Self-Updating Dynamic Bootstrapper --- */
+(function() {
+  var BUILTIN_VERSION = "${version}";
+  var cachedBundle = null;
+  var cachedVer = null;
+
+  if (typeof GM_getValue === "function") {
+    try {
+      cachedBundle = GM_getValue("HDJRZ_DYNAMIC_BUNDLE");
+      cachedVer = GM_getValue("HDJRZ_DYNAMIC_VERSION");
+    } catch(e) {}
+  }
+
+  function parseSemver(v) {
+    var parts = String(v || "").replace(/[^0-9.]/g, "").split(".").map(function(n) { return parseInt(n, 10) || 0; });
+    while (parts.length < 3) parts.push(0);
+    return parts;
+  }
+  function isVersionBelow(aStr, bStr) {
+    if (!aStr || !bStr) return false;
+    var a = parseSemver(aStr);
+    var b = parseSemver(bStr);
+    for (var i = 0; i < 3; i++) {
+      if (a[i] < b[i]) return true;
+      if (a[i] > b[i]) return false;
+    }
+    return false;
+  }
+
+  // Clear cache if the built-in script has caught up or surpassed the cached version
+  if (cachedVer && !isVersionBelow(BUILTIN_VERSION, cachedVer)) {
+    if (typeof GM_deleteValue === "function") {
+      try {
+        GM_deleteValue("HDJRZ_DYNAMIC_BUNDLE");
+        GM_deleteValue("HDJRZ_DYNAMIC_VERSION");
+      } catch(e) {}
+    }
+    cachedBundle = null;
+    cachedVer = null;
+  }
+
+  // If a newer cached bundle exists, execute it and return!
+  if (cachedBundle && cachedVer && isVersionBelow(BUILTIN_VERSION, cachedVer)) {
+    try {
+      console.log("%c[hdjrzTools] Hot-booting in-place updated bundle v" + cachedVer + " (base v" + BUILTIN_VERSION + ")", "background: #059669; color: #fff; font-weight: bold; padding: 2px 6px; border-radius: 3px;");
+      eval(cachedBundle);
+      return;
+    } catch (err) {
+      console.error("[hdjrzTools] Failed to execute hot-updated bundle, falling back to base version:", err);
+    }
+  }
+
+  // Execute base code:
+`;
+
+const bootstrapperEnd = `
+})();
+`;
+
+const fullBundle = userscriptHeader + '\n' + bootstrapperStart + '\n' + finalCode + '\n' + bootstrapperEnd;
 
 console.log('Writing userscript to ' + outputPath + '...');
 fs.writeFileSync(outputPath, fullBundle, 'utf8');
 
 console.log('✅ Build successful: hdjrzTools.user.js created (' + Math.round(fullBundle.length / 1024) + ' KB)');
+

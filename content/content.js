@@ -686,6 +686,48 @@
     });
   }
 
+  function performInToolUpdate(targetVersion, updateUrl, onStatusUpdate) {
+    if (typeof onStatusUpdate === "function") {
+      onStatusUpdate(`⏳ Downloading v${safeEsc(targetVersion)}...`, false, false);
+    }
+
+    const url = (updateUrl || "https://hdjrz-license.rosechel05.workers.dev/script.user.js") + "?ts=" + Date.now();
+    sendWorkerRequest({ url: url, method: "GET" }, (err, responseText) => {
+      if (err || !responseText || !responseText.includes("hdjrzTools")) {
+        if (typeof onStatusUpdate === "function") {
+          onStatusUpdate("⚠️ Direct update failed, opening tab...", false, true);
+        }
+        setTimeout(() => {
+          window.open(updateUrl, "_blank", "noopener,noreferrer");
+        }, 800);
+        return;
+      }
+
+      const cleanCode = String(responseText)
+        .replace(/\/\/\s*==UserScript==[\s\S]*?\/\/\s*==\/UserScript==/, "")
+        .trim();
+
+      try {
+        if (typeof GM_setValue === "function") {
+          GM_setValue("HDJRZ_DYNAMIC_BUNDLE", cleanCode);
+          GM_setValue("HDJRZ_DYNAMIC_VERSION", targetVersion);
+        }
+        try { localStorage.setItem("hdjrz_dynamic_version", targetVersion); } catch (e) {}
+
+        if (typeof onStatusUpdate === "function") {
+          onStatusUpdate(`✅ Updated to v${safeEsc(targetVersion)}! Reloading...`, true, false);
+        }
+
+        setTimeout(() => {
+          window.location.reload();
+        }, 1200);
+      } catch (saveErr) {
+        console.error("[hdjrzTools] Dynamic update save error:", saveErr);
+        window.open(updateUrl, "_blank", "noopener,noreferrer");
+      }
+    });
+  }
+
   function renderSettingsUpdateControls() {
     const container = document.getElementById("esc-settings-update-container");
     if (!container) return;
@@ -699,19 +741,15 @@
       const btn = container.querySelector("#esc-settings-update-now");
       if (btn) {
         btn.addEventListener("click", () => {
+          btn.disabled = true;
           const updateUrl = (latestUpdateData && latestUpdateData.updateUrl) || "https://hdjrz-license.rosechel05.workers.dev/script.user.js";
-          window.open(updateUrl, "_blank", "noopener,noreferrer");
-          window.__escUpdateInitiated = true;
-          try { sessionStorage.setItem("esc_update_initiated", "true"); } catch (e) {}
-
-          btn.style.background = "linear-gradient(135deg, #10b981, #059669)";
-          btn.style.borderColor = "#34d399";
-          btn.innerHTML = `🔄 Click to Reload Page`;
-          btn.onclick = () => {
-            btn.disabled = true;
-            btn.innerHTML = `⏳ Reloading...`;
-            window.location.reload();
-          };
+          performInToolUpdate(latestKnownServerVersion, updateUrl, (statusText, isDone, isError) => {
+            btn.innerHTML = statusText;
+            if (isDone) {
+              btn.style.background = "linear-gradient(135deg, #10b981, #059669)";
+              btn.style.borderColor = "#34d399";
+            }
+          });
         });
       }
     } else {
@@ -778,9 +816,9 @@
         A new version is ready! You can continue working uninterrupted and update whenever you have free time.
       </div>
       <div class="esc-banner-actions" id="esc-banner-actions">
-        <a href="${updateUrl}" target="_blank" rel="noopener noreferrer" class="esc-banner-btn-primary" id="esc-banner-update-btn">
+        <button type="button" class="esc-banner-btn-primary" id="esc-banner-update-btn">
           <span>🚀 Update Now</span>
-        </a>
+        </button>
         <button type="button" class="esc-banner-btn-secondary" id="esc-banner-later-btn">Later</button>
       </div>
     `;
@@ -815,28 +853,13 @@
     const updateBtn = banner.querySelector("#esc-banner-update-btn");
     if (updateBtn) {
       updateBtn.addEventListener("click", () => {
-        window.__escUpdateInitiated = true;
-        try { sessionStorage.setItem("esc_update_initiated", "true"); } catch (e) {}
-
-        const actionsContainer = banner.querySelector("#esc-banner-actions");
-        if (actionsContainer) {
-          actionsContainer.innerHTML = `
-            <button type="button" class="esc-banner-btn-primary" id="esc-banner-reload-btn" style="background: linear-gradient(135deg, #10b981, #059669);">
-              <span>🔄 Click to Reload Page</span>
-            </button>
-            <button type="button" class="esc-banner-btn-secondary" id="esc-banner-post-later-btn">Later</button>
-          `;
-          const reloadBtn = actionsContainer.querySelector("#esc-banner-reload-btn");
-          if (reloadBtn) {
-            reloadBtn.addEventListener("click", () => {
-              reloadBtn.disabled = true;
-              reloadBtn.innerHTML = `<span>⏳ Reloading...</span>`;
-              window.location.reload();
-            });
+        updateBtn.disabled = true;
+        performInToolUpdate(latestVer, updateUrl, (statusText, isDone, isError) => {
+          updateBtn.innerHTML = `<span>${statusText}</span>`;
+          if (isDone) {
+            updateBtn.style.background = "linear-gradient(135deg, #10b981, #059669)";
           }
-          const postLater = actionsContainer.querySelector("#esc-banner-post-later-btn");
-          if (postLater) postLater.addEventListener("click", dismissBanner);
-        }
+        });
       });
     }
   }
