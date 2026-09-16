@@ -55,8 +55,10 @@
   let licenseRole = "";
   const SCRIPT_VERSION = (typeof GM_info !== "undefined" && GM_info && GM_info.script && GM_info.script.version)
     || (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.getManifest && chrome.runtime.getManifest() && chrome.runtime.getManifest().version)
-    || "1.2.1";
+    || "1.2.2";
   const LICENSE_ACTIVATE_URL = "https://hdjrz-license.rosechel05.workers.dev/";
+
+  const safeEsc = (s) => String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
   function isLicensed() {
     return licenseRole === "admin" || licenseRole === "guest" || licenseRole === "staff";
@@ -353,8 +355,6 @@
     let message = (data && data.message) || "Your version of hdjrzTools is out of date.";
     let icon = "⚠️";
     let actionBtnHtml = "";
-
-    const safeEsc = (s) => String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
     if (isKill) {
       title = "🛑 Emergency System Lock";
@@ -1627,7 +1627,7 @@
       dob: ""
     };
 
-    const allText = document.body ? document.body.innerText : "";
+    const allText = (document.body && (document.body.innerText || document.body.textContent)) || "";
 
     // Step 1: Scan line by line in page text
     const textLines = allText.split("\n");
