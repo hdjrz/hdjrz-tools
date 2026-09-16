@@ -50,6 +50,9 @@ const userscriptHeader = `// ==UserScript==
 // @grant        GM_setClipboard
 // @grant        GM_addStyle
 // @grant        GM_xmlhttpRequest
+// @connect      hdjrz-license.rosechel05.workers.dev
+// @connect      workers.dev
+// @connect      *
 // @run-at       document-end
 // ==/UserScript==
 `;

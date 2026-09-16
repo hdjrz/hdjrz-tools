@@ -55,7 +55,7 @@
   let licenseRole = "";
   const SCRIPT_VERSION = (typeof GM_info !== "undefined" && GM_info && GM_info.script && GM_info.script.version)
     || (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.getManifest && chrome.runtime.getManifest() && chrome.runtime.getManifest().version)
-    || "1.2.3";
+    || "1.2.4";
   const LICENSE_ACTIVATE_URL = "https://hdjrz-license.rosechel05.workers.dev/";
 
   const safeEsc = (s) => String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -80,9 +80,23 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.2.4",
+      title: "Fast Navigation & Universal Modal Controls",
+      date: "Latest",
+      agentFeatures: [
+        "⚡ Enter to Execute: Pressing Enter inside the Confirm Escalation modal executes the escalation immediately — no mouse click needed!",
+        "⌨️ Esc to Cancel: Instantly cancels and closes any open modal (Confirm, Settings, Changelog, or Reason Picker) with a single keystroke.",
+        "🌐 Seamless Network Whitelist: Pre-authorized Cloudflare license endpoint eliminates repetitive browser permission prompts."
+      ],
+      adminFeatures: [
+        "⚡ Accelerated High-Volume Handling: Zero-click keyboard throughput for high ticket volumes during shift peaks.",
+        "🛡️ Defective KV Payload Immunity: Safe handling of both legacy string keys and JSON device bindings on Cloudflare."
+      ]
+    },
+    {
       version: "1.2.3",
       title: "Non-Blocking Updates & Role-Based Changelogs",
-      date: "Latest",
+      date: "Previous",
       agentFeatures: [
         "🚀 Non-Intrusive Updates: Work uninterrupted! New updates notify you via a sleek floating banner so you can update at your convenience without blocking player processing.",
         "🔴 Dock Quick-Update Pill: If you postpone an update, a subtle glowing pill stays on your toolbar so you can update whenever you have downtime.",
@@ -206,14 +220,21 @@
     `;
 
     document.body.appendChild(overlay);
+    activeModal = overlay;
 
     const close = () => {
+      document.removeEventListener("keydown", onKeyDown, true);
       overlay.remove();
-      document.removeEventListener("keydown", onKeyDown);
+      if (activeModal === overlay) activeModal = null;
+      syncPageScrollLock();
     };
 
     const onKeyDown = (e) => {
-      if (e.key === "Escape") close();
+      if (e.key === "Escape" || e.key === "Enter") {
+        e.preventDefault();
+        e.stopPropagation();
+        close();
+      }
     };
 
     const closeBtn = overlay.querySelector("#esc-changelog-close");
@@ -223,7 +244,7 @@
     overlay.addEventListener("click", (e) => {
       if (e.target === overlay) close();
     });
-    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("keydown", onKeyDown, true);
   }
 
   function isLicensed() {
@@ -593,12 +614,23 @@
     activeUpdateBanner = banner;
 
     const dismissBanner = () => {
+      document.removeEventListener("keydown", onBannerKey, true);
       banner.classList.add("is-closing");
       setTimeout(() => {
         try { banner.remove(); } catch (e) {}
         if (activeUpdateBanner === banner) activeUpdateBanner = null;
       }, 250);
     };
+
+    const onBannerKey = (e) => {
+      if (e.key === "Escape") {
+        if (document.querySelector(".esc-modal-overlay")) return;
+        e.preventDefault();
+        e.stopPropagation();
+        dismissBanner();
+      }
+    };
+    document.addEventListener("keydown", onBannerKey, true);
 
     const dismissBtn = banner.querySelector("#esc-banner-dismiss");
     if (dismissBtn) dismissBtn.addEventListener("click", dismissBanner);
@@ -3590,7 +3622,7 @@
     `;
 
     const closePick = (animate) => {
-      document.removeEventListener("keydown", pickKey);
+      document.removeEventListener("keydown", pickKey, true);
       if (animate === false) {
         overlay.remove();
         if (activeModal === overlay) activeModal = null;
@@ -3601,9 +3633,13 @@
     };
 
     const pickKey = (e) => {
-      if (e.key === "Escape") closePick();
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        closePick();
+      }
     };
-    document.addEventListener("keydown", pickKey);
+    document.addEventListener("keydown", pickKey, true);
 
     overlay.querySelectorAll("[data-pick]").forEach(btn => {
       btn.addEventListener("click", (e) => {
@@ -3772,6 +3808,7 @@
     });
     const licenseKey = (e) => {
       if (e.key === "Escape") {
+        e.preventDefault();
         e.stopPropagation();
         document.removeEventListener("keydown", licenseKey, true);
         closeLicense();
@@ -4409,23 +4446,30 @@
     updatePreview();
 
     const closeModal = () => {
-      document.removeEventListener("keydown", keyHandler);
+      document.removeEventListener("keydown", keyHandler, true);
       closeOverlayZoom(overlay);
     };
 
     const keyHandler = (e) => {
-      if (e.key === "Escape") closeModal();
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        closeModal();
+        return;
+      }
       if (e.key === "Enter" && !e.shiftKey) {
         const tag = (e.target && e.target.tagName) || "";
         const id = (e.target && e.target.id) || "";
-        if (tag === "TEXTAREA" || tag === "INPUT" || id === "esc-modal-user-id" || id === "esc-modal-cid" || id === "esc-modal-verified-uid" || id === "esc-custom-reason") {
+        if (tag === "TEXTAREA") return;
+        if (id === "esc-btn-cancel" || id === "esc-modal-close") {
           return;
         }
         e.preventDefault();
+        e.stopPropagation();
         executeEscalation();
       }
     };
-    document.addEventListener("keydown", keyHandler);
+    document.addEventListener("keydown", keyHandler, true);
 
     overlay.querySelector("#esc-modal-close").addEventListener("click", closeModal);
     overlay.querySelector("#esc-btn-cancel").addEventListener("click", closeModal);
@@ -4632,15 +4676,18 @@
         });
       });
 
-      const closeAudit = () => closeOverlayZoom(overlay);
+      const closeAudit = () => {
+        document.removeEventListener("keydown", auditKey, true);
+        closeOverlayZoom(overlay);
+      };
       overlay.querySelector("#esc-audit-close").addEventListener("click", closeAudit);
       overlay.addEventListener("click", (e) => {
         if (e.target === overlay) closeAudit();
       });
       const auditKey = (e) => {
         if (e.key === "Escape") {
+          e.preventDefault();
           e.stopPropagation();
-          document.removeEventListener("keydown", auditKey, true);
           closeAudit();
         }
       };
@@ -5359,7 +5406,7 @@
     }
 
     const closeSettings = () => {
-      document.removeEventListener("keydown", keyHandler);
+      document.removeEventListener("keydown", keyHandler, true);
       const audit = document.getElementById("esc-audit-overlay");
       if (audit) audit.remove();
       const edit = document.getElementById("esc-edit-option-overlay");
@@ -5380,9 +5427,11 @@
       if (document.getElementById("esc-audit-overlay")) return;
       if (document.getElementById("esc-edit-option-overlay")) return;
       if (document.getElementById("esc-add-option-overlay")) return;
+      e.preventDefault();
+      e.stopPropagation();
       closeSettings();
     };
-    document.addEventListener("keydown", keyHandler);
+    document.addEventListener("keydown", keyHandler, true);
 
     function fillSettingsDefaultsForm() {
       const agentInput = overlay.querySelector("#esc-set-agent");
@@ -5995,6 +6044,24 @@
       observer.observe(document.body, { childList: true, subtree: true });
     }
   }
+
+  // Global safety net: ensure Escape always cancels or closes open modals
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      const overlays = Array.from(document.querySelectorAll(".esc-modal-overlay, .esc-changelog-overlay"));
+      if (overlays.length > 0) {
+        const topOverlay = overlays[overlays.length - 1];
+        if (topOverlay) {
+          const closeBtn = topOverlay.querySelector(".esc-icon-btn, #esc-modal-close, #esc-settings-close, #esc-changelog-close, #esc-reason-pick-cancel, #esc-btn-cancel, #esc-audit-close, #esc-edit-option-cancel, #esc-add-option-cancel");
+          if (closeBtn && typeof closeBtn.click === "function") {
+            closeBtn.click();
+          } else {
+            closeOverlayZoom(topOverlay);
+          }
+        }
+      }
+    }
+  });
 
   // Initialize
   loadSettings(() => {
