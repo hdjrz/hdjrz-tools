@@ -5141,18 +5141,16 @@
 
   function renderActiveUsersListHtml() {
     if (!Array.isArray(lastKnownActiveUsers) || lastKnownActiveUsers.length === 0) {
-      return `<div style="color: #64748b; font-size: 11px; font-style: italic; padding: 4px 0;">No active agents detected</div>`;
+      return `<span style="color: #64748b; font-size: 11px; font-style: italic;">No other agents active in last 5m</span>`;
     }
     return lastKnownActiveUsers.map(u => {
       const name = safeEsc(u.agent || "Agent");
       const ver = safeEsc(u.version || "1.0.0");
-      return `<div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); padding: 4px 8px; border-radius: 4px; margin-bottom: 3px;">
-        <span style="display: inline-flex; align-items: center; gap: 6px; color: #f1f5f9; font-weight: 500; font-size: 11px;">
-          <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #10b981; box-shadow: 0 0 6px #10b981;"></span>
-          ${name}
-        </span>
+      return `<span style="display: inline-flex; align-items: center; gap: 5px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); padding: 2px 8px; border-radius: 4px; font-size: 11px; color: #f1f5f9; white-space: nowrap;">
+        <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #10b981; box-shadow: 0 0 6px #10b981;"></span>
+        <strong style="color: #e2e8f0;">${name}</strong>
         <span style="font-size: 10px; color: #64748b; font-family: ui-monospace, monospace;">v${ver}</span>
-      </div>`;
+      </span>`;
     }).join("");
   }
 
@@ -5191,6 +5189,22 @@
             </svg>
           </button>
         </div>
+
+        ${staffView ? "" : `
+        <div class="esc-admin-active-bar" style="display: flex; align-items: center; justify-content: space-between; margin: 0 16px 8px 16px; padding: 6px 12px; background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 6px; font-size: 11px;">
+          <div style="display: flex; align-items: center; gap: 8px; overflow-x: auto; scrollbar-width: none;">
+            <span style="font-weight: 700; color: #38bdf8; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;">
+              📋 Active Users Online <span id="esc-active-users-count" style="background: rgba(56, 189, 248, 0.2); padding: 1px 6px; border-radius: 10px; font-size: 10px; color: #7dd3fc;">${Array.isArray(lastKnownActiveUsers) ? lastKnownActiveUsers.length : 0}</span>:
+            </span>
+            <div id="esc-active-users-list" style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+              ${renderActiveUsersListHtml()}
+            </div>
+          </div>
+          <a href="https://hdjrz-license.rosechel05.workers.dev/admin" target="_blank" rel="noopener noreferrer" style="font-size: 11px; color: #38bdf8; text-decoration: none; font-weight: 600; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 4px; margin-left: 12px;">
+            Admin Portal ↗
+          </a>
+        </div>
+        `}
 
         <div class="esc-settings-body">
           <div class="esc-settings-main">
@@ -5252,19 +5266,6 @@
               <input type="checkbox" id="esc-set-return" ${currentSettings.autoReturnToUsers !== false ? "checked" : ""}>
               <span>Return to Users list</span>
             </label>
-            <div class="esc-admin-active-users-card" style="margin-top: 10px; margin-bottom: 6px; padding: 8px 10px; background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 6px;">
-              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-                <span style="font-size: 11px; font-weight: 700; color: #38bdf8; display: inline-flex; align-items: center; gap: 5px;">
-                  📋 Active Users Online <span id="esc-active-users-count" style="background: rgba(56, 189, 248, 0.2); padding: 1px 6px; border-radius: 10px; font-size: 10px; color: #7dd3fc;">${Array.isArray(lastKnownActiveUsers) ? lastKnownActiveUsers.length : 0}</span>
-                </span>
-                <a href="https://hdjrz-license.rosechel05.workers.dev/admin" target="_blank" rel="noopener noreferrer" style="font-size: 10px; color: #38bdf8; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 2px;">
-                  Admin Portal ↗
-                </a>
-              </div>
-              <div id="esc-active-users-list" style="max-height: 80px; overflow-y: auto; display: flex; flex-direction: column;">
-                ${renderActiveUsersListHtml()}
-              </div>
-            </div>
             `}
             <button type="button" class="esc-btn-small esc-btn-audit" id="esc-btn-audit">Audit</button>
           </div>
