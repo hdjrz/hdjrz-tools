@@ -4,10 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'license/**'
-      - 'wrangler.toml'
-      - '.github/workflows/deploy-worker.yml'
   workflow_dispatch:
 
 jobs:
@@ -42,10 +38,15 @@ jobs:
             exit 1
           fi
 
+          # Auto-sync latestVersion in worker.js with package.json
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          echo "Packaging release version: $PKG_VERSION"
+          sed -i "s/latestVersion: \".*\"/latestVersion: \"$PKG_VERSION\"/g" license/worker.js
+
           # Replace placeholder with actual KV Namespace ID and append account_id
           sed -i "s/LICENSES_ID_PLACEHOLDER/$KV_ID/g" wrangler.toml
           echo "account_id = \"$ACCOUNT_ID\"" >> wrangler.toml
-          echo "✅ Configuration prepared successfully."
+          echo "✅ Configuration prepared successfully for v$PKG_VERSION."
 
       - name: Deploy to Cloudflare Workers
         env:
