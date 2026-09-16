@@ -75,7 +75,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.3.0";
+  const HARDCODED_VERSION = "1.3.1";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -95,9 +95,21 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.3.1",
+      title: "Cloud Sync Polish & Version Verification",
+      date: "Latest",
+      agentFeatures: [
+        "🧹 Clean Settings UI: Removed misleading counter badges for a cleaner, distraction-free experience.",
+        "⚡ Instant OTA Verification: Real-time Cloudflare Worker version deployment verification."
+      ],
+      adminFeatures: [
+        "🚀 Automated CI/CD Sync: GitHub Actions immediately publishes and synchronizes release metadata to Cloudflare Workers upon push."
+      ]
+    },
+    {
       version: "1.3.0",
       title: "Settings UI Polish & Horizontal Fleet Bar",
-      date: "Latest",
+      date: "Previous",
       agentFeatures: [
         "🎨 Tight Button Wrap: Zero empty gap beneath escalation buttons in Settings.",
         "📋 Sleek Horizontal Fleet Bar: Real-time active users status strip for Admins with live status indicators.",
