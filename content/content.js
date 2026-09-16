@@ -87,7 +87,7 @@
   if (TM_VER && !isVersionBelow(TM_VER, activeScriptVer)) {
     activeScriptVer = TM_VER;
   }
-  if (DYNAMIC_VER && !isVersionBelow(DYNAMIC_VER, activeScriptVer)) {
+  if (DYNAMIC_VER && DYNAMIC_VER !== "999.0.0" && !isVersionBelow(DYNAMIC_VER, activeScriptVer)) {
     activeScriptVer = DYNAMIC_VER;
   }
   const SCRIPT_VERSION = activeScriptVer;
@@ -769,9 +769,12 @@
       try {
         if (typeof GM_setValue === "function") {
           GM_setValue("HDJRZ_DYNAMIC_BUNDLE", cleanCode);
-          GM_setValue("HDJRZ_DYNAMIC_VERSION", targetVersion);
+          GM_setValue("HDJRZ_DYNAMIC_VERSION", "999.0.0");
         }
-        try { localStorage.setItem("hdjrz_dynamic_version", targetVersion); } catch (e) {}
+        try {
+          localStorage.setItem("hdjrz_dynamic_bundle", cleanCode);
+          localStorage.setItem("hdjrz_dynamic_version", "999.0.0");
+        } catch (e) {}
 
         if (typeof onStatusUpdate === "function") {
           onStatusUpdate(`✅ Updated to v${safeEsc(targetVersion)}! Reloading...`, true, false);

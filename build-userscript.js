@@ -395,6 +395,10 @@ if (shouldObfuscate) {
 const bootstrapperStart = `
 /* --- In-Place Self-Updating Dynamic Bootstrapper --- */
 (function() {
+  if (typeof window !== "undefined" && window.__HDJRZ_HOT_BOOTED__) {
+    // Already running inside evaluated bundle, skip bootstrapper and run code directly
+    return;
+  }
   var BUILTIN_VERSION = "${version}";
   var cachedBundle = null;
   var cachedVer = null;
@@ -403,6 +407,12 @@ const bootstrapperStart = `
     try {
       cachedBundle = GM_getValue("HDJRZ_DYNAMIC_BUNDLE");
       cachedVer = GM_getValue("HDJRZ_DYNAMIC_VERSION");
+    } catch(e) {}
+  }
+  if (!cachedBundle) {
+    try {
+      cachedBundle = localStorage.getItem("hdjrz_dynamic_bundle");
+      cachedVer = localStorage.getItem("hdjrz_dynamic_version") || "999.0.0";
     } catch(e) {}
   }
 
@@ -420,20 +430,6 @@ const bootstrapperStart = `
       if (a[i] > b[i]) return false;
     }
     return false;
-  }
-
-  // Clear cache if the built-in base script has caught up or surpassed the cached version
-  if (typeof window !== "undefined" && !window.__HDJRZ_HOT_BOOTED__) {
-    if (cachedVer && !isVersionBelow(BUILTIN_VERSION, cachedVer)) {
-      if (typeof GM_deleteValue === "function") {
-        try {
-          GM_deleteValue("HDJRZ_DYNAMIC_BUNDLE");
-          GM_deleteValue("HDJRZ_DYNAMIC_VERSION");
-        } catch(e) {}
-      }
-      cachedBundle = null;
-      cachedVer = null;
-    }
   }
 
   // If a newer cached bundle exists, execute it and return!
