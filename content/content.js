@@ -841,7 +841,7 @@
     return list.map(normalizeEscalationOption);
   }
 
-  const BIT88_NOTES_WORDING_VERSION = 24;
+  const BIT88_NOTES_WORDING_VERSION = 25;
   let loadedWordingVersion = 0;
 
   function getPresetOptionsList() {
@@ -872,30 +872,24 @@
         const preset = byCode[opt && opt.code];
         if (!preset) return opt;
         const copy = { ...opt };
-        if (!copy.noteChoices || !copy.noteChoices.length) {
-          if (preset.noteChoices && preset.noteChoices.length) {
-            copy.noteChoices = JSON.parse(JSON.stringify(preset.noteChoices));
-            copy.userNotesText = copy.noteChoices[0].userNotesText;
-          } else {
-            copy.userNotesText = preset.userNotesText != null ? preset.userNotesText : (copy.userNotesText || "");
-            copy.noteChoices = [{ label: "User Notes", userNotesText: copy.userNotesText }];
-          }
+        if (preset.noteChoices && preset.noteChoices.length) {
+          copy.noteChoices = JSON.parse(JSON.stringify(preset.noteChoices));
+          copy.userNotesText = copy.noteChoices[0].userNotesText;
+        } else {
+          copy.userNotesText = preset.userNotesText != null ? preset.userNotesText : (copy.userNotesText || "");
+          copy.noteChoices = [{ label: "User Notes", userNotesText: copy.userNotesText }];
         }
-        if (!copy.zoomChoices || !copy.zoomChoices.length) {
-          if (preset.zoomChoices && preset.zoomChoices.length) {
-            copy.zoomChoices = JSON.parse(JSON.stringify(preset.zoomChoices));
-            copy.zoomText = copy.zoomChoices[0].zoomText;
-          } else if (preset.zoomText != null) {
-            copy.zoomText = preset.zoomText;
-            copy.zoomChoices = [{ label: "Zoom", zoomText: preset.zoomText }];
-          }
+        if (preset.zoomChoices && preset.zoomChoices.length) {
+          copy.zoomChoices = JSON.parse(JSON.stringify(preset.zoomChoices));
+          copy.zoomText = copy.zoomChoices[0].zoomText;
+        } else if (preset.zoomText != null) {
+          copy.zoomText = preset.zoomText;
+          copy.zoomChoices = [{ label: "Zoom", zoomText: preset.zoomText }];
         }
-        if (!Array.isArray(copy.reasons) || !copy.reasons.length) {
-          const factoryReasons = (preset.reasons || []).map((r) => String(r || "").trim()).filter(Boolean);
-          if (factoryReasons.length) {
-            copy.reasons = factoryReasons.slice();
-            copy.defaultReason = String(preset.defaultReason || factoryReasons[0]).trim() || factoryReasons[0];
-          }
+        const factoryReasons = (preset.reasons || []).map((r) => String(r || "").trim()).filter(Boolean);
+        if (factoryReasons.length) {
+          copy.reasons = factoryReasons.slice();
+          copy.defaultReason = String(preset.defaultReason || factoryReasons[0]).trim() || factoryReasons[0];
         }
         return copy;
       });
