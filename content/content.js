@@ -48,7 +48,7 @@
     customOptions: null,
     remoteTemplatesVersion: 0,
     theme: "dark",
-    barTheme: "frosted"
+    barTheme: "frosted-cyan"
   };
 
   let workingOptions = [];
@@ -82,7 +82,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.3.7";
+  const HARDCODED_VERSION = "1.3.8";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -102,9 +102,23 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.3.8",
+      title: "Theme Selection Fix & Button Grid Layout Restoration",
+      date: "Latest",
+      agentFeatures: [
+        "🎨 Instant Live Theme Switcher: Click any color accent (Crystal Cyan, Midnight Violet, Emerald Mint, Sunset Amber) for vibrant glowing transformations.",
+        "💾 Theme Persistence Fixed: Selected bar theme is now permanently saved and restored across sessions.",
+        "📐 Restored Button Grid: Escalation buttons now evenly stretch across the full width of the bar with no empty right gap.",
+        "✨ Luminous Accents: Top luminous bar edge, glowing ambient bloom, and themed brand/hover highlights."
+      ],
+      adminFeatures: [
+        "🛠️ Reliable Settings & Layout: Eliminated layout squashing and guaranteed accurate theme storage across all browsers."
+      ]
+    },
+    {
       version: "1.3.7",
       title: "Frosted Glass Default & Clean Accent Palettes",
-      date: "Latest",
+      date: "Previous",
       agentFeatures: [
         "🔮 Frosted Glass As Default: Clean acrylic frosted chassis with glowing border accents and backdrop blur.",
         "🎨 Simple Palette Picker: Sleek, compact 1-click accent selector (Crystal Cyan, Midnight Violet, Emerald Mint, Sunset Amber).",
@@ -2046,6 +2060,7 @@
         autoReturnToUsers: currentSettings.autoReturnToUsers,
         autoFindAndView: currentSettings.autoFindAndView,
         barLayout: currentSettings.barLayout === "vertical" ? "vertical" : "horizontal",
+        barTheme: currentSettings.barTheme || "frosted-cyan",
         soundFeedback: currentSettings.soundFeedback !== false,
         notesWordingVersion: currentSettings.notesWordingVersion || 0,
         remoteTemplatesVersion: currentSettings.remoteTemplatesVersion || 0
@@ -6255,13 +6270,31 @@
     }
     fillSettingsDefaultsForm();
 
+    function selectBarTheme(themeVal) {
+      if (!themeVal) return;
+      currentSettings.barTheme = themeVal;
+      overlay.querySelectorAll(".esc-glass-pill").forEach(c => c.classList.remove("is-selected"));
+      const targetRadio = overlay.querySelector(`input[name="esc-bar-theme"][value="${themeVal}"]`);
+      if (targetRadio) {
+        targetRadio.checked = true;
+        const parentPill = targetRadio.closest(".esc-glass-pill");
+        if (parentPill) parentPill.classList.add("is-selected");
+      }
+      applyBarTheme();
+    }
+
+    overlay.querySelectorAll(".esc-glass-pill").forEach(pill => {
+      pill.addEventListener("click", (e) => {
+        const radio = pill.querySelector('input[name="esc-bar-theme"]');
+        if (radio) {
+          selectBarTheme(radio.value);
+        }
+      });
+    });
+
     overlay.querySelectorAll('input[name="esc-bar-theme"]').forEach(radio => {
       radio.addEventListener("change", () => {
-        overlay.querySelectorAll(".esc-glass-pill").forEach(c => c.classList.remove("is-selected"));
-        const parentCard = radio.closest(".esc-glass-pill");
-        if (parentCard) parentCard.classList.add("is-selected");
-        currentSettings.barTheme = radio.value;
-        applyBarTheme();
+        selectBarTheme(radio.value);
       });
     });
 
@@ -6395,7 +6428,7 @@
           : (currentSettings.autoReturnToUsers !== false),
         autoFindAndView: false,
         barLayout: (overlay.querySelector('input[name="esc-bar-layout"]:checked') && overlay.querySelector('input[name="esc-bar-layout"]:checked').value === "vertical") ? "vertical" : "horizontal",
-        barTheme: (overlay.querySelector('input[name="esc-bar-theme"]:checked') && overlay.querySelector('input[name="esc-bar-theme"]:checked').value) || "frosted-cyan"
+        barTheme: (overlay.querySelector('input[name="esc-bar-theme"]:checked') && overlay.querySelector('input[name="esc-bar-theme"]:checked').value) || currentSettings.barTheme || "frosted-cyan"
       };
       const optionsToSave = isAdminLicense() ? workingOptions : currentSettings.customOptions;
       saveSettings(updatedSettings, currentSettings.customTemplates || {}, optionsToSave, () => {

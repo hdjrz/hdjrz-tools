@@ -1097,15 +1097,14 @@ body.esc-modal-scroll-lock {
 }
 
 /* =========================================================
-/* =========================================================
    Frosted Glass Escalation Bar (Default Masterpiece)
    ========================================================= */
 #escalation-helper-dock {
-  background: rgba(11, 17, 28, 0.86) !important;
+  background: rgba(11, 17, 28, 0.88) !important;
   backdrop-filter: blur(16px) !important;
   -webkit-backdrop-filter: blur(16px) !important;
   border-radius: 10px !important;
-  transition: border-color 0.25s, box-shadow 0.25s !important;
+  transition: border 0.25s, box-shadow 0.25s !important;
 }
 
 #escalation-helper-dock .esc-bar-header {
@@ -1116,32 +1115,31 @@ body.esc-modal-scroll-lock {
   padding: 6px 12px;
 }
 
-#escalation-helper-dock .esc-columns-row {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 8px 8px;
+#escalation-helper-dock .esc-bar-main {
+  padding: 5px 8px 7px;
 }
 
 /* Escalation Action Buttons - Frosted Jewel Finish */
 #escalation-helper-dock .esc-action-btn {
   height: 30px;
   min-height: 30px;
+  width: 100%;
   border-radius: 6px !important;
-  border: 1px solid rgba(255, 255, 255, 0.18) !important;
-  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.04) 50%, rgba(0, 0, 0, 0.18) 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 2px 5px rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0.05) 50%, rgba(0, 0, 0, 0.22) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.38), 0 2px 5px rgba(0, 0, 0, 0.45);
   font-weight: 800;
-  letter-spacing: 0.25px;
+  letter-spacing: 0.2px;
   transition: all 0.16s cubic-bezier(0.16, 1, 0.3, 1);
-  padding: 0 6px;
+  padding: 0 3px;
+  box-sizing: border-box;
 }
 
 #escalation-helper-dock .esc-action-btn:hover {
   transform: translateY(-2px);
-  filter: brightness(1.18);
-  border-color: rgba(255, 255, 255, 0.45) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 6px 16px rgba(0, 0, 0, 0.55), 0 0 10px currentColor;
+  filter: brightness(1.22);
+  border-color: rgba(255, 255, 255, 0.55) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 6px 16px rgba(0, 0, 0, 0.55), 0 0 10px currentColor;
   z-index: 10;
 }
 
@@ -1154,54 +1152,101 @@ body.esc-modal-scroll-lock {
 /* --- Accent 1: Crystal Cyan (Default) --- */
 #escalation-helper-dock.esc-accent-cyan,
 #escalation-helper-dock:not([class*="esc-accent-"]) {
-  border: 1px solid rgba(56, 189, 248, 0.35) !important;
-  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.75), 0 0 20px rgba(56, 189, 248, 0.14) !important;
+  border: 1px solid rgba(56, 189, 248, 0.42) !important;
+  border-top: 2px solid #38bdf8 !important;
+  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.75), 0 0 24px rgba(56, 189, 248, 0.22) !important;
+}
+
+#escalation-helper-dock.esc-accent-cyan .esc-brand-text,
+#escalation-helper-dock:not([class*="esc-accent-"]) .esc-brand-text {
+  color: #38bdf8;
+  text-shadow: 0 0 8px rgba(56, 189, 248, 0.45);
 }
 
 #escalation-helper-dock.esc-accent-cyan .esc-brand-version,
 #escalation-helper-dock:not([class*="esc-accent-"]) .esc-brand-version {
   color: #38bdf8;
-  border-color: rgba(56, 189, 248, 0.35);
-  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.45);
+  background: rgba(56, 189, 248, 0.15);
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.25);
+}
+
+#escalation-helper-dock.esc-accent-cyan .esc-icon-btn:hover,
+#escalation-helper-dock:not([class*="esc-accent-"]) .esc-icon-btn:hover {
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.4);
 }
 
 /* --- Accent 2: Midnight Violet --- */
 #escalation-helper-dock.esc-accent-purple {
-  background: rgba(16, 11, 26, 0.86) !important;
-  border: 1px solid rgba(192, 132, 252, 0.38) !important;
-  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.75), 0 0 20px rgba(192, 132, 252, 0.16) !important;
+  border: 1px solid rgba(192, 132, 252, 0.45) !important;
+  border-top: 2px solid #c084fc !important;
+  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.75), 0 0 24px rgba(192, 132, 252, 0.26) !important;
+}
+
+#escalation-helper-dock.esc-accent-purple .esc-brand-text {
+  color: #c084fc;
+  text-shadow: 0 0 8px rgba(192, 132, 252, 0.45);
 }
 
 #escalation-helper-dock.esc-accent-purple .esc-brand-version {
   color: #c084fc;
-  border-color: rgba(192, 132, 252, 0.35);
-  background: rgba(192, 132, 252, 0.12);
+  border-color: rgba(192, 132, 252, 0.45);
+  background: rgba(192, 132, 252, 0.15);
+  box-shadow: 0 0 8px rgba(192, 132, 252, 0.25);
+}
+
+#escalation-helper-dock.esc-accent-purple .esc-icon-btn:hover {
+  color: #c084fc;
+  border-color: rgba(192, 132, 252, 0.4);
 }
 
 /* --- Accent 3: Emerald Mint --- */
 #escalation-helper-dock.esc-accent-emerald {
-  background: rgba(9, 21, 18, 0.86) !important;
-  border: 1px solid rgba(52, 211, 153, 0.38) !important;
-  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.75), 0 0 20px rgba(52, 211, 153, 0.15) !important;
+  border: 1px solid rgba(52, 211, 153, 0.45) !important;
+  border-top: 2px solid #34d399 !important;
+  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.75), 0 0 24px rgba(52, 211, 153, 0.26) !important;
+}
+
+#escalation-helper-dock.esc-accent-emerald .esc-brand-text {
+  color: #34d399;
+  text-shadow: 0 0 8px rgba(52, 211, 153, 0.45);
 }
 
 #escalation-helper-dock.esc-accent-emerald .esc-brand-version {
   color: #34d399;
-  border-color: rgba(52, 211, 153, 0.35);
-  background: rgba(52, 211, 153, 0.12);
+  border-color: rgba(52, 211, 153, 0.45);
+  background: rgba(52, 211, 153, 0.15);
+  box-shadow: 0 0 8px rgba(52, 211, 153, 0.25);
+}
+
+#escalation-helper-dock.esc-accent-emerald .esc-icon-btn:hover {
+  color: #34d399;
+  border-color: rgba(52, 211, 153, 0.4);
 }
 
 /* --- Accent 4: Sunset Amber --- */
 #escalation-helper-dock.esc-accent-sunset {
-  background: rgba(24, 14, 10, 0.86) !important;
-  border: 1px solid rgba(251, 191, 36, 0.38) !important;
-  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.75), 0 0 20px rgba(251, 191, 36, 0.15) !important;
+  border: 1px solid rgba(251, 191, 36, 0.45) !important;
+  border-top: 2px solid #fbbf24 !important;
+  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.75), 0 0 24px rgba(251, 191, 36, 0.26) !important;
+}
+
+#escalation-helper-dock.esc-accent-sunset .esc-brand-text {
+  color: #fbbf24;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.45);
 }
 
 #escalation-helper-dock.esc-accent-sunset .esc-brand-version {
   color: #fbbf24;
-  border-color: rgba(251, 191, 36, 0.35);
-  background: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.45);
+  background: rgba(251, 191, 36, 0.15);
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.25);
+}
+
+#escalation-helper-dock.esc-accent-sunset .esc-icon-btn:hover {
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.4);
 }
 
 /* =========================================================
@@ -1228,6 +1273,7 @@ body.esc-modal-scroll-lock {
   cursor: pointer;
   transition: all 0.15s ease;
   user-select: none;
+  position: relative;
 }
 
 .esc-glass-pill:hover {
@@ -1245,7 +1291,11 @@ body.esc-modal-scroll-lock {
 }
 
 .esc-glass-pill input[type="radio"] {
-  display: none;
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  height: 0;
 }
 
 .esc-palette-dot {
