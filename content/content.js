@@ -169,319 +169,74 @@
   const CHANGELOG_HISTORY = [
     {
       version: "1.4.3",
-      title: "Maya Mini App User Attributes & Name/DOB Extraction",
+      title: "Maya Mini App Auto-Detection",
       date: "Latest",
       agentFeatures: [
-        "📱 Maya Mini App User Attributes: Added full auto-detection for Maya Mini App users (mayaminiapp-firstName, mayaminiapp-lastName, mayaminiapp-dateOfBirth, mayaMiniAppId).",
-        "🎂 Robust Date of Birth Parsing: Added native support for MM-DD-YYYY and DD-MM-YYYY formats (e.g. 04-23-1998) ensuring seamless Name & DOB filling in notes, Zoom, and age calculations."
+        "📱 Maya Mini App Support: Auto-detects Name and DOB from Maya Mini App user attributes.",
+        "🎂 Smart DOB Formatter: Formats dates cleanly (e.g. 04-23-1998 ➔ 23 Apr, 1998) for notes, Zoom, and age checks."
       ],
       adminFeatures: [
-        "⚡ Cross-Platform Coverage: Automatic extraction now handles both standard Bet88, GLife, and Maya Mini App player profiles flawlessly."
+        "⚡ Cross-Platform: Unified support for standard Bet88, GLife, and Maya Mini App profiles."
       ]
     },
     {
       version: "1.4.2",
-      title: "Escalation Library & 8-Point Pre-Publish Validation",
+      title: "Pre-Publish Validation & Library",
       date: "Previous",
       agentFeatures: [
-        "📚 Escalation Library Support: Seamless synchronization with backend-managed escalation codes and requirements.",
-        "⚡ Safe Publishing Pipeline: Guaranteed template consistency ensuring no broken tags or missing tokens ever reach agent workstations."
+        "🛡️ Error-Free Templates: Guarantees zero broken tags or missing tokens reach workstations.",
+        "📚 Escalation Library: Auto-syncs with backend-managed escalation codes."
       ],
       adminFeatures: [
-        "🛡️ 8-Point Pre-Publish Validation: Mandatory pre-flight audit directly within Extension Settings and Web Admin (verifying JSON integrity, escalation codes, token syntax, and uniqueness).",
-        "🚀 Draft → Preview → Publish Workflow: Test and preview template drafts safely before publishing live to all active agents."
+        "🛡️ 8-Point Pre-Publish Validation: Automatic schema check in Extension Settings & Web Admin.",
+        "🚀 Draft ➔ Publish Pipeline: Stage and preview templates safely before publishing live."
       ]
     },
     {
       version: "1.4.1",
-      title: "Removed Age Detection from Confirmation Modal",
+      title: "Clean Confirmation Modal",
       date: "Previous",
       agentFeatures: [
-        "🛡️ Clean Modal Summary: Removed the age detection compliance badge from the confirmation modal across all escalation options for a simpler, decluttered view.",
-        "📋 Pure Name / DOB Display: Modal now displays cleanly as Name / DOB without automated age tag overlays."
+        "✨ Decluttered Modal: Clean Name / DOB display without extra tag overlays."
       ],
       adminFeatures: [
-        "✨ Streamlined Operations: Faster visual scanning during escalation confirmation."
+        "⚡ Faster Review: Quicker visual scanning during escalation confirmation."
       ]
     },
     {
       version: "1.4.0",
-      title: "Aesthetic Button Color Palettes & 1-Click Switcher",
+      title: "Button Color Palettes",
       date: "Previous",
       agentFeatures: [
-        "🎨 Eye-Friendly Button Color Palette: Upgraded escalation button colors from dull murky tones to vibrant, high-clarity designer hues (Cobalt Blue, Sky Azure, Ruby Crimson, Emerald, Amber, Royal Amethyst, Rose Coral).",
-        "🎛️ 1-Click Palette Switcher: Switch between Modern Pro, Soft Pastel, and Jewel Rich palettes in Settings > Escalation Buttons with instant dock updates.",
-        "✨ Maximum Contrast & Legibility: Crisp white text stands out cleanly on every button with subtle satin top-gloss sheen.",
-        "🔄 Seamless Auto-Migration: Existing saved options upgrade automatically on launch without losing your custom templates or reasons."
+        "🎨 Designer Palettes: Modern Pro, Soft Pastel, and Jewel Rich color themes.",
+        "🎛️ 1-Click Switcher: Change button themes instantly in Settings > Escalation Buttons."
       ],
       adminFeatures: [
-        "👑 Effortless Team Styling: Admins and agents can toggle aesthetic button palettes instantly with full Cloud Sync support."
+        "👑 Team Styling: Easily customize button aesthetics with Cloud Sync."
       ]
     },
     {
       version: "1.3.9",
-      title: "Minimalist Design & Refined Option Palette",
+      title: "Minimalist Design",
       date: "Previous",
       agentFeatures: [
-        "🪟 Minimalist Bar & Satin Buttons: Clean, non-distracting dark aesthetics with crisp hairline borders and satin finish.",
-        "🎨 Refined Button Colors: Replaced loud neon rainbow blocks with a harmonious, eye-friendly palette (Slate Steel, Forest Sage, Amber Bronze, Royal Heather).",
-        "🎛️ 4 New Minimalist Templates: Minimal Glass (Default), Obsidian Matte (Glare-Free Dark), Slate Nordic (Scandinavian), and Mocha Dark (Warm Espresso).",
-        "🔄 Automatic Option Upgrade: Existing saved buttons are seamlessly updated to the sleek minimalist palette."
+        "🪟 Minimalist Bar & Satin Buttons: Clean, glare-free dark design with crisp borders.",
+        "🎨 Eye-Friendly Colors: Slate Steel, Forest Sage, Amber Bronze, and Royal Heather."
       ],
       adminFeatures: [
-        "✨ Modern Dashboard Standard: Professional, cohesive visual identity aligned with top SaaS interfaces."
+        "✨ SaaS Standard: Cohesive, professional visual identity."
       ]
     },
     {
       version: "1.3.8",
-      title: "Theme Selection Fix & Button Grid Layout Restoration",
+      title: "Layout & Theme Restoration",
       date: "Previous",
       agentFeatures: [
-        "🎨 Instant Live Theme Switcher: Click any color accent (Crystal Cyan, Midnight Violet, Emerald Mint, Sunset Amber) for vibrant glowing transformations.",
-        "💾 Theme Persistence Fixed: Selected bar theme is now permanently saved and restored across sessions.",
-        "📐 Restored Button Grid: Escalation buttons now evenly stretch across the full width of the bar with no empty right gap.",
-        "✨ Luminous Accents: Top luminous bar edge, glowing ambient bloom, and themed brand/hover highlights."
+        "📐 Full-Width Grid: Escalation buttons stretch evenly across the entire bar.",
+        "💾 Persistent Themes: Selected theme is permanently saved across browser sessions."
       ],
       adminFeatures: [
-        "🛠️ Reliable Settings & Layout: Eliminated layout squashing and guaranteed accurate theme storage across all browsers."
-      ]
-    },
-    {
-      version: "1.3.7",
-      title: "Frosted Glass Default & Clean Accent Palettes",
-      date: "Previous",
-      agentFeatures: [
-        "🔮 Frosted Glass As Default: Clean acrylic frosted chassis with glowing border accents and backdrop blur.",
-        "🎨 Simple Palette Picker: Sleek, compact 1-click accent selector (Crystal Cyan, Midnight Violet, Emerald Mint, Sunset Amber).",
-        "💎 Frosted Button Polish: Refined button shading with top-gloss highlight, translucent edges, and glowing hover lift.",
-        "📐 Clean Settings Alignment: Removed oversized bulky boxes for a tidy, elegant layout."
-      ],
-      adminFeatures: [
-        "✨ Unified Aesthetic: Cohesive design matching modern Bet88 interface standards."
-      ]
-    },
-    {
-      version: "1.3.6",
-      title: "Bar Themes & Design Selector",
-      date: "Previous",
-      agentFeatures: [
-        "🔮 Modern Frosted Glass Theme: Translucent acrylic backdrop with blur effect, glossy gradient buttons, and soft glowing hover lift.",
-        "⚡ Cyberpunk Dark Theme: High-tech obsidian chassis with neon cyan accents and crisp monospace typography.",
-        "📐 Ultra-Compact Theme: Low-profile design saving 30% vertical space on Bet88.",
-        "🏛️ Classic Solid Theme: Original familiar design preserved for quick switching.",
-        "🎛️ Live Theme Selector: Instant real-time preview directly inside Settings > General tab."
-      ],
-      adminFeatures: [
-        "🎨 Fleet Aesthetic Customization: Both agents and admins can select their preferred visual workspace style effortlessly."
-      ]
-    },
-    {
-      version: "1.3.5",
-      title: "Categorized Settings Interface",
-      date: "Previous",
-      agentFeatures: [
-        "🗂️ Categorized Settings: Clean sidebar navigation dividing options into General, Buttons, Cloud & Backup, Audit, and Account.",
-        "🎯 Direct Category Access: 1-click instant switching between any settings category with zero sequential next/back steps.",
-        "📱 Full-Width Button Customizer: Escalation buttons manager now expands across the full dialog width with zero horizontal crowding.",
-        "☁️ Dedicated Cloud & Backup Hub: Centralized hub for team template sync, online fleet status, and configuration import/export."
-      ],
-      adminFeatures: [
-        "👑 Enhanced Admin Overview: Clear active agent presence metrics and direct access to Web Admin Portal.",
-        "🛠️ Seamless Configuration Workflow: Easily manage and preview custom buttons, reasons, and templates in a spacious full-width editor."
-      ]
-    },
-    {
-      version: "1.3.4",
-      title: "Remote Dynamic Loader & Live In-Use Notifications",
-      date: "Previous",
-      agentFeatures: [
-        "⚡ Zero-Touch Auto Updates: Changes go live instantly on tab reload without touching Tampermonkey.",
-        "🔔 Live In-Use Notification: Gentle floating pill informs agents when an update is available while working.",
-        "✨ Welcome Confirmation Toast: Celebratory banner confirms update success with What's New notes."
-      ],
-      adminFeatures: [
-        "🌐 Cloudflare /bundle.js Distribution: Continuous deployment serves compiled bundles automatically via GitHub Actions."
-      ]
-    },
-    {
-      version: "1.3.3",
-      title: "Direct Userscript Stability & Instant Tool Boot",
-      date: "Previous",
-      agentFeatures: [
-        "🛡️ Rock-Solid Execution: Direct native execution in Tampermonkey with zero storage conflicts.",
-        "⚡ 1-Click Native Installer: Instantly triggers official Tampermonkey update screen with full permissions.",
-        "🧹 Auto Cache Cleanup: Automatically purges any legacy corrupted storage cache on boot."
-      ],
-      adminFeatures: [
-        "🚀 Automated CI/CD Sync: GitHub Actions immediately publishes release metadata directly to Cloudflare Workers upon push."
-      ]
-    },
-    {
-      version: "1.3.2",
-      title: "Flawless Hot-Boot In-Place OTA Updater",
-      date: "Previous",
-      agentFeatures: [
-        "⚡ Zero-Friction Auto Update: In-tool 1-click update now seamlessly reboots with new features immediately on tab reload.",
-        "🛡️ Self-Healing Bootstrapper: Robust fallback mechanism prevents any script load failure or missing dock."
-      ],
-      adminFeatures: [
-        "🚀 Automated CI/CD Worker Sync: Instant version injection and Cloudflare Worker sync on every commit."
-      ]
-    },
-    {
-      version: "1.3.1",
-      title: "Cloud Sync Polish & Version Verification",
-      date: "Previous",
-      agentFeatures: [
-        "🧹 Clean Settings UI: Removed misleading counter badges for a cleaner, distraction-free experience.",
-        "⚡ Instant OTA Verification: Real-time Cloudflare Worker version deployment verification."
-      ],
-      adminFeatures: [
-        "🚀 Automated CI/CD Sync: GitHub Actions immediately publishes and synchronizes release metadata to Cloudflare Workers upon push."
-      ]
-    },
-    {
-      version: "1.3.0",
-      title: "Settings UI Polish & Horizontal Fleet Bar",
-      date: "Previous",
-      agentFeatures: [
-        "🎨 Tight Button Wrap: Zero empty gap beneath escalation buttons in Settings.",
-        "📋 Sleek Horizontal Fleet Bar: Real-time active users status strip for Admins with live status indicators.",
-        "⚡ Smooth One-Click Update: Instant download with session dismissal suppression."
-      ],
-      adminFeatures: [
-        "🌐 Full Web Admin Portal Live: Standalone management at /admin with Master Admin Password.",
-        "👥 Horizontal Fleet Overview: Cleanly displays online agents and version numbers directly in Settings without vertical scrolling."
-      ]
-    },
-    {
-      version: "1.2.9",
-      title: "Private Web Admin Portal & Active Users",
-      date: "Previous",
-      agentFeatures: [
-        "👥 Seamless Online Sync: Background telemetry tracks active agent sessions reliably with zero lag.",
-        "⚡ Instant Device Unlocking: Admin can reset device binding in 1 click so agents can switch PC/laptop without lockout."
-      ],
-      adminFeatures: [
-        "🌐 Private Web Admin Portal: Standalone web portal at /admin protected by Master Admin Password.",
-        "➕ Generate License Keys: Create Admin or Guest keys with format HDJRZ-GUEST-xxxx-xxxx in 1 click.",
-        "🔄 1-Click Device Binding Reset: Instantly unlocks keys when agents change PCs.",
-        "🚫 Revoke / Freeze Keys: Instantly deactivate delinquent or terminated users.",
-        "📋 In-Settings Active Users: Simple clean view of who is currently logged in directly within Extension Settings."
-      ]
-    },
-    {
-      version: "1.2.8",
-      title: "Side-by-Side Account Comparator Modal",
-      date: "Previous",
-      agentFeatures: [
-        "👥 Side-by-Side Account Comparator: Instant visual comparison between New Verified and Old Duplicate accounts inside the KYC Switch confirmation modal.",
-        "📊 Live Attribute Sync: Displays ID, Name, Verification Status, and Registration Date side-by-side with real-time editing.",
-        "🚀 In-Tool Zero-Popup Updates: One-click background update with live download progress and zero tab redirects."
-      ],
-      adminFeatures: [
-        "🛡️ Error-Free Verification: Prevents accidental switching or misaligned account pairings during complex KYC operations.",
-        "⚡ Instant In-Tool Delivery: Zero-reload distribution across all staff."
-      ]
-    },
-    {
-      version: "1.2.7",
-      title: "Professional Enterprise Compliance Badge",
-      date: "Previous",
-      agentFeatures: [
-        "🛡️ Sleek Enterprise Age Badge: Replaced the casual birthday emoji with a sleek, minimalist status dot badge styled to match the dark dock perfectly.",
-        "🟢 Compliance States: Displays clean professional tags: 'Legal (25)', 'Restricted (19)', and 'Minor (16)'.",
-        "⚡ Integrated Height & Alignment: Custom rectangular radius (4px) matches 'No Player Detected' seamlessly."
-      ],
-      adminFeatures: [
-        "🎯 Modernized Compliance UI: Elevates toolbar aesthetics for high-profile audits and operations.",
-        "🔄 Automated Version Sync: Cloudflare dynamically syncs GitHub releases without manual deployment."
-      ]
-    },
-    {
-      version: "1.2.6",
-      title: "Live Player Legal Age Evaluation Badge on Dock",
-      date: "Previous",
-      agentFeatures: [
-        "🎂 Live Player Age Badge: Instant compliance evaluation displayed directly beside 'No Player Detected' on the toolbar.",
-        "🟢 Automatic Evaluation: Real-time visual tagging for 🟢 Legal (21+), 🟠 Restricted (18–20), or 🔴 Minor (<18) as soon as player info loads.",
-        "🚀 Non-Intrusive Floating Updates: Live top-right notifications and in-Settings update buttons allow zero-downtime updates.",
-        "⚡ Fast Navigation: Press Enter inside Confirm to execute; press Esc to cancel or close any modal."
-      ],
-      adminFeatures: [
-        "🛡️ Compliance Visibility: Immediate age bracket flagging prevents accidental processing of underage accounts.",
-        "📡 Elevated Tampermonkey Pipeline: Zero-CSP heartbeat and template sync guarantees fleet consistency."
-      ]
-    },
-    {
-      version: "1.2.5",
-      title: "In-Settings One-Click Update & Real-Time Live Discovery",
-      date: "Previous",
-      agentFeatures: [
-        "🚀 In-Settings 'Update Now' Button: Dedicated instant-update button right in the Settings header when a new version is detected.",
-        "🔄 In-Settings 'Check for Update': Manually trigger an instant version scan anytime with live status feedback.",
-        "🛡️ Zero-CSP Tampermonkey Bridge: Remote template sync and policy heartbeats now route through elevated GM_xmlhttpRequest, guaranteeing updates are never blocked by website security policies.",
-        "⚡ Enter to Execute & Esc to Cancel: Full keyboard navigation throughout the escalation workflow."
-      ],
-      adminFeatures: [
-        "👑 Real-time Fleet Version Discovery: Automatically broadcasts the latest version to all active agents even before remote templates are configured in KV.",
-        "📡 Reliable Telemetry & Presence: Worker now reports live fleet metrics on every request."
-      ]
-    },
-    {
-      version: "1.2.4",
-      title: "Fast Navigation & Universal Modal Controls",
-      date: "Previous",
-      agentFeatures: [
-        "⚡ Enter to Execute: Pressing Enter inside the Confirm Escalation modal executes the escalation immediately — no mouse click needed!",
-        "⌨️ Esc to Cancel: Instantly cancels and closes any open modal (Confirm, Settings, Changelog, or Reason Picker) with a single keystroke.",
-        "🌐 Seamless Network Whitelist: Pre-authorized Cloudflare license endpoint eliminates repetitive browser permission prompts."
-      ],
-      adminFeatures: [
-        "⚡ Accelerated High-Volume Handling: Zero-click keyboard throughput for high ticket volumes during shift peaks.",
-        "🛡️ Defective KV Payload Immunity: Safe handling of both legacy string keys and JSON device bindings on Cloudflare."
-      ]
-    },
-    {
-      version: "1.2.3",
-      title: "Non-Blocking Updates & Role-Based Changelogs",
-      date: "Previous",
-      agentFeatures: [
-        "🚀 Non-Intrusive Updates: Work uninterrupted! New updates notify you via a sleek floating banner so you can update at your convenience without blocking player processing.",
-        "🔴 Dock Quick-Update Pill: If you postpone an update, a subtle glowing pill stays on your toolbar so you can update whenever you have downtime.",
-        "📜 What's New Release Notes: Access feature highlights anytime directly from the Settings menu.",
-        "🔔 Audio / Visual Haptic Feedback: Instant audio chime and emerald green ripple pulse when notes are pinned or copied."
-      ],
-      adminFeatures: [
-        "👑 Admin Confidentiality: Master control updates (KV rows, kill-switch, telemetry) are securely hidden from standard agent views.",
-        "📡 Real-time Fleet Telemetry: Monitor live active agent counts and template sync status in real time from the cloud.",
-        "🛡️ Zero-Downtime Fleet Updates: Staff can finish ongoing player tickets before reloading."
-      ]
-    },
-    {
-      version: "1.2.0",
-      title: "Audio & Visual Feedback System",
-      date: "Previous",
-      agentFeatures: [
-        "🔔 Soft Audio Success Chime: Pleasant synthesized audio feedback on note pin and tracker copy (zero external audio files needed).",
-        "🟢 Emerald Screen Glow: Subtle edge ripple confirms action success at a glance.",
-        "🎛️ Settings Audio Toggle: Easily mute or test the audio chime in Settings."
-      ],
-      adminFeatures: [
-        "🚨 Remote Emergency Kill Switch: Remote system freeze capability via Cloudflare KV.",
-        "🌐 Domain Security Restriction: Whitelist enforcement to prevent unauthorized distribution."
-      ]
-    },
-    {
-      version: "1.1.8",
-      title: "PAGCOR Legal Age Compliance",
-      date: "Previous",
-      agentFeatures: [
-        "🎂 PAGCOR Legal Age Calculator: Smart badge automatically evaluates 21+ (🟢 Legal) vs 18–20 (🟠 Restricted) vs <18 (🔴 Minor).",
-        "📝 Auto Note Formatting: Calculates exact age bracket and injects compliance notes into escalation templates automatically."
-      ],
-      adminFeatures: [
-        "☁️ Cloud Template Sync: Instant push and broadcast of custom escalation templates to all active agent workstations."
+        "🛠️ Reliable Layout: Guaranteed layout stability across all browsers."
       ]
     }
   ];
@@ -506,7 +261,7 @@
         adminSecHtml = `
           <div class="esc-release-section">
             <div class="esc-release-section-title is-admin">
-              <span>🛡️ Admin & Master Controls</span>
+              <span>🛡️ Admin Updates</span>
             </div>
             <ul class="esc-release-list">
               ${item.adminFeatures.map(f => `<li>${safeEsc(f)}</li>`).join("")}
@@ -517,10 +272,10 @@
 
       let agentSecHtml = "";
       if (Array.isArray(item.agentFeatures) && item.agentFeatures.length > 0) {
-        adminSecHtml += `
+        agentSecHtml = `
           <div class="esc-release-section">
             <div class="esc-release-section-title is-agent">
-              <span>✨ Agent & Workflow Features</span>
+              <span>✨ Highlights</span>
             </div>
             <ul class="esc-release-list">
               ${item.agentFeatures.map(f => `<li>${safeEsc(f)}</li>`).join("")}

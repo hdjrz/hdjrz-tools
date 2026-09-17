@@ -2877,6 +2877,14 @@ body.esc-modal-scroll-lock {
   overflow: hidden;
   box-sizing: border-box;
   animation: escModalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.esc-changelog-modal::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .esc-changelog-header {
@@ -2929,7 +2937,15 @@ body.esc-modal-scroll-lock {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.esc-changelog-body::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+  width: 0;
+  height: 0;
 }
 
 .esc-release-card {
