@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         hdjrzTools
 // @namespace    https://github.com/hdjrz/hdjrz-tools
-// @version      1.4.3
+// @version      1.4.4
 // @description  Streamlines player escalations: extracts player info, formats User Notes, pins them, copies to clipboard, and opens Zoom workspace.
 // @author       hdjrz
 // @match        *://nano-admin.bet88.ph/*

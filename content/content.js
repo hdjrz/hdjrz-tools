@@ -148,7 +148,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.4.3";
+  const HARDCODED_VERSION = "1.4.4";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -168,9 +168,21 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.4.4",
+      title: "Update Status & Requirement Transparency",
+      date: "Latest",
+      agentFeatures: [
+        "📊 Version & Update Clarity: Instantly see installed version and whether an update is Required or Optional.",
+        "🚀 Smart Update Indicators: Distinct badges and labels in Dock, Settings, and Notifications (⚠️ Required vs 🚀 Optional)."
+      ],
+      adminFeatures: [
+        "🛡️ Compliance Visibility: Clear distinction between mandatory security/schema updates and optional feature releases."
+      ]
+    },
+    {
       version: "1.4.3",
       title: "Maya Mini App Auto-Detection",
-      date: "Latest",
+      date: "Previous",
       agentFeatures: [
         "📱 Maya Mini App Support: Auto-detects Name and DOB from Maya Mini App user attributes.",
         "🎂 Smart DOB Formatter: Formats dates cleanly (e.g. 04-23-1998 ➔ 23 Apr, 1998) for notes, Zoom, and age checks."
@@ -852,6 +864,9 @@
   function attachDockUpdatePill(data) {
     const latestVer = (data && data.latestVersion) || latestKnownServerVersion;
     if (!latestVer || !isVersionBelow(SCRIPT_VERSION, latestVer)) return;
+    const minReq = (data && data.minRequiredVersion) || (latestUpdateData && latestUpdateData.minRequiredVersion) || "1.1.4";
+    const isRequired = isVersionBelow(SCRIPT_VERSION, minReq);
+
     const dock = document.getElementById("escalation-helper-dock");
     if (!dock) return;
     let pill = dock.querySelector("#esc-dock-update-pill");
@@ -861,40 +876,70 @@
         pill = document.createElement("span");
         pill.className = "esc-dock-update-pill";
         pill.id = "esc-dock-update-pill";
-        pill.innerHTML = `🔴 Update v${safeEsc(latestVer)}`;
-        pill.title = `Click to update to v${safeEsc(latestVer)} anytime`;
         pill.addEventListener("click", (e) => {
           e.stopPropagation();
           showNonBlockingUpdateNotification(data || latestUpdateData, true);
         });
         brand.appendChild(pill);
       }
-    } else {
+    }
+    if (pill) {
       pill.style.display = "inline-flex";
-      pill.innerHTML = `🔴 Update v${safeEsc(latestVer)}`;
+      if (isRequired) {
+        pill.innerHTML = `⚠️ Required v${safeEsc(latestVer)}`;
+        pill.style.background = "linear-gradient(135deg, #dc2626, #b91c1c)";
+        pill.style.borderColor = "#f87171";
+        pill.style.boxShadow = "0 0 10px rgba(239, 68, 68, 0.6)";
+        pill.title = `CRITICAL: Required update to v${safeEsc(latestVer)} is mandatory`;
+      } else {
+        pill.innerHTML = `🚀 Update v${safeEsc(latestVer)}`;
+        pill.style.background = "linear-gradient(135deg, #0284c7, #2563eb)";
+        pill.style.borderColor = "#38bdf8";
+        pill.style.boxShadow = "0 0 8px rgba(56, 189, 248, 0.4)";
+        pill.title = `Optional update to v${safeEsc(latestVer)} available`;
+      }
     }
   }
 
   function checkScriptMetaVersion(cb) {
     sendWorkerRequest({
-      url: "https://hdjrz-license.rosechel05.workers.dev/script.meta.js?ts=" + Date.now(),
+      url: "https://hdjrz-license.rosechel05.workers.dev/api/system/version?ts=" + Date.now(),
       method: "GET"
-    }, (err, text) => {
-      if (err || !text) {
-        if (cb) cb(err);
-        return;
-      }
-      const match = String(text).match(/\/\/\s*@version\s+([0-9.]+)/i);
-      if (match && match[1]) {
-        const metaVer = match[1].trim();
+    }, (err, res) => {
+      let latestVer = null;
+      let minReq = "1.1.4";
+      if (!err && res && (res.latestVersion || (res.data && res.data.latestVersion))) {
+        latestVer = res.latestVersion || res.data.latestVersion;
+        minReq = res.minRequiredVersion || (res.data && res.data.minRequiredVersion) || "1.1.4";
         setLatestServerVersion({
-          latestVersion: metaVer,
+          latestVersion: latestVer,
+          minRequiredVersion: minReq,
           updateUrl: "https://hdjrz-license.rosechel05.workers.dev/script.user.js"
         });
-        if (cb) cb(null, metaVer);
+        if (cb) cb(null, latestVer, minReq);
         return;
       }
-      if (cb) cb(null, null);
+      sendWorkerRequest({
+        url: "https://hdjrz-license.rosechel05.workers.dev/script.meta.js?ts=" + Date.now(),
+        method: "GET"
+      }, (metaErr, text) => {
+        if (metaErr || !text) {
+          if (cb) cb(metaErr);
+          return;
+        }
+        const match = String(text).match(/\/\/\s*@version\s+([0-9.]+)/i);
+        if (match && match[1]) {
+          const metaVer = match[1].trim();
+          setLatestServerVersion({
+            latestVersion: metaVer,
+            minRequiredVersion: minReq,
+            updateUrl: "https://hdjrz-license.rosechel05.workers.dev/script.user.js"
+          });
+          if (cb) cb(null, metaVer, minReq);
+          return;
+        }
+        if (cb) cb(null, null, minReq);
+      });
     });
   }
 
@@ -921,9 +966,21 @@
     if (!container) return;
 
     if (latestKnownServerVersion && isVersionBelow(SCRIPT_VERSION, latestKnownServerVersion)) {
+      const minReq = (latestUpdateData && latestUpdateData.minRequiredVersion) || "1.1.4";
+      const isRequired = isVersionBelow(SCRIPT_VERSION, minReq);
+
+      const btnText = isRequired
+        ? `⚠️ Required Update (v${safeEsc(latestKnownServerVersion)})`
+        : `🚀 Optional Update (v${safeEsc(latestKnownServerVersion)})`;
+      const btnBg = isRequired
+        ? "linear-gradient(135deg, #ef4444, #dc2626)"
+        : "linear-gradient(135deg, #0284c7, #2563eb)";
+      const btnBorder = isRequired ? "#f87171" : "#38bdf8";
+      const btnGlow = isRequired ? "rgba(239, 68, 68, 0.5)" : "rgba(56, 189, 248, 0.4)";
+
       container.innerHTML = `
-        <button type="button" class="esc-settings-update-btn" id="esc-settings-update-now" style="margin-left: 8px; background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; border: 1px solid #f87171; border-radius: 4px; padding: 2px 10px; font-size: 11px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);">
-          🚀 Update Now (v${safeEsc(latestKnownServerVersion)})
+        <button type="button" class="esc-settings-update-btn" id="esc-settings-update-now" style="margin-left: 8px; background: ${btnBg}; color: #fff; border: 1px solid ${btnBorder}; border-radius: 4px; padding: 2px 10px; font-size: 11px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 0 10px ${btnGlow};">
+          ${btnText}
         </button>
       `;
       const btn = container.querySelector("#esc-settings-update-now");
@@ -958,7 +1015,7 @@
                 if (latestUpdateData) showNonBlockingUpdateNotification(latestUpdateData, true);
               } else {
                 checkBtn.disabled = false;
-                checkBtn.innerHTML = `✓ Up to date`;
+                checkBtn.innerHTML = `✓ Up to date (v${safeEsc(SCRIPT_VERSION)})`;
                 checkBtn.style.color = "#34d399";
                 setTimeout(() => {
                   if (container && container.contains(checkBtn)) {
@@ -977,7 +1034,7 @@
   let activeUpdateBanner = null;
   function showNonBlockingUpdateNotification(data, isManual) {
     setLatestServerVersion(data);
-    const latestVer = (data && data.latestVersion) || latestKnownServerVersion || "1.2.9";
+    const latestVer = (data && data.latestVersion) || latestKnownServerVersion || "1.4.4";
     const updateUrl = (data && data.updateUrl) || (latestUpdateData && latestUpdateData.updateUrl) || "https://hdjrz-license.rosechel05.workers.dev/script.user.js";
 
     attachDockUpdatePill(data);
@@ -998,26 +1055,38 @@
       return;
     }
 
+    const minReq = (data && data.minRequiredVersion) || (latestUpdateData && latestUpdateData.minRequiredVersion) || "1.1.4";
+    const isRequired = isVersionBelow(SCRIPT_VERSION, minReq);
+
+    const bannerIcon = isRequired ? "⚠️" : "🚀";
+    const bannerTitle = isRequired ? `Required Update: v${safeEsc(latestVer)}` : `Update Available: v${safeEsc(latestVer)}`;
+    const bannerBadge = isRequired
+      ? `<span style="font-size: 10px; font-weight: 800; background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.5); padding: 1px 6px; border-radius: 4px; margin-left: 6px;">REQUIRED</span>`
+      : `<span style="font-size: 10px; font-weight: 800; background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.5); padding: 1px 6px; border-radius: 4px; margin-left: 6px;">OPTIONAL</span>`;
+    const bannerDesc = isRequired
+      ? `This update is required to ensure template compatibility and system stability. Please update as soon as possible.`
+      : `A new optional version is ready! You can continue working uninterrupted and update whenever you have free time.`;
+
     const banner = document.createElement("div");
-    banner.className = "esc-update-banner";
+    banner.className = `esc-update-banner ${isRequired ? 'is-required' : ''}`;
     banner.id = "esc-update-banner";
     banner.innerHTML = `
       <div class="esc-banner-header">
         <div class="esc-banner-title-wrap">
-          <span class="esc-banner-icon">🚀</span>
+          <span class="esc-banner-icon">${bannerIcon}</span>
           <div>
-            <div class="esc-banner-title">Update Available: v${safeEsc(latestVer)}</div>
+            <div class="esc-banner-title" style="display:flex;align-items:center;">${safeEsc(bannerTitle)} ${bannerBadge}</div>
             <div style="font-size: 11px; color: #64748b;">Current: v${safeEsc(SCRIPT_VERSION)}</div>
           </div>
         </div>
         <button type="button" class="esc-banner-close" id="esc-banner-dismiss" title="Dismiss for now">✕</button>
       </div>
       <div class="esc-banner-desc">
-        A new version is ready! You can continue working uninterrupted and update whenever you have free time.
+        ${safeEsc(bannerDesc)}
       </div>
       <div class="esc-banner-actions" id="esc-banner-actions">
-        <button type="button" class="esc-banner-btn-primary" id="esc-banner-update-btn">
-          <span>🚀 Update Now</span>
+        <button type="button" class="esc-banner-btn-primary" id="esc-banner-update-btn" style="${isRequired ? 'background: linear-gradient(135deg, #ef4444, #dc2626); border-color: #f87171;' : ''}">
+          <span>${isRequired ? '⚠️ Update Now (Required)' : '🚀 Update Now'}</span>
         </button>
         <button type="button" class="esc-banner-btn-secondary" id="esc-banner-later-btn">Later</button>
       </div>
@@ -5676,6 +5745,26 @@
                 <div class="esc-account-stat-card">
                   <span class="esc-account-stat-label">Installed Version</span>
                   <span class="esc-account-stat-val" style="color: #cbd5e1;">v${safeEsc(SCRIPT_VERSION)}</span>
+                </div>
+
+                <div class="esc-account-stat-card">
+                  <span class="esc-account-stat-label">Server Version</span>
+                  <span class="esc-account-stat-val" style="color: #38bdf8;">v${safeEsc(latestKnownServerVersion || SCRIPT_VERSION)}</span>
+                </div>
+
+                <div class="esc-account-stat-card">
+                  <span class="esc-account-stat-label">Update Status</span>
+                  <span class="esc-account-stat-val" style="font-size: 12px; font-weight: 700; color: ${
+                    (latestKnownServerVersion && isVersionBelow(SCRIPT_VERSION, latestKnownServerVersion))
+                      ? (isVersionBelow(SCRIPT_VERSION, (latestUpdateData && latestUpdateData.minRequiredVersion) || '1.1.4') ? '#ef4444' : '#38bdf8')
+                      : '#34d399'
+                  };">
+                    ${
+                      (latestKnownServerVersion && isVersionBelow(SCRIPT_VERSION, latestKnownServerVersion))
+                        ? (isVersionBelow(SCRIPT_VERSION, (latestUpdateData && latestUpdateData.minRequiredVersion) || '1.1.4') ? '⚠️ Update Required' : '🚀 Optional Update')
+                        : '✅ Up to Date'
+                    }
+                  </span>
                 </div>
 
                 <div class="esc-account-stat-card">
