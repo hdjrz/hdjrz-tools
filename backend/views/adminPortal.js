@@ -253,6 +253,63 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
       gap: 5px;
       letter-spacing: 0.3px;
     }
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(4, 9, 20, 0.85);
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 99999;
+      padding: 20px;
+    }
+    .modal-card {
+      background: #091120;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 24px;
+      width: 100%;
+      max-width: 520px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #1e293b;
+    }
+    .val-checklist {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .val-checklist-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-radius: 6px;
+      background: #060c18;
+      border: 1px solid #1e293b;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .val-checklist-item.passed {
+      color: #34d399;
+      border-color: rgba(16, 185, 129, 0.3);
+      background: rgba(16, 185, 129, 0.05);
+    }
+    .val-checklist-item.failed {
+      color: #fca5a5;
+      border-color: rgba(239, 68, 68, 0.3);
+      background: rgba(239, 68, 68, 0.08);
+    }
   </style>
 </head>
 <body>
@@ -504,6 +561,34 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
   </div>
 
   <div id="toast" class="toast"></div>
+
+  <!-- Pre-Publish Validation Modal (Phase 12) -->
+  <div id="validation-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h2 style="font-size: 16px; font-weight: 800; color: #fff; letter-spacing: 0.5px;">VALIDATION</h2>
+          <div style="font-size: 12px; color: var(--muted); margin-top: 2px;">Pre-publishing system & schema verification</div>
+        </div>
+        <span id="val-modal-ver-target" class="key-tag" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border-color: rgba(16, 185, 129, 0.4);">
+          Publish v1
+        </span>
+      </div>
+
+      <div class="val-checklist" id="val-checklist-items">
+        <!-- 8 checks dynamically rendered with ✓ or ✗ -->
+      </div>
+
+      <div id="val-modal-error-box" style="margin-top: 14px; padding: 10px 14px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 6px; font-size: 12px; color: #fca5a5; display: none;"></div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; padding-top: 14px; border-top: 1px solid #1e293b;">
+        <button type="button" id="val-modal-cancel-btn" class="btn btn-secondary btn-sm" style="padding: 8px 18px; font-size: 13px;">Cancel</button>
+        <button type="button" id="val-modal-publish-btn" class="btn btn-primary btn-sm" style="background: #10b981; border: 1px solid #059669; padding: 8px 18px; font-size: 13px;">
+          Publish v1
+        </button>
+      </div>
+    </div>
+  </div>
 
   <script>
     let authToken = sessionStorage.getItem("hdjrz_admin_token") || "";
@@ -977,21 +1062,76 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
       });
     }
 
-    // Publish to Production (MANDATORY GATE)
+    // Pre-Publish Validation Modal (Phase 12)
+    const valModal = document.getElementById("validation-modal");
+    const valModalCancelBtn = document.getElementById("val-modal-cancel-btn");
+    const valModalPublishBtn = document.getElementById("val-modal-publish-btn");
+    const valChecklistItems = document.getElementById("val-checklist-items");
+    const valModalErrorBox = document.getElementById("val-modal-error-box");
+    const valModalVerTarget = document.getElementById("val-modal-ver-target");
+
+    function closeValidationModal() {
+      if (valModal) valModal.style.display = "none";
+    }
+
+    if (valModalCancelBtn) {
+      valModalCancelBtn.addEventListener("click", closeValidationModal);
+    }
+
+    async function openValidationModal() {
+      if (!valModal) return;
+      const targetVer = ((currentPipelineData && currentPipelineData.production && currentPipelineData.production.version) || 0) + 1;
+      valModalVerTarget.textContent = "v" + targetVer + " Candidate";
+      valModalPublishBtn.textContent = "Publish v" + targetVer;
+      valModalPublishBtn.disabled = true;
+
+      valChecklistItems.innerHTML = '<div style="color:var(--muted); text-align:center; padding:12px;">Running 8-point pre-publish verification...</div>';
+      valModalErrorBox.style.display = "none";
+      valModal.style.display = "flex";
+
+      try {
+        const res = await apiRequest("/api/templates/draft/validate", "POST", {});
+        if (!res.ok) throw new Error(res.error || "Validation request failed");
+
+        const checks = res.checks || [];
+        valChecklistItems.innerHTML = checks.map(c => {
+          const isPassed = c.passed === true;
+          return '<div class="val-checklist-item ' + (isPassed ? 'passed' : 'failed') + '">' +
+            '<span>' + (isPassed ? '✓ ' : '✗ ') + escapeHtml(c.label) + '</span>' +
+            '<span style="font-size:11px; opacity:0.85;">' + (isPassed ? 'Verified' : 'Failed') + '</span>' +
+          '</div>';
+        }).join("");
+
+        if (res.valid) {
+          valModalPublishBtn.disabled = false;
+          valModalErrorBox.style.display = "none";
+        } else {
+          valModalPublishBtn.disabled = true;
+          valModalErrorBox.style.display = "block";
+          valModalErrorBox.innerHTML = '<strong>Validation Blocking Release:</strong><br>' +
+            (res.errors || []).map(e => '• ' + escapeHtml(e)).join("<br>");
+        }
+      } catch (err) {
+        valChecklistItems.innerHTML = '<div style="color:#fca5a5; padding:10px;">Error running validation: ' + escapeHtml(err.message) + '</div>';
+        valModalPublishBtn.disabled = true;
+      }
+    }
+
     const publishBtn = document.getElementById("pipeline-publish-btn");
     if (publishBtn) {
-      publishBtn.addEventListener("click", async () => {
-        if (!currentPipelineData || !currentPipelineData.draft || !currentPipelineData.draft.validated) {
-          return alert("Cannot publish: Draft has not passed validation!");
-        }
-        const newVer = (currentPipelineData.production.version || 0) + 1;
-        if (!confirm("Publish draft to live production as v" + newVer + "?\\n\\nAll online staff agents will automatically synchronize to this version on their next ping.")) return;
+      publishBtn.addEventListener("click", openValidationModal);
+    }
 
-        publishBtn.disabled = true;
-        publishBtn.textContent = "Deploying to Production...";
+    if (valModalPublishBtn) {
+      valModalPublishBtn.addEventListener("click", async () => {
+        const targetVer = ((currentPipelineData && currentPipelineData.production && currentPipelineData.production.version) || 0) + 1;
+        valModalPublishBtn.disabled = true;
+        valModalPublishBtn.textContent = "Publishing v" + targetVer + "...";
+
         try {
           const res = await apiRequest("/api/templates/draft/publish", "POST");
           if (res.ok) {
+            closeValidationModal();
             showToast("🚀 Successfully published v" + res.version + " to production!");
             loadPipelineStatus();
           } else {
@@ -1000,8 +1140,8 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
         } catch (err) {
           alert("Error: " + err.message);
         } finally {
-          publishBtn.disabled = false;
-          publishBtn.textContent = "🚀 Publish Draft to Production";
+          valModalPublishBtn.disabled = false;
+          valModalPublishBtn.textContent = "Publish v" + targetVer;
         }
       });
     }

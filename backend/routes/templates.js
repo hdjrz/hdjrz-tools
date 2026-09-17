@@ -57,6 +57,7 @@ export async function handleTemplateRoutes(request, env, url) {
     const validation = validateTemplateDraft(optionsToValidate);
     return jsonSuccess({
       valid: validation.valid,
+      checks: validation.checks,
       errors: validation.errors,
       warnings: validation.warnings,
       count: Array.isArray(optionsToValidate) ? optionsToValidate.length : 0

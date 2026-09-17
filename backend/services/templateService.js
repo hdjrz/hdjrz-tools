@@ -60,92 +60,262 @@ export async function getTemplateDraft(env) {
   };
 }
 
+export const ALLOWED_TOKENS = new Set([
+  "[CID]",
+  "[Reason]",
+  "[User ID]",
+  "[Name]",
+  "[DOB]",
+  "[AGE]",
+  "[Verified UID]",
+  "[Rejected accounts]",
+  "[New Account UID]",
+  "[GLife ID]"
+]);
+
 /**
- * Validate template options array against schema and integrity rules
+ * Validate template options array against the 8-point pre-publish checklist:
+ * 1. JSON valid
+ * 2. All escalation codes valid
+ * 3. Every required reason exists
+ * 4. User Note template valid
+ * 5. Zoom template valid
+ * 6. Tokens valid
+ * 7. No duplicate reasons
+ * 8. Required fields present
  */
 export function validateTemplateDraft(options) {
   const errors = [];
   const warnings = [];
+  const checks = [];
 
+  // Check 1: JSON valid
+  let jsonPassed = true;
+  let jsonMsg = "Valid JSON array of template options";
   if (!Array.isArray(options)) {
-    return { valid: false, errors: ["Templates must be an array of option objects"], warnings };
+    jsonPassed = false;
+    jsonMsg = "Templates must be a JSON array of option objects";
+    errors.push(jsonMsg);
+  } else if (options.length === 0) {
+    jsonPassed = false;
+    jsonMsg = "Template array cannot be empty";
+    errors.push(jsonMsg);
+  } else {
+    for (let i = 0; i < options.length; i++) {
+      const opt = options[i];
+      if (!opt || typeof opt !== "object") {
+        jsonPassed = false;
+        jsonMsg = `Item #${i + 1} is not a valid JSON object`;
+        errors.push(jsonMsg);
+        break;
+      }
+    }
+  }
+  checks.push({ id: "jsonValid", label: "JSON valid", passed: jsonPassed, message: jsonMsg });
+
+  if (!jsonPassed) {
+    const remaining = [
+      { id: "escalationCodesValid", label: "All escalation codes valid" },
+      { id: "requiredReasonsExist", label: "Every required reason exists" },
+      { id: "userNoteTemplateValid", label: "User Note template valid" },
+      { id: "zoomTemplateValid", label: "Zoom template valid" },
+      { id: "tokensValid", label: "Tokens valid" },
+      { id: "noDuplicateReasons", label: "No duplicate reasons" },
+      { id: "requiredFieldsPresent", label: "Required fields present" }
+    ];
+    remaining.forEach(item => {
+      checks.push({ id: item.id, label: item.label, passed: false, message: "Blocked by invalid JSON structure" });
+    });
+    return { valid: false, checks, errors, warnings };
   }
 
-  if (options.length === 0) {
-    errors.push("Template list cannot be empty");
-    return { valid: false, errors, warnings };
-  }
-
+  // Check 2: All escalation codes valid
   const seenCodes = new Set();
-  const knownPlaceholders = ["[CID]", "[User ID]", "[Reason]", "[DOB]", "[Name]"];
-
-  options.forEach((opt, idx) => {
-    const itemNum = idx + 1;
-    if (!opt || typeof opt !== "object") {
-      errors.push(`Item #${itemNum} is not a valid object`);
-      return;
-    }
-
-    // 1. Code validation
+  let codesPassed = true;
+  let codesMsg = `All ${options.length} escalation codes are unique and valid`;
+  for (let i = 0; i < options.length; i++) {
+    const opt = options[i];
     const code = String(opt.code || "").trim();
-    if (!code) {
-      errors.push(`Item #${itemNum} is missing a unique code`);
-    } else {
-      const upper = code.toUpperCase();
-      if (seenCodes.has(upper)) {
-        errors.push(`Duplicate escalation code "${code}" found at item #${itemNum}`);
-      }
-      seenCodes.add(upper);
+    if (!code || code.length < 2) {
+      codesPassed = false;
+      codesMsg = `Item #${i + 1} has invalid or missing escalation code: "${code}"`;
+      errors.push(codesMsg);
+      break;
     }
-
-    // 2. Label validation
-    const label = String(opt.label || "").trim();
-    if (!label) {
-      errors.push(`Item #${itemNum} (${code || "unnamed"}) is missing a button label`);
+    const upper = code.toUpperCase();
+    if (seenCodes.has(upper)) {
+      codesPassed = false;
+      codesMsg = `Duplicate escalation code "${code}" found at item #${i + 1}`;
+      errors.push(codesMsg);
+      break;
     }
+    seenCodes.add(upper);
+  }
+  checks.push({ id: "escalationCodesValid", label: "All escalation codes valid", passed: codesPassed, message: codesMsg });
 
-    // 3. Category / Group validation
-    const group = String(opt.group || "").trim();
-    if (!group) {
-      warnings.push(`Item #${itemNum} (${code || "unnamed"}) has no category/group; will default to "General"`);
-    }
-
-    // 4. Reasons validation
+  // Check 3: Every required reason exists
+  let reasonsPassed = true;
+  let reasonsMsg = "Every option defines non-empty reasons and valid defaultReason";
+  for (let i = 0; i < options.length; i++) {
+    const opt = options[i];
+    const code = opt.code || `Item #${i + 1}`;
     if (!Array.isArray(opt.reasons) || opt.reasons.length === 0) {
-      warnings.push(`Item #${itemNum} (${code}) has an empty reasons list`);
+      reasonsPassed = false;
+      reasonsMsg = `Option "${code}" has an empty reasons list`;
+      errors.push(reasonsMsg);
+      break;
     }
+    const def = String(opt.defaultReason || "").trim();
+    if (!def) {
+      reasonsPassed = false;
+      reasonsMsg = `Option "${code}" is missing defaultReason`;
+      errors.push(reasonsMsg);
+      break;
+    }
+    const exists = opt.reasons.some(r => String(r || "").trim().toLowerCase() === def.toLowerCase());
+    if (!exists) {
+      reasonsPassed = false;
+      reasonsMsg = `Option "${code}" defaultReason "${def}" does not exist in its reasons list`;
+      errors.push(reasonsMsg);
+      break;
+    }
+  }
+  checks.push({ id: "requiredReasonsExist", label: "Every required reason exists", passed: reasonsPassed, message: reasonsMsg });
 
-    // 5. Placeholder syntax check in Zoom & UserNotes
-    const checkPlaceholders = (text, fieldName) => {
-      if (!text || typeof text !== "string") return;
-      const unclosedMatch = text.match(/\[[A-Za-z0-9 ]+(?!\])/g);
-      if (unclosedMatch) {
-        unclosedMatch.forEach(match => {
-          if (!match.endsWith("]")) {
-            warnings.push(`Item #${itemNum} (${code}) has potentially unclosed placeholder "${match}" in ${fieldName}`);
-          }
-        });
+  // Check 4: User Note template valid
+  let notePassed = true;
+  let noteMsg = "User Note templates are correctly defined across all options";
+  for (let i = 0; i < options.length; i++) {
+    const opt = options[i];
+    const code = opt.code || `Item #${i + 1}`;
+    const hasNotesText = typeof opt.userNotesText === "string";
+    const hasNoteChoices = Array.isArray(opt.noteChoices) && opt.noteChoices.length > 0 && opt.noteChoices.every(c => typeof c.userNotesText === "string");
+    const hasZoom = (typeof opt.zoomText === "string" && opt.zoomText.trim().length > 0) || (Array.isArray(opt.zoomChoices) && opt.zoomChoices.length > 0);
+
+    if (!hasNotesText && !hasNoteChoices) {
+      notePassed = false;
+      noteMsg = `Option "${code}" is missing a valid User Note template definition`;
+      errors.push(noteMsg);
+      break;
+    }
+    const noteLen = (opt.userNotesText || "").trim().length + (opt.noteChoices ? opt.noteChoices.reduce((acc, c) => acc + (c.userNotesText || "").trim().length, 0) : 0);
+    if (noteLen === 0 && !hasZoom) {
+      notePassed = false;
+      noteMsg = `Option "${code}" has empty User Notes and no Zoom template`;
+      errors.push(noteMsg);
+      break;
+    }
+  }
+  checks.push({ id: "userNoteTemplateValid", label: "User Note template valid", passed: notePassed, message: noteMsg });
+
+  // Check 5: Zoom template valid
+  let zoomPassed = true;
+  let zoomMsg = "Zoom templates are correctly defined across all options";
+  for (let i = 0; i < options.length; i++) {
+    const opt = options[i];
+    const code = opt.code || `Item #${i + 1}`;
+    const hasZoomText = typeof opt.zoomText === "string";
+    const hasZoomChoices = Array.isArray(opt.zoomChoices) && opt.zoomChoices.length > 0 && opt.zoomChoices.every(c => typeof c.zoomText === "string");
+    const hasNotes = (typeof opt.userNotesText === "string" && opt.userNotesText.trim().length > 0) || (Array.isArray(opt.noteChoices) && opt.noteChoices.length > 0);
+
+    if (!hasZoomText && !hasZoomChoices) {
+      zoomPassed = false;
+      zoomMsg = `Option "${code}" is missing a valid Zoom template definition`;
+      errors.push(zoomMsg);
+      break;
+    }
+    const zoomLen = (opt.zoomText || "").trim().length + (opt.zoomChoices ? opt.zoomChoices.reduce((acc, c) => acc + (c.zoomText || "").trim().length, 0) : 0);
+    if (zoomLen === 0 && !hasNotes) {
+      zoomPassed = false;
+      zoomMsg = `Option "${code}" has empty Zoom template and no User Notes template`;
+      errors.push(zoomMsg);
+      break;
+    }
+  }
+  checks.push({ id: "zoomTemplateValid", label: "Zoom template valid", passed: zoomPassed, message: zoomMsg });
+
+  // Check 6: Tokens valid
+  let tokensPassed = true;
+  let tokensMsg = "All template tokens conform to recognized placeholders";
+  for (let i = 0; i < options.length; i++) {
+    const opt = options[i];
+    const code = opt.code || `Item #${i + 1}`;
+    const texts = [opt.userNotesText, opt.zoomText];
+    if (Array.isArray(opt.noteChoices)) opt.noteChoices.forEach(c => texts.push(c.userNotesText));
+    if (Array.isArray(opt.zoomChoices)) opt.zoomChoices.forEach(c => texts.push(c.zoomText));
+
+    for (const t of texts) {
+      if (!t || typeof t !== "string") continue;
+      // Check unclosed brackets
+      const unclosed = t.match(/\[[A-Za-z0-9 _\-\/]+(?![^\]]*\])/g);
+      if (unclosed) {
+        tokensPassed = false;
+        tokensMsg = `Option "${code}" contains potentially unclosed token bracket: "${unclosed[0]}"`;
+        errors.push(tokensMsg);
+        break;
       }
-    };
-
-    checkPlaceholders(opt.userNotesText, "userNotesText");
-    checkPlaceholders(opt.zoomText, "zoomText");
-
-    if (Array.isArray(opt.noteChoices)) {
-      opt.noteChoices.forEach((nc, cIdx) => {
-        checkPlaceholders(nc.userNotesText, `noteChoices[${cIdx}]`);
-      });
+      // Check tokens
+      const matches = t.match(/\[.*?\]/g) || [];
+      for (const m of matches) {
+        if (!ALLOWED_TOKENS.has(m)) {
+          tokensPassed = false;
+          tokensMsg = `Option "${code}" contains unrecognized token "${m}". Allowed: ${Array.from(ALLOWED_TOKENS).join(", ")}`;
+          errors.push(tokensMsg);
+          break;
+        }
+      }
+      if (!tokensPassed) break;
     }
+    if (!tokensPassed) break;
+  }
+  checks.push({ id: "tokensValid", label: "Tokens valid", passed: tokensPassed, message: tokensMsg });
 
-    if (Array.isArray(opt.zoomChoices)) {
-      opt.zoomChoices.forEach((zc, zIdx) => {
-        checkPlaceholders(zc.zoomText, `zoomChoices[${zIdx}]`);
-      });
+  // Check 7: No duplicate reasons
+  let dupReasonsPassed = true;
+  let dupReasonsMsg = "No duplicate reasons found in any escalation option";
+  for (let i = 0; i < options.length; i++) {
+    const opt = options[i];
+    const code = opt.code || `Item #${i + 1}`;
+    if (!Array.isArray(opt.reasons)) continue;
+    const s = new Set();
+    for (const r of opt.reasons) {
+      const clean = String(r || "").trim().toLowerCase();
+      if (s.has(clean)) {
+        dupReasonsPassed = false;
+        dupReasonsMsg = `Option "${code}" contains duplicate reason: "${r}"`;
+        errors.push(dupReasonsMsg);
+        break;
+      }
+      s.add(clean);
     }
-  });
+    if (!dupReasonsPassed) break;
+  }
+  checks.push({ id: "noDuplicateReasons", label: "No duplicate reasons", passed: dupReasonsPassed, message: dupReasonsMsg });
+
+  // Check 8: Required fields present
+  let reqPassed = true;
+  let reqMsg = "All required fields (code, label, group, color, defaultReason, reasons) are present";
+  const reqFields = ["code", "label", "group", "color", "defaultReason", "reasons"];
+  for (let i = 0; i < options.length; i++) {
+    const opt = options[i];
+    const code = opt.code || `Item #${i + 1}`;
+    for (const f of reqFields) {
+      if (opt[f] === undefined || opt[f] === null || String(opt[f]).trim() === "") {
+        reqPassed = false;
+        reqMsg = `Option "${code}" is missing required field "${f}"`;
+        errors.push(reqMsg);
+        break;
+      }
+    }
+    if (!reqPassed) break;
+  }
+  checks.push({ id: "requiredFieldsPresent", label: "Required fields present", passed: reqPassed, message: reqMsg });
+
+  const allPassed = checks.every(c => c.passed);
 
   return {
-    valid: errors.length === 0,
+    valid: allPassed,
+    checks,
     errors,
     warnings
   };
@@ -166,6 +336,7 @@ export async function saveTemplateDraft(env, { adminKey = "", options = [], note
     updatedAt: new Date().toISOString(),
     updatedBy: adminKey ? (adminKey.slice(0, 4) + "***") : "admin",
     validated: validation.valid,
+    validationChecks: validation.checks,
     validationErrors: validation.errors,
     validationWarnings: validation.warnings,
     notes: String(notes || "").trim(),
@@ -273,6 +444,7 @@ export async function getTemplatePreview(env) {
       updatedBy: draft.updatedBy,
       count: draft.options.length,
       validated: validation.valid,
+      validationChecks: validation.checks,
       validationErrors: validation.errors,
       validationWarnings: validation.warnings
     },
@@ -298,11 +470,12 @@ export async function publishDraftToProduction(env, { adminKey = "" } = {}) {
     throw new AppError("Draft is empty. Cannot publish empty templates.", 400, "empty_draft");
   }
 
-  // Strict Validation Gate
+  // Strict 8-Point Validation Gate
   const validation = validateTemplateDraft(draft.options);
   if (!validation.valid) {
+    const failedCheckLabels = validation.checks.filter(c => !c.passed).map(c => c.label);
     throw new AppError(
-      `Cannot publish invalid draft: ${validation.errors.join("; ")}`,
+      `Cannot publish invalid draft. Failed checks: ${failedCheckLabels.join(", ")}. Details: ${validation.errors.join("; ")}`,
       400,
       "validation_failed"
     );
