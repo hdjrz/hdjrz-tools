@@ -392,11 +392,74 @@ if (shouldObfuscate) {
   }
 }
 
+// 1. Write the compiled and obfuscated code bundle for Cloudflare delivery
+const distBundlePath = path.join(rootDir, 'dist', 'bundle.js');
+console.log('Writing pure bundle to ' + distBundlePath + '...');
+fs.writeFileSync(distBundlePath, finalCode, 'utf8');
+console.log('✅ Dist bundle created: dist/bundle.js (' + Math.round(finalCode.length / 1024) + ' KB)');
+
+// 2. Write full userscript to hdjrzTools.user.js for native Tampermonkey auto-updates
 const fullBundle = userscriptHeader + '\n' + finalCode;
-
-console.log('Writing userscript to ' + outputPath + '...');
+console.log('Writing full userscript to ' + outputPath + '...');
 fs.writeFileSync(outputPath, fullBundle, 'utf8');
+console.log('✅ Full userscript created: hdjrzTools.user.js (' + Math.round(fullBundle.length / 1024) + ' KB)');
 
-console.log('✅ Build successful: hdjrzTools.user.js created (' + Math.round(fullBundle.length / 1024) + ' KB)');
+// 3. Also generate hdjrzTools.loader.user.js
+const loaderScript = userscriptHeader + `
+(function () {
+  'use strict';
+  var BUNDLE_URL = 'https://hdjrz-license.rosechel05.workers.dev/bundle.js?ts=' + Date.now();
+  var CACHE_KEY = 'HDJRZ_REMOTE_BUNDLE_CACHE';
+  var booted = false;
+
+  function runCode(src) {
+    if (booted || !src) return;
+    booted = true;
+    try {
+      (new Function(src))();
+    } catch (e) {
+      console.error('[hdjrzTools Loader] Error executing bundle:', e);
+    }
+  }
+
+  // 1. Instant cold-start from offline cache if available
+  var cached = null;
+  try {
+    cached = GM_getValue(CACHE_KEY) || (typeof localStorage !== 'undefined' ? localStorage.getItem(CACHE_KEY) : null);
+  } catch (e) {}
+
+  // 2. Fetch fresh bundle from Cloudflare Worker
+  if (typeof GM_xmlhttpRequest === 'function') {
+    GM_xmlhttpRequest({
+      method: 'GET',
+      url: BUNDLE_URL,
+      timeout: 10000,
+      onload: function (res) {
+        if (res.status === 200 && res.responseText && res.responseText.length > 500) {
+          try {
+            GM_setValue(CACHE_KEY, res.responseText);
+            if (typeof localStorage !== 'undefined') localStorage.setItem(CACHE_KEY, res.responseText);
+          } catch (e) {}
+          runCode(res.responseText);
+        } else if (cached) {
+          runCode(cached);
+        }
+      },
+      onerror: function () {
+        if (cached) runCode(cached);
+      },
+      ontimeout: function () {
+        if (cached) runCode(cached);
+      }
+    });
+  } else if (cached) {
+    runCode(cached);
+  }
+})();
+`;
+fs.writeFileSync(path.join(rootDir, 'hdjrzTools.loader.user.js'), loaderScript, 'utf8');
+console.log('✅ Optional loader created: hdjrzTools.loader.user.js (' + Math.round(loaderScript.length / 1024) + ' KB)');
+
+
 
 

@@ -81,7 +81,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.3.3";
+  const HARDCODED_VERSION = "1.3.4";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -101,9 +101,22 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.3.4",
+      title: "Remote Dynamic Loader & Live In-Use Notifications",
+      date: "Latest",
+      agentFeatures: [
+        "⚡ Zero-Touch Auto Updates: Changes go live instantly on tab reload without touching Tampermonkey.",
+        "🔔 Live In-Use Notification: Gentle floating pill informs agents when an update is available while working.",
+        "✨ Welcome Confirmation Toast: Celebratory banner confirms update success with What's New notes."
+      ],
+      adminFeatures: [
+        "🌐 Cloudflare /bundle.js Distribution: Continuous deployment serves compiled bundles automatically via GitHub Actions."
+      ]
+    },
+    {
       version: "1.3.3",
       title: "Direct Userscript Stability & Instant Tool Boot",
-      date: "Latest",
+      date: "Previous",
       agentFeatures: [
         "🛡️ Rock-Solid Execution: Direct native execution in Tampermonkey with zero storage conflicts.",
         "⚡ 1-Click Native Installer: Instantly triggers official Tampermonkey update screen with full permissions.",
@@ -790,13 +803,16 @@
 
   function performInToolUpdate(targetVersion, updateUrl, onStatusUpdate) {
     if (typeof onStatusUpdate === "function") {
-      onStatusUpdate(`🚀 Opening installer (v${safeEsc(targetVersion)})...`, true, false);
+      onStatusUpdate(`🚀 Opening Tampermonkey update tab...`, true, false);
     }
     const url = updateUrl || "https://hdjrz-license.rosechel05.workers.dev/script.user.js";
     try {
       if (typeof sessionStorage !== "undefined") {
+        sessionStorage.setItem("esc_update_initiated", "true");
+        sessionStorage.setItem("esc_just_updated", String(targetVersion));
         sessionStorage.setItem("esc_dismissed_update_ver", String(targetVersion));
       }
+      window.__escUpdateInitiated = true;
     } catch (e) {}
     setTimeout(() => {
       window.open(url, "_blank");
@@ -6546,6 +6562,16 @@
             setTimeout(() => {
               showToast(`🎉 Successfully updated to v${safeEsc(updatedVer)}!`);
             }, 600);
+          } else if (typeof localStorage !== "undefined") {
+            const lastSeen = localStorage.getItem("hdjrz_last_seen_ver");
+            if (lastSeen && isVersionBelow(lastSeen, SCRIPT_VERSION)) {
+              setTimeout(() => {
+                showToast(`✨ hdjrzTools updated to v${safeEsc(SCRIPT_VERSION)}!`);
+              }, 800);
+            }
+          }
+          if (typeof localStorage !== "undefined") {
+            localStorage.setItem("hdjrz_last_seen_ver", SCRIPT_VERSION);
           }
         } catch (e) {}
       }

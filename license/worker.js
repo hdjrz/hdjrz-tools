@@ -5,7 +5,7 @@
 
 const DEFAULT_SYSTEM_CONFIG = {
   minRequiredVersion: "1.1.4",
-  latestVersion: "1.3.3",
+  latestVersion: "1.3.4",
   killSwitch: false,
   killSwitchMessage: "hdjrzTools is temporarily disabled for emergency maintenance.",
   allowedDomains: ["nano-admin.bet88.ph"]
@@ -298,9 +298,15 @@ export default {
       }
 
       // =========================================================================
-      // 2. Zero-cache Userscript & Metadata Endpoint
+      // 2. Zero-cache Userscript, Bundle & Metadata Endpoints
       // =========================================================================
-      if ((request.method === "GET" || request.method === "HEAD") && (url.pathname === "/script.user.js" || url.pathname === "/script.meta.js" || url.pathname === "/hdjrzTools.user.js")) {
+      if ((request.method === "GET" || request.method === "HEAD") && (
+        url.pathname === "/bundle.js" ||
+        url.pathname === "/loader.user.js" ||
+        url.pathname === "/script.user.js" ||
+        url.pathname === "/script.meta.js" ||
+        url.pathname === "/hdjrzTools.user.js"
+      )) {
         if (request.method === "HEAD") {
           return new Response(null, {
             headers: {
@@ -317,7 +323,13 @@ export default {
           if (env.GITHUB_TOKEN) {
             headers["Authorization"] = `token ${env.GITHUB_TOKEN}`;
           }
-          const ghUrl = `https://raw.githubusercontent.com/hdjrz/hdjrz-tools/main/hdjrzTools.user.js?ts=${Date.now()}`;
+          let targetFile = "hdjrzTools.user.js";
+          if (url.pathname === "/bundle.js") {
+            targetFile = "dist/bundle.js";
+          } else if (url.pathname === "/loader.user.js") {
+            targetFile = "hdjrzTools.loader.user.js";
+          }
+          const ghUrl = `https://raw.githubusercontent.com/hdjrz/hdjrz-tools/main/${targetFile}?ts=${Date.now()}`;
           const resp = await fetch(ghUrl, { headers });
           if (resp.ok) {
             const scriptText = await resp.text();
@@ -383,9 +395,9 @@ export default {
               reason: "outdated_version",
               clientVersion: clientVer,
               minRequiredVersion: sysConfig.minRequiredVersion,
-              latestVersion: sysConfig.latestVersion || "1.3.3",
+              latestVersion: sysConfig.latestVersion || "1.3.4",
               updateUrl: "https://hdjrz-license.rosechel05.workers.dev/script.user.js",
-              message: `⚠️ Critical Update Required: Your version (v${clientVer}) is out of date. Update to v${sysConfig.latestVersion || "1.3.3"} to continue.`
+              message: `⚠️ Critical Update Required: Your version (v${clientVer}) is out of date. Update to v${sysConfig.latestVersion || "1.3.4"} to continue.`
             }), { headers: { ...cors, "Cache-Control": "no-cache, no-store" } });
           }
 
@@ -561,7 +573,7 @@ export default {
         return json({
           ok: false,
           error: "outdated_version",
-          message: `⚠️ Critical Update Required: Your script version (v${clientVer}) is obsolete. Please update to v${sysConfig.latestVersion || "1.3.3"}.`,
+          message: `⚠️ Critical Update Required: Your script version (v${clientVer}) is obsolete. Please update to v${sysConfig.latestVersion || "1.3.4"}.`,
           minRequiredVersion: sysConfig.minRequiredVersion,
           latestVersion: sysConfig.latestVersion
         }, cors);
