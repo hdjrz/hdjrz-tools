@@ -4,6 +4,72 @@
  * User Notes match BIT88 circles, with [CID] [Reason] [Name] [DOB] [GLife ID] so values fill.
  */
 
+const BUTTON_COLOR_PALETTES = {
+  modern_pro: {
+    id: "modern_pro",
+    name: "Modern Pro",
+    colors: {
+      "ACR": "#2563eb",
+      "ACR-PAGCOR": "#0284c7",
+      "ACR - PERMA": "#dc2626",
+      "REACT": "#059669",
+      "REACT NOT": "#0d9488",
+      "NGP NON-X": "#d97706",
+      "NDRP": "#7c3aed",
+      "UA W/FUNDS": "#6366f1",
+      "UA WO/FUNDS": "#8b5cf6",
+      "MANUAL KYC": "#e11d48",
+      "KYC SWITCH": "#0891b2",
+      "GLIFE.1": "#059669",
+      "GLIFE.2": "#0f766e",
+      "ABUSER": "#475569",
+      "DISCONNECT": "#3b82f6"
+    }
+  },
+  pastel: {
+    id: "pastel",
+    name: "Soft Pastel",
+    colors: {
+      "ACR": "#3b82f6",
+      "ACR-PAGCOR": "#38bdf8",
+      "ACR - PERMA": "#f43f5e",
+      "REACT": "#10b981",
+      "REACT NOT": "#14b8a6",
+      "NGP NON-X": "#f59e0b",
+      "NDRP": "#a855f7",
+      "UA W/FUNDS": "#818cf8",
+      "UA WO/FUNDS": "#c084fc",
+      "MANUAL KYC": "#fb7185",
+      "KYC SWITCH": "#22d3ee",
+      "GLIFE.1": "#34d399",
+      "GLIFE.2": "#2dd4bf",
+      "ABUSER": "#64748b",
+      "DISCONNECT": "#60a5fa"
+    }
+  },
+  jewel: {
+    id: "jewel",
+    name: "Jewel Rich",
+    colors: {
+      "ACR": "#1d4ed8",
+      "ACR-PAGCOR": "#0369a1",
+      "ACR - PERMA": "#b91c1c",
+      "REACT": "#047857",
+      "REACT NOT": "#0f766e",
+      "NGP NON-X": "#b45309",
+      "NDRP": "#6d28d9",
+      "UA W/FUNDS": "#4f46e5",
+      "UA WO/FUNDS": "#7c3aed",
+      "MANUAL KYC": "#be123c",
+      "KYC SWITCH": "#0e7490",
+      "GLIFE.1": "#0f766e",
+      "GLIFE.2": "#115e59",
+      "ABUSER": "#334155",
+      "DISCONNECT": "#2563eb"
+    }
+  }
+};
+
 const DEFAULT_ESCALATION_OPTIONS = [
   {
     code: "ACR",
@@ -11,7 +77,7 @@ const DEFAULT_ESCALATION_OPTIONS = [
     meaning: "Account Closure Request",
     description: "Player requested to close/disable their account voluntarily.",
     group: "Account Closure",
-    color: "#2b5278",
+    color: "#2563eb",
     chip: { text: "", color: "#dc2626" },
     defaultReason: "Losing player",
     reasons: ["Losing player","Gambling Addiction","Stop playing","Mental health problem","Personal","Not provide reason","Duplicate account"],
@@ -50,7 +116,7 @@ Pasuyo po TLs`
     meaning: "Account Closure Request (PAGCOR)",
     description: "Regulatory or formal self-exclusion mandated by PAGCOR.",
     group: "Account Closure",
-    color: "#1e3a5f",
+    color: "#0284c7",
     chip: { text: "", color: "#dc2626" },
     defaultReason: "Self-Exclusion with PAGCOR",
     reasons: ["Self-Exclusion with PAGCOR"],
@@ -91,7 +157,7 @@ Pasuyo po TLs`
     meaning: "Permanent Account Closure",
     description: "Account permanently banned or closed with zero chance of reopening.",
     group: "Account Closure",
-    color: "#5c2429",
+    color: "#dc2626",
     chip: { text: "", color: "#dc2626" },
     defaultReason: "Gambling Addiction",
     reasons: ["Gambling Addiction","Losing Player","Stop playing","Mental health problem","Not provide reason"],
@@ -130,7 +196,7 @@ Pasuyo po TLs`
     meaning: "Account Reactivation Request",
     description: "Player reached out requesting to reopen a previously closed account.",
     group: "Reactivation",
-    color: "#1b5e43",
+    color: "#059669",
     chip: { text: "", color: "#dc2626" },
     defaultReason: "Wants to play again",
     reasons: ["Wants to play again"],
@@ -175,7 +241,7 @@ Pasuyo po TLs`
     meaning: "Reactivation Not Allowed",
     description: "Reactivation declined due to permanent closure, policy, or unresolved flags.",
     group: "Reactivation",
-    color: "#234d47",
+    color: "#0d9488",
     chip: { text: "R.NOT", color: "#065f46" },
     defaultReason: "Not started",
     reasons: ["Not started","UA to legal"],
@@ -229,7 +295,7 @@ Pasuyo po TLs`
     meaning: "NGP Non-Exclusive Player",
     description: "Escalation for players tagged under Non-Exclusive Next Gen Player program.",
     group: "Special Programs",
-    color: "#6b4317",
+    color: "#d97706",
     chip: { text: "R.UA", color: "#b45309" },
     defaultReason: "Underage NGP NON-XENDIT",
     reasons: ["Underage NGP NON-XENDIT"],
@@ -270,7 +336,7 @@ Pasuyo po TLs`
     meaning: "Non-Deposit Reward Program",
     description: "Issues concerning free credits, vouchers, or no-deposit rewards.",
     group: "Financial & Rewards",
-    color: "#443566",
+    color: "#7c3aed",
     chip: { text: "", color: "#dc2626" },
     defaultReason: "NDRP - NGP For Refund",
     reasons: ["NDRP - NGP For Refund","Custom watchlist"],
@@ -325,7 +391,7 @@ Pasuyo po TLs`
     meaning: "Unauthorized Access with Funds",
     description: "Compromised or hacked account that currently holds a cash balance.",
     group: "Security & Fraud",
-    color: "#522b6d",
+    color: "#6366f1",
     chip: { text: "For escalation", color: "#b91c1c" },
     defaultReason: "Underage with funds",
     reasons: ["Underage with funds"],
@@ -366,7 +432,7 @@ Pasuyo po TLs`
     meaning: "Underage without funds",
     description: "Underage player with no remaining balance.",
     group: "Security & Fraud",
-    color: "#3f2757",
+    color: "#8b5cf6",
     chip: { text: "", color: "#dc2626" },
     defaultReason: "Underage without funds",
     reasons: ["Underage without funds"],
@@ -405,7 +471,7 @@ Pasuyo po TLs`
     meaning: "Manual KYC Document Review",
     description: "Automated verification failed; manual review of submitted IDs needed.",
     group: "KYC & Verification",
-    color: "#692949",
+    color: "#e11d48",
     chip: { text: "", color: "#dc2626" },
     defaultReason: "Review Needed",
     reasons: ["Review Needed","Rejected","Not Started","Pending"],
@@ -444,7 +510,7 @@ Pasuyo po TLs`
     meaning: "KYC Verification Switch",
     description: "Switching player's verification method (e.g. from SMS OTP to Manual or email).",
     group: "KYC & Verification",
-    color: "#265261",
+    color: "#0891b2",
     chip: { text: "", color: "#0d9488" },
     defaultReason: "Escalation requested",
     reasons: ["Escalation requested"],
@@ -498,7 +564,7 @@ Pasuyo po TLs`
     meaning: "GLife Escalation Tier 1",
     description: "First-level escalation for GCash GLife mini-app transactions or sync issues.",
     group: "GLife Partner",
-    color: "#1f534d",
+    color: "#059669",
     chip: { text: "", color: "#dc2626" },
     defaultReason: "GLife mini-app sync issue / Tier 1 inquiry",
     reasons: ["GLife mini-app sync issue / Tier 1 inquiry"],
@@ -537,7 +603,7 @@ Pasuyo po TLs`
     meaning: "GLife Escalation Tier 2",
     description: "High-priority / urgent escalation for GLife payment failures or account locks.",
     group: "GLife Partner",
-    color: "#133d39",
+    color: "#0f766e",
     chip: { text: "", color: "#dc2626" },
     defaultReason: "gLifeUserId:",
     reasons: ["gLifeUserId:"],
@@ -574,7 +640,7 @@ Pasuyo po TLs`
     meaning: "Bonus / Promo Abuse Flag",
     description: "System or manual flag for exploiting promotions, multi-accounting, or fraud.",
     group: "Risk & Compliance",
-    color: "#2d3748",
+    color: "#475569",
     chip: { text: "", color: "#dc2626" },
     defaultReason: "Permanently Blocked – BONUS ABUSER with Funds",
     reasons: ["Permanently Blocked – BONUS ABUSER with Funds"],
@@ -790,6 +856,7 @@ function renderFinalEscalationNote(data, customTemplate) {
 
 if (typeof window !== "undefined") {
   window.DEFAULT_ESCALATION_OPTIONS = DEFAULT_ESCALATION_OPTIONS;
+  window.BUTTON_COLOR_PALETTES = BUTTON_COLOR_PALETTES;
   window.DEFAULT_FINAL_NOTE_TEMPLATE = DEFAULT_FINAL_NOTE_TEMPLATE;
   window.EscalationDictionary = ESCALATION_DICTIONARY;
   window.EscalationKeysOrder = ESCALATION_KEYS_ORDER;
@@ -801,6 +868,7 @@ if (typeof window !== "undefined") {
 
 if (typeof globalThis !== "undefined") {
   globalThis.DEFAULT_ESCALATION_OPTIONS = DEFAULT_ESCALATION_OPTIONS;
+  globalThis.BUTTON_COLOR_PALETTES = BUTTON_COLOR_PALETTES;
   globalThis.DEFAULT_FINAL_NOTE_TEMPLATE = DEFAULT_FINAL_NOTE_TEMPLATE;
   globalThis.EscalationDictionary = ESCALATION_DICTIONARY;
   globalThis.EscalationKeysOrder = ESCALATION_KEYS_ORDER;
@@ -813,6 +881,7 @@ if (typeof globalThis !== "undefined") {
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     DEFAULT_ESCALATION_OPTIONS,
+    BUTTON_COLOR_PALETTES,
     DEFAULT_FINAL_NOTE_TEMPLATE,
     ESCALATION_DICTIONARY,
     ESCALATION_KEYS_ORDER,

@@ -17,22 +17,88 @@
     localStorage.removeItem("hdjrz_dynamic_version");
   } catch (e) {}
 
+  const FALLBACK_BUTTON_COLOR_PALETTES = {
+    modern_pro: {
+      id: "modern_pro",
+      name: "Modern Pro",
+      colors: {
+        "ACR": "#2563eb",
+        "ACR-PAGCOR": "#0284c7",
+        "ACR - PERMA": "#dc2626",
+        "REACT": "#059669",
+        "REACT NOT": "#0d9488",
+        "NGP NON-X": "#d97706",
+        "NDRP": "#7c3aed",
+        "UA W/FUNDS": "#6366f1",
+        "UA WO/FUNDS": "#8b5cf6",
+        "MANUAL KYC": "#e11d48",
+        "KYC SWITCH": "#0891b2",
+        "GLIFE.1": "#059669",
+        "GLIFE.2": "#0f766e",
+        "ABUSER": "#475569",
+        "DISCONNECT": "#3b82f6"
+      }
+    },
+    pastel: {
+      id: "pastel",
+      name: "Soft Pastel",
+      colors: {
+        "ACR": "#3b82f6",
+        "ACR-PAGCOR": "#38bdf8",
+        "ACR - PERMA": "#f43f5e",
+        "REACT": "#10b981",
+        "REACT NOT": "#14b8a6",
+        "NGP NON-X": "#f59e0b",
+        "NDRP": "#a855f7",
+        "UA W/FUNDS": "#818cf8",
+        "UA WO/FUNDS": "#c084fc",
+        "MANUAL KYC": "#fb7185",
+        "KYC SWITCH": "#22d3ee",
+        "GLIFE.1": "#34d399",
+        "GLIFE.2": "#2dd4bf",
+        "ABUSER": "#64748b",
+        "DISCONNECT": "#60a5fa"
+      }
+    },
+    jewel: {
+      id: "jewel",
+      name: "Jewel Rich",
+      colors: {
+        "ACR": "#1d4ed8",
+        "ACR-PAGCOR": "#0369a1",
+        "ACR - PERMA": "#b91c1c",
+        "REACT": "#047857",
+        "REACT NOT": "#0f766e",
+        "NGP NON-X": "#b45309",
+        "NDRP": "#6d28d9",
+        "UA W/FUNDS": "#4f46e5",
+        "UA WO/FUNDS": "#7c3aed",
+        "MANUAL KYC": "#be123c",
+        "KYC SWITCH": "#0e7490",
+        "GLIFE.1": "#0f766e",
+        "GLIFE.2": "#115e59",
+        "ABUSER": "#334155",
+        "DISCONNECT": "#2563eb"
+      }
+    }
+  };
+
   const FALLBACK_ESCALATION_OPTIONS = [
-    { code: "ACR", label: "ACR", meaning: "Account Closure Request", description: "Player requested to close/disable their account voluntarily.", group: "Account Closure", color: "#2b5278", chip: { text: "", color: "#dc2626" }, defaultReason: "Losing player", template: "{code} / {cid} / {reason}" },
-    { code: "ACR-PAGCOR", label: "ACR-PAGCOR", meaning: "Account Closure Request (PAGCOR)", description: "Regulatory or formal self-exclusion mandated by PAGCOR.", group: "Account Closure", color: "#1e3a5f", chip: { text: "", color: "#dc2626" }, defaultReason: "PAGCOR exclusion list / regulatory compliance", template: "{code} / {cid} / {reason}" },
-    { code: "ACR - PERMA", label: "ACR - PERMA", meaning: "Permanent Account Closure", description: "Account permanently banned or closed with zero chance of reopening.", group: "Account Closure", color: "#5c2429", chip: { text: "", color: "#dc2626" }, defaultReason: "Permanent closure requested / Non-negotiable ban", template: "{code} / {cid} / {reason}" },
-    { code: "REACT", label: "REACT", meaning: "Account Reactivation Request", description: "Player reached out requesting to reopen a previously closed account.", group: "Reactivation", color: "#1b5e43", chip: { text: "", color: "#dc2626" }, defaultReason: "Player requested account reactivation", template: "{code} / {cid} / {reason}" },
-    { code: "REACT NOT", label: "REACT NOT", meaning: "Reactivation Not Allowed", description: "Reactivation declined due to permanent closure, policy, or unresolved flags.", group: "Reactivation", color: "#234d47", chip: { text: "R.NOT", color: "#065f46" }, defaultReason: "Not eligible for reactivation / Permanent exclusion", template: "{code} / {cid} / {reason}" },
-    { code: "NGP NON-X", label: "NGP NON-X", meaning: "NGP Non-Exclusive Player", description: "Escalation for players tagged under Non-Exclusive Next Gen Player program.", group: "Special Programs", color: "#6b4317", chip: { text: "R.UA", color: "#b45309" }, defaultReason: "NGP Non-Exclusive review", template: "{code} / {cid} / {reason}" },
-    { code: "NDRP", label: "NDRP", meaning: "Non-Deposit Reward Program", description: "Issues concerning free credits, vouchers, or no-deposit rewards.", group: "Financial & Rewards", color: "#443566", chip: { text: "", color: "#dc2626" }, defaultReason: "Non-Deposit Reward credited / claim inquiry", template: "{code} / {cid} / {reason}" },
-    { code: "UA W/FUNDS", label: "UA W/FUNDS", meaning: "Unauthorized Access with Funds", description: "Compromised or hacked account that currently holds a cash balance.", group: "Security & Fraud", color: "#522b6d", chip: { text: "For escalation", color: "#b91c1c" }, defaultReason: "Suspected account takeover with remaining balance", template: "{code} / {cid} / {reason}" },
-    { code: "UA WO/FUNDS", label: "UA WO/FUNDS", meaning: "Underage without funds", description: "Underage player with no remaining balance.", group: "Security & Fraud", color: "#3f2757", chip: { text: "", color: "#dc2626" }, defaultReason: "Underage without funds", template: "{code} / {cid} / {reason}" },
-    { code: "MANUAL KYC", label: "MANUAL KYC", meaning: "Manual KYC Document Review", description: "Automated verification failed; manual review of submitted IDs needed.", group: "KYC & Verification", color: "#692949", chip: { text: "", color: "#dc2626" }, defaultReason: "Review Needed", template: "{code} / {cid} / {reason}" },
-    { code: "KYC SWITCH", label: "KYC SWITCH", meaning: "KYC Verification Switch", description: "Switching player's verification method (e.g. from SMS OTP to Manual or email).", group: "KYC & Verification", color: "#265261", chip: { text: "", color: "#0d9488" }, defaultReason: "Switch verification channel requested", template: "{code} / {cid} / {reason}" },
-    { code: "GLIFE.1", label: "GLIFE.1", meaning: "GLife Escalation Tier 1", description: "First-level escalation for GCash GLife mini-app transactions or sync issues.", group: "GLife Partner", color: "#1f534d", chip: { text: "", color: "#dc2626" }, defaultReason: "GLife mini-app sync issue / Tier 1 inquiry", template: "{code} / {cid} / {reason}" },
-    { code: "GLIFE.2", label: "GLIFE.2", meaning: "GLife Escalation Tier 2", description: "High-priority / urgent escalation for GLife payment failures or account locks.", group: "GLife Partner", color: "#133d39", chip: { text: "", color: "#dc2626" }, defaultReason: "GLife Tier 2 high-priority escalation", template: "{code} / {cid} / {reason}" },
-    { code: "ABUSER", label: "ABUSER", meaning: "Bonus / Promo Abuse Flag", description: "System or manual flag for exploiting promotions, multi-accounting, or fraud.", group: "Risk & Compliance", color: "#2d3748", chip: { text: "", color: "#dc2626" }, defaultReason: "Bonus / Promotional abuse flagged", template: "{code} / {cid} / {reason}" },
-    { code: "DISCONNECT", label: "DISCONNECT", meaning: "Disconnect / Session Kill Request", description: "Request to terminate active game or provider session due to freeze or sync error.", group: "Technical & Game", color: "#334155", chip: { text: "", color: "#dc2626" }, defaultReason: "Session freeze / Disconnect requested", template: "{code} / {cid} / {reason}" }
+    { code: "ACR", label: "ACR", meaning: "Account Closure Request", description: "Player requested to close/disable their account voluntarily.", group: "Account Closure", color: "#2563eb", chip: { text: "", color: "#dc2626" }, defaultReason: "Losing player", template: "{code} / {cid} / {reason}" },
+    { code: "ACR-PAGCOR", label: "ACR-PAGCOR", meaning: "Account Closure Request (PAGCOR)", description: "Regulatory or formal self-exclusion mandated by PAGCOR.", group: "Account Closure", color: "#0284c7", chip: { text: "", color: "#dc2626" }, defaultReason: "PAGCOR exclusion list / regulatory compliance", template: "{code} / {cid} / {reason}" },
+    { code: "ACR - PERMA", label: "ACR - PERMA", meaning: "Permanent Account Closure", description: "Account permanently banned or closed with zero chance of reopening.", group: "Account Closure", color: "#dc2626", chip: { text: "", color: "#dc2626" }, defaultReason: "Permanent closure requested / Non-negotiable ban", template: "{code} / {cid} / {reason}" },
+    { code: "REACT", label: "REACT", meaning: "Account Reactivation Request", description: "Player reached out requesting to reopen a previously closed account.", group: "Reactivation", color: "#059669", chip: { text: "", color: "#dc2626" }, defaultReason: "Player requested account reactivation", template: "{code} / {cid} / {reason}" },
+    { code: "REACT NOT", label: "REACT NOT", meaning: "Reactivation Not Allowed", description: "Reactivation declined due to permanent closure, policy, or unresolved flags.", group: "Reactivation", color: "#0d9488", chip: { text: "R.NOT", color: "#065f46" }, defaultReason: "Not eligible for reactivation / Permanent exclusion", template: "{code} / {cid} / {reason}" },
+    { code: "NGP NON-X", label: "NGP NON-X", meaning: "NGP Non-Exclusive Player", description: "Escalation for players tagged under Non-Exclusive Next Gen Player program.", group: "Special Programs", color: "#d97706", chip: { text: "R.UA", color: "#b45309" }, defaultReason: "NGP Non-Exclusive review", template: "{code} / {cid} / {reason}" },
+    { code: "NDRP", label: "NDRP", meaning: "Non-Deposit Reward Program", description: "Issues concerning free credits, vouchers, or no-deposit rewards.", group: "Financial & Rewards", color: "#7c3aed", chip: { text: "", color: "#dc2626" }, defaultReason: "Non-Deposit Reward credited / claim inquiry", template: "{code} / {cid} / {reason}" },
+    { code: "UA W/FUNDS", label: "UA W/FUNDS", meaning: "Unauthorized Access with Funds", description: "Compromised or hacked account that currently holds a cash balance.", group: "Security & Fraud", color: "#6366f1", chip: { text: "For escalation", color: "#b91c1c" }, defaultReason: "Suspected account takeover with remaining balance", template: "{code} / {cid} / {reason}" },
+    { code: "UA WO/FUNDS", label: "UA WO/FUNDS", meaning: "Underage without funds", description: "Underage player with no remaining balance.", group: "Security & Fraud", color: "#8b5cf6", chip: { text: "", color: "#dc2626" }, defaultReason: "Underage without funds", template: "{code} / {cid} / {reason}" },
+    { code: "MANUAL KYC", label: "MANUAL KYC", meaning: "Manual KYC Document Review", description: "Automated verification failed; manual review of submitted IDs needed.", group: "KYC & Verification", color: "#e11d48", chip: { text: "", color: "#dc2626" }, defaultReason: "Review Needed", template: "{code} / {cid} / {reason}" },
+    { code: "KYC SWITCH", label: "KYC SWITCH", meaning: "KYC Verification Switch", description: "Switching player's verification method (e.g. from SMS OTP to Manual or email).", group: "KYC & Verification", color: "#0891b2", chip: { text: "", color: "#0d9488" }, defaultReason: "Switch verification channel requested", template: "{code} / {cid} / {reason}" },
+    { code: "GLIFE.1", label: "GLIFE.1", meaning: "GLife Escalation Tier 1", description: "First-level escalation for GCash GLife mini-app transactions or sync issues.", group: "GLife Partner", color: "#059669", chip: { text: "", color: "#dc2626" }, defaultReason: "GLife mini-app sync issue / Tier 1 inquiry", template: "{code} / {cid} / {reason}" },
+    { code: "GLIFE.2", label: "GLIFE.2", meaning: "GLife Escalation Tier 2", description: "High-priority / urgent escalation for GLife payment failures or account locks.", group: "GLife Partner", color: "#0f766e", chip: { text: "", color: "#dc2626" }, defaultReason: "GLife Tier 2 high-priority escalation", template: "{code} / {cid} / {reason}" },
+    { code: "ABUSER", label: "ABUSER", meaning: "Bonus / Promo Abuse Flag", description: "System or manual flag for exploiting promotions, multi-accounting, or fraud.", group: "Risk & Compliance", color: "#475569", chip: { text: "", color: "#dc2626" }, defaultReason: "Bonus / Promotional abuse flagged", template: "{code} / {cid} / {reason}" },
+    { code: "DISCONNECT", label: "DISCONNECT", meaning: "Disconnect / Session Kill Request", description: "Request to terminate active game or provider session due to freeze or sync error.", group: "Technical & Game", color: "#3b82f6", chip: { text: "", color: "#dc2626" }, defaultReason: "Session freeze / Disconnect requested", template: "{code} / {cid} / {reason}" }
   ];
 
   let currentSettings = {
@@ -82,7 +148,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.3.9";
+  const HARDCODED_VERSION = "1.4.0";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -102,9 +168,23 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.4.0",
+      title: "Aesthetic Button Color Palettes & 1-Click Switcher",
+      date: "Latest",
+      agentFeatures: [
+        "🎨 Eye-Friendly Button Color Palette: Upgraded escalation button colors from dull murky tones to vibrant, high-clarity designer hues (Cobalt Blue, Sky Azure, Ruby Crimson, Emerald, Amber, Royal Amethyst, Rose Coral).",
+        "🎛️ 1-Click Palette Switcher: Switch between Modern Pro, Soft Pastel, and Jewel Rich palettes in Settings > Escalation Buttons with instant dock updates.",
+        "✨ Maximum Contrast & Legibility: Crisp white text stands out cleanly on every button with subtle satin top-gloss sheen.",
+        "🔄 Seamless Auto-Migration: Existing saved options upgrade automatically on launch without losing your custom templates or reasons."
+      ],
+      adminFeatures: [
+        "👑 Effortless Team Styling: Admins and agents can toggle aesthetic button palettes instantly with full Cloud Sync support."
+      ]
+    },
+    {
       version: "1.3.9",
       title: "Minimalist Design & Refined Option Palette",
-      date: "Latest",
+      date: "Previous",
       agentFeatures: [
         "🪟 Minimalist Bar & Satin Buttons: Clean, non-distracting dark aesthetics with crisp hairline borders and satin finish.",
         "🎨 Refined Button Colors: Replaced loud neon rainbow blocks with a harmonious, eye-friendly palette (Slate Steel, Forest Sage, Amber Bronze, Royal Heather).",
@@ -1990,7 +2070,7 @@
     return list.map(normalizeEscalationOption);
   }
 
-  const BIT88_NOTES_WORDING_VERSION = 26;
+  const BIT88_NOTES_WORDING_VERSION = 27;
   let loadedWordingVersion = 0;
 
   function getPresetOptionsList() {
@@ -2017,31 +2097,17 @@
     });
     const saved = Array.isArray(currentSettings.customOptions) ? currentSettings.customOptions : [];
     if (saved.length) {
-      const oldColorMap = {
-        "#2563eb": "#2b5278",
-        "#1d4ed8": "#1e3a5f",
-        "#7f1d1d": "#5c2429",
-        "#059669": "#1b5e43",
-        "#0f766e": "#234d47",
-        "#d97706": "#6b4317",
-        "#6d28d9": "#443566",
-        "#7c3aed": "#522b6d",
-        "#db2777": "#692949",
-        "#0891b2": "#265261",
-        "#0d9488": "#1f534d",
-        "#115e59": "#133d39",
-        "#334155": "#2d3748",
-        "#475569": "#334155"
-      };
+      const oldMutedOrLegacyColors = new Set([
+        "#2b5278", "#1e3a5f", "#5c2429", "#1b5e43", "#234d47", "#6b4317",
+        "#443566", "#522b6d", "#3f2757", "#692949", "#265261", "#1f534d",
+        "#133d39", "#2d3748", "#334155", "#7f1d1d", "#db2777"
+      ]);
       currentSettings.customOptions = saved.map(opt => {
         const preset = byCode[opt && opt.code];
         if (!preset) return opt;
         const copy = { ...opt };
-        if (oldColorMap[copy.color] || !copy.color) {
-          copy.color = preset.color || oldColorMap[copy.color] || copy.color;
-        }
-        if (copy.code === "UA WO/FUNDS" && (copy.color === "#6d28d9" || copy.color === "#443566")) {
-          copy.color = "#3f2757";
+        if (!copy.color || oldMutedOrLegacyColors.has(copy.color)) {
+          copy.color = preset.color || copy.color;
         }
         if (preset.noteChoices && preset.noteChoices.length) {
           copy.noteChoices = JSON.parse(JSON.stringify(preset.noteChoices));
@@ -5505,6 +5571,29 @@
                   `}
                 </div>
               </div>
+
+              <!-- Button Color Palette Bar -->
+              <div class="esc-btn-palette-bar">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">🎨 Button Palette:</span>
+                  <span style="font-size: 11px; color: #64748b;">(1-Click Style Switcher)</span>
+                </div>
+                <div class="esc-btn-palette-selector" id="esc-btn-palette-selector">
+                  <button type="button" class="esc-palette-pill" data-palette="modern_pro" title="Modern Pro: High-clarity, aesthetic designer palette">
+                    <span class="esc-palette-dot" style="background: linear-gradient(135deg, #2563eb, #059669, #dc2626);"></span>
+                    <span>Modern Pro</span>
+                  </button>
+                  <button type="button" class="esc-palette-pill" data-palette="pastel" title="Soft Pastel: Calm candy-tone aesthetic">
+                    <span class="esc-palette-dot" style="background: linear-gradient(135deg, #38bdf8, #34d399, #fb7185);"></span>
+                    <span>Soft Pastel</span>
+                  </button>
+                  <button type="button" class="esc-palette-pill" data-palette="jewel" title="Jewel Rich: Deep luxury gemstone tones">
+                    <span class="esc-palette-dot" style="background: linear-gradient(135deg, #1d4ed8, #047857, #b91c1c);"></span>
+                    <span>Jewel Rich</span>
+                  </button>
+                </div>
+              </div>
+
               <div class="esc-options-cards-list" id="esc-options-cards-list"></div>
             </div>
 
@@ -6245,9 +6334,61 @@
           || FALLBACK_ESCALATION_OPTIONS;
         workingOptions = JSON.parse(JSON.stringify(presets)).map(normalizeEscalationOption);
         renderOptionsList();
+        if (typeof updateHorizontalDockButtons === "function") updateHorizontalDockButtons();
         showToast("Presets restored. Click Save Changes.");
       }
     });
+
+    const paletteSelector = overlay.querySelector("#esc-btn-palette-selector");
+    if (paletteSelector) {
+      const getPalettes = () => (typeof window !== "undefined" && window.BUTTON_COLOR_PALETTES)
+        || (typeof globalThis !== "undefined" && globalThis.BUTTON_COLOR_PALETTES)
+        || FALLBACK_BUTTON_COLOR_PALETTES;
+
+      const highlightActivePalette = () => {
+        const palettes = getPalettes();
+        const acrOpt = workingOptions.find(o => o && o.code === "ACR");
+        const acrColor = (acrOpt && acrOpt.color ? acrOpt.color : "").toLowerCase();
+        let matchedKey = "";
+        Object.keys(palettes).forEach(key => {
+          const pal = palettes[key];
+          if (pal && pal.colors && pal.colors["ACR"] && pal.colors["ACR"].toLowerCase() === acrColor) {
+            matchedKey = key;
+          }
+        });
+        paletteSelector.querySelectorAll(".esc-palette-pill").forEach(pill => {
+          const isMatch = pill.getAttribute("data-palette") === matchedKey;
+          pill.classList.toggle("active", isMatch);
+        });
+      };
+
+      highlightActivePalette();
+
+      paletteSelector.querySelectorAll(".esc-palette-pill").forEach(pill => {
+        pill.addEventListener("click", () => {
+          const palKey = pill.getAttribute("data-palette");
+          const palettes = getPalettes();
+          const targetPalette = palettes && palettes[palKey];
+          if (!targetPalette || !targetPalette.colors) return;
+
+          paletteSelector.querySelectorAll(".esc-palette-pill").forEach(p => p.classList.remove("active"));
+          pill.classList.add("active");
+
+          workingOptions.forEach(opt => {
+            if (opt && opt.code && targetPalette.colors[opt.code]) {
+              opt.color = targetPalette.colors[opt.code];
+            }
+          });
+
+          currentSettings.customOptions = JSON.parse(JSON.stringify(workingOptions));
+          renderOptionsList();
+          if (typeof updateHorizontalDockButtons === "function") updateHorizontalDockButtons();
+          saveSettings({}, null, currentSettings.customOptions, () => {
+            showToast(`🎨 Applied ${targetPalette.name} palette to buttons!`, true);
+          });
+        });
+      });
+    }
 
     const auditBtn = overlay.querySelector("#esc-btn-audit");
     if (auditBtn) {
