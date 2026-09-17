@@ -18,21 +18,21 @@
   } catch (e) {}
 
   const FALLBACK_ESCALATION_OPTIONS = [
-    { code: "ACR", label: "ACR", meaning: "Account Closure Request", description: "Player requested to close/disable their account voluntarily.", group: "Account Closure", color: "#2563eb", chip: { text: "", color: "#dc2626" }, defaultReason: "Losing player", template: "{code} / {cid} / {reason}" },
-    { code: "ACR-PAGCOR", label: "ACR-PAGCOR", meaning: "Account Closure Request (PAGCOR)", description: "Regulatory or formal self-exclusion mandated by PAGCOR.", group: "Account Closure", color: "#1d4ed8", chip: { text: "", color: "#dc2626" }, defaultReason: "PAGCOR exclusion list / regulatory compliance", template: "{code} / {cid} / {reason}" },
-    { code: "ACR - PERMA", label: "ACR - PERMA", meaning: "Permanent Account Closure", description: "Account permanently banned or closed with zero chance of reopening.", group: "Account Closure", color: "#7f1d1d", chip: { text: "", color: "#dc2626" }, defaultReason: "Permanent closure requested / Non-negotiable ban", template: "{code} / {cid} / {reason}" },
-    { code: "REACT", label: "REACT", meaning: "Account Reactivation Request", description: "Player reached out requesting to reopen a previously closed account.", group: "Reactivation", color: "#059669", chip: { text: "", color: "#dc2626" }, defaultReason: "Player requested account reactivation", template: "{code} / {cid} / {reason}" },
-    { code: "REACT NOT", label: "REACT NOT", meaning: "Reactivation Not Allowed", description: "Reactivation declined due to permanent closure, policy, or unresolved flags.", group: "Reactivation", color: "#0f766e", chip: { text: "R.NOT", color: "#065f46" }, defaultReason: "Not eligible for reactivation / Permanent exclusion", template: "{code} / {cid} / {reason}" },
-    { code: "NGP NON-X", label: "NGP NON-X", meaning: "NGP Non-Exclusive Player", description: "Escalation for players tagged under Non-Exclusive Next Gen Player program.", group: "Special Programs", color: "#d97706", chip: { text: "R.UA", color: "#b45309" }, defaultReason: "NGP Non-Exclusive review", template: "{code} / {cid} / {reason}" },
-    { code: "NDRP", label: "NDRP", meaning: "Non-Deposit Reward Program", description: "Issues concerning free credits, vouchers, or no-deposit rewards.", group: "Financial & Rewards", color: "#6d28d9", chip: { text: "", color: "#dc2626" }, defaultReason: "Non-Deposit Reward credited / claim inquiry", template: "{code} / {cid} / {reason}" },
-    { code: "UA W/FUNDS", label: "UA W/FUNDS", meaning: "Unauthorized Access with Funds", description: "Compromised or hacked account that currently holds a cash balance.", group: "Security & Fraud", color: "#7c3aed", chip: { text: "For escalation", color: "#b91c1c" }, defaultReason: "Suspected account takeover with remaining balance", template: "{code} / {cid} / {reason}" },
-    { code: "UA WO/FUNDS", label: "UA WO/FUNDS", meaning: "Underage without funds", description: "Underage player with no remaining balance.", group: "Security & Fraud", color: "#6d28d9", chip: { text: "", color: "#dc2626" }, defaultReason: "Underage without funds", template: "{code} / {cid} / {reason}" },
-    { code: "MANUAL KYC", label: "MANUAL KYC", meaning: "Manual KYC Document Review", description: "Automated verification failed; manual review of submitted IDs needed.", group: "KYC & Verification", color: "#db2777", chip: { text: "", color: "#dc2626" }, defaultReason: "Review Needed", template: "{code} / {cid} / {reason}" },
-    { code: "KYC SWITCH", label: "KYC SWITCH", meaning: "KYC Verification Switch", description: "Switching player's verification method (e.g. from SMS OTP to Manual or email).", group: "KYC & Verification", color: "#0891b2", chip: { text: "", color: "#0d9488" }, defaultReason: "Switch verification channel requested", template: "{code} / {cid} / {reason}" },
-    { code: "GLIFE.1", label: "GLIFE.1", meaning: "GLife Escalation Tier 1", description: "First-level escalation for GCash GLife mini-app transactions or sync issues.", group: "GLife Partner", color: "#0d9488", chip: { text: "", color: "#dc2626" }, defaultReason: "GLife mini-app sync issue / Tier 1 inquiry", template: "{code} / {cid} / {reason}" },
-    { code: "GLIFE.2", label: "GLIFE.2", meaning: "GLife Escalation Tier 2", description: "High-priority / urgent escalation for GLife payment failures or account locks.", group: "GLife Partner", color: "#115e59", chip: { text: "", color: "#dc2626" }, defaultReason: "GLife Tier 2 high-priority escalation", template: "{code} / {cid} / {reason}" },
-    { code: "ABUSER", label: "ABUSER", meaning: "Bonus / Promo Abuse Flag", description: "System or manual flag for exploiting promotions, multi-accounting, or fraud.", group: "Risk & Compliance", color: "#334155", chip: { text: "", color: "#dc2626" }, defaultReason: "Bonus / Promotional abuse flagged", template: "{code} / {cid} / {reason}" },
-    { code: "DISCONNECT", label: "DISCONNECT", meaning: "Disconnect / Session Kill Request", description: "Request to terminate active game or provider session due to freeze or sync error.", group: "Technical & Game", color: "#475569", chip: { text: "", color: "#dc2626" }, defaultReason: "Session freeze / Disconnect requested", template: "{code} / {cid} / {reason}" }
+    { code: "ACR", label: "ACR", meaning: "Account Closure Request", description: "Player requested to close/disable their account voluntarily.", group: "Account Closure", color: "#2b5278", chip: { text: "", color: "#dc2626" }, defaultReason: "Losing player", template: "{code} / {cid} / {reason}" },
+    { code: "ACR-PAGCOR", label: "ACR-PAGCOR", meaning: "Account Closure Request (PAGCOR)", description: "Regulatory or formal self-exclusion mandated by PAGCOR.", group: "Account Closure", color: "#1e3a5f", chip: { text: "", color: "#dc2626" }, defaultReason: "PAGCOR exclusion list / regulatory compliance", template: "{code} / {cid} / {reason}" },
+    { code: "ACR - PERMA", label: "ACR - PERMA", meaning: "Permanent Account Closure", description: "Account permanently banned or closed with zero chance of reopening.", group: "Account Closure", color: "#5c2429", chip: { text: "", color: "#dc2626" }, defaultReason: "Permanent closure requested / Non-negotiable ban", template: "{code} / {cid} / {reason}" },
+    { code: "REACT", label: "REACT", meaning: "Account Reactivation Request", description: "Player reached out requesting to reopen a previously closed account.", group: "Reactivation", color: "#1b5e43", chip: { text: "", color: "#dc2626" }, defaultReason: "Player requested account reactivation", template: "{code} / {cid} / {reason}" },
+    { code: "REACT NOT", label: "REACT NOT", meaning: "Reactivation Not Allowed", description: "Reactivation declined due to permanent closure, policy, or unresolved flags.", group: "Reactivation", color: "#234d47", chip: { text: "R.NOT", color: "#065f46" }, defaultReason: "Not eligible for reactivation / Permanent exclusion", template: "{code} / {cid} / {reason}" },
+    { code: "NGP NON-X", label: "NGP NON-X", meaning: "NGP Non-Exclusive Player", description: "Escalation for players tagged under Non-Exclusive Next Gen Player program.", group: "Special Programs", color: "#6b4317", chip: { text: "R.UA", color: "#b45309" }, defaultReason: "NGP Non-Exclusive review", template: "{code} / {cid} / {reason}" },
+    { code: "NDRP", label: "NDRP", meaning: "Non-Deposit Reward Program", description: "Issues concerning free credits, vouchers, or no-deposit rewards.", group: "Financial & Rewards", color: "#443566", chip: { text: "", color: "#dc2626" }, defaultReason: "Non-Deposit Reward credited / claim inquiry", template: "{code} / {cid} / {reason}" },
+    { code: "UA W/FUNDS", label: "UA W/FUNDS", meaning: "Unauthorized Access with Funds", description: "Compromised or hacked account that currently holds a cash balance.", group: "Security & Fraud", color: "#522b6d", chip: { text: "For escalation", color: "#b91c1c" }, defaultReason: "Suspected account takeover with remaining balance", template: "{code} / {cid} / {reason}" },
+    { code: "UA WO/FUNDS", label: "UA WO/FUNDS", meaning: "Underage without funds", description: "Underage player with no remaining balance.", group: "Security & Fraud", color: "#3f2757", chip: { text: "", color: "#dc2626" }, defaultReason: "Underage without funds", template: "{code} / {cid} / {reason}" },
+    { code: "MANUAL KYC", label: "MANUAL KYC", meaning: "Manual KYC Document Review", description: "Automated verification failed; manual review of submitted IDs needed.", group: "KYC & Verification", color: "#692949", chip: { text: "", color: "#dc2626" }, defaultReason: "Review Needed", template: "{code} / {cid} / {reason}" },
+    { code: "KYC SWITCH", label: "KYC SWITCH", meaning: "KYC Verification Switch", description: "Switching player's verification method (e.g. from SMS OTP to Manual or email).", group: "KYC & Verification", color: "#265261", chip: { text: "", color: "#0d9488" }, defaultReason: "Switch verification channel requested", template: "{code} / {cid} / {reason}" },
+    { code: "GLIFE.1", label: "GLIFE.1", meaning: "GLife Escalation Tier 1", description: "First-level escalation for GCash GLife mini-app transactions or sync issues.", group: "GLife Partner", color: "#1f534d", chip: { text: "", color: "#dc2626" }, defaultReason: "GLife mini-app sync issue / Tier 1 inquiry", template: "{code} / {cid} / {reason}" },
+    { code: "GLIFE.2", label: "GLIFE.2", meaning: "GLife Escalation Tier 2", description: "High-priority / urgent escalation for GLife payment failures or account locks.", group: "GLife Partner", color: "#133d39", chip: { text: "", color: "#dc2626" }, defaultReason: "GLife Tier 2 high-priority escalation", template: "{code} / {cid} / {reason}" },
+    { code: "ABUSER", label: "ABUSER", meaning: "Bonus / Promo Abuse Flag", description: "System or manual flag for exploiting promotions, multi-accounting, or fraud.", group: "Risk & Compliance", color: "#2d3748", chip: { text: "", color: "#dc2626" }, defaultReason: "Bonus / Promotional abuse flagged", template: "{code} / {cid} / {reason}" },
+    { code: "DISCONNECT", label: "DISCONNECT", meaning: "Disconnect / Session Kill Request", description: "Request to terminate active game or provider session due to freeze or sync error.", group: "Technical & Game", color: "#334155", chip: { text: "", color: "#dc2626" }, defaultReason: "Session freeze / Disconnect requested", template: "{code} / {cid} / {reason}" }
   ];
 
   let currentSettings = {
@@ -48,7 +48,7 @@
     customOptions: null,
     remoteTemplatesVersion: 0,
     theme: "dark",
-    barTheme: "frosted-cyan"
+    barTheme: "minimal-glass"
   };
 
   let workingOptions = [];
@@ -82,7 +82,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.3.8";
+  const HARDCODED_VERSION = "1.3.9";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -102,9 +102,23 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.3.9",
+      title: "Minimalist Design & Refined Option Palette",
+      date: "Latest",
+      agentFeatures: [
+        "🪟 Minimalist Bar & Satin Buttons: Clean, non-distracting dark aesthetics with crisp hairline borders and satin finish.",
+        "🎨 Refined Button Colors: Replaced loud neon rainbow blocks with a harmonious, eye-friendly palette (Slate Steel, Forest Sage, Amber Bronze, Royal Heather).",
+        "🎛️ 4 New Minimalist Templates: Minimal Glass (Default), Obsidian Matte (Glare-Free Dark), Slate Nordic (Scandinavian), and Mocha Dark (Warm Espresso).",
+        "🔄 Automatic Option Upgrade: Existing saved buttons are seamlessly updated to the sleek minimalist palette."
+      ],
+      adminFeatures: [
+        "✨ Modern Dashboard Standard: Professional, cohesive visual identity aligned with top SaaS interfaces."
+      ]
+    },
+    {
       version: "1.3.8",
       title: "Theme Selection Fix & Button Grid Layout Restoration",
-      date: "Latest",
+      date: "Previous",
       agentFeatures: [
         "🎨 Instant Live Theme Switcher: Click any color accent (Crystal Cyan, Midnight Violet, Emerald Mint, Sunset Amber) for vibrant glowing transformations.",
         "💾 Theme Persistence Fixed: Selected bar theme is now permanently saved and restored across sessions.",
@@ -1337,18 +1351,23 @@
   function applyBarTheme() {
     const dock = dockElement || document.getElementById("escalation-helper-dock");
     if (!dock) return;
-    dock.classList.add("esc-theme-frosted");
     dock.classList.remove(
-      "esc-theme-cyber", "esc-theme-compact", "esc-theme-classic",
+      "esc-theme-minimal-glass", "esc-theme-obsidian-matte", "esc-theme-slate-nordic", "esc-theme-mocha-dark",
+      "esc-theme-frosted", "esc-theme-cyber", "esc-theme-compact", "esc-theme-classic",
       "esc-accent-cyan", "esc-accent-purple", "esc-accent-emerald", "esc-accent-sunset"
     );
-    let theme = String(currentSettings.barTheme || "frosted-cyan").trim().toLowerCase();
-    if (theme === "frosted" || !theme.startsWith("frosted-")) {
-      theme = "frosted-cyan";
-      currentSettings.barTheme = "frosted-cyan";
+    let theme = String(currentSettings.barTheme || "minimal-glass").trim().toLowerCase();
+    if (theme === "frosted" || theme === "frosted-cyan") theme = "minimal-glass";
+    else if (theme === "frosted-purple") theme = "obsidian-matte";
+    else if (theme === "frosted-emerald") theme = "slate-nordic";
+    else if (theme === "frosted-sunset") theme = "mocha-dark";
+
+    const validThemes = ["minimal-glass", "obsidian-matte", "slate-nordic", "mocha-dark"];
+    if (!validThemes.includes(theme)) {
+      theme = "minimal-glass";
     }
-    const accent = theme.replace("frosted-", "");
-    dock.classList.add(`esc-accent-${accent}`);
+    currentSettings.barTheme = theme;
+    dock.classList.add(`esc-theme-${theme}`);
   }
 
   function stripGenieCloneIds(root) {
@@ -1971,7 +1990,7 @@
     return list.map(normalizeEscalationOption);
   }
 
-  const BIT88_NOTES_WORDING_VERSION = 25;
+  const BIT88_NOTES_WORDING_VERSION = 26;
   let loadedWordingVersion = 0;
 
   function getPresetOptionsList() {
@@ -1998,10 +2017,32 @@
     });
     const saved = Array.isArray(currentSettings.customOptions) ? currentSettings.customOptions : [];
     if (saved.length) {
+      const oldColorMap = {
+        "#2563eb": "#2b5278",
+        "#1d4ed8": "#1e3a5f",
+        "#7f1d1d": "#5c2429",
+        "#059669": "#1b5e43",
+        "#0f766e": "#234d47",
+        "#d97706": "#6b4317",
+        "#6d28d9": "#443566",
+        "#7c3aed": "#522b6d",
+        "#db2777": "#692949",
+        "#0891b2": "#265261",
+        "#0d9488": "#1f534d",
+        "#115e59": "#133d39",
+        "#334155": "#2d3748",
+        "#475569": "#334155"
+      };
       currentSettings.customOptions = saved.map(opt => {
         const preset = byCode[opt && opt.code];
         if (!preset) return opt;
         const copy = { ...opt };
+        if (oldColorMap[copy.color] || !copy.color) {
+          copy.color = preset.color || oldColorMap[copy.color] || copy.color;
+        }
+        if (copy.code === "UA WO/FUNDS" && (copy.color === "#6d28d9" || copy.color === "#443566")) {
+          copy.color = "#3f2757";
+        }
         if (preset.noteChoices && preset.noteChoices.length) {
           copy.noteChoices = JSON.parse(JSON.stringify(preset.noteChoices));
           copy.userNotesText = copy.noteChoices[0].userNotesText;
@@ -2060,7 +2101,7 @@
         autoReturnToUsers: currentSettings.autoReturnToUsers,
         autoFindAndView: currentSettings.autoFindAndView,
         barLayout: currentSettings.barLayout === "vertical" ? "vertical" : "horizontal",
-        barTheme: currentSettings.barTheme || "frosted-cyan",
+        barTheme: currentSettings.barTheme || "minimal-glass",
         soundFeedback: currentSettings.soundFeedback !== false,
         notesWordingVersion: currentSettings.notesWordingVersion || 0,
         remoteTemplatesVersion: currentSettings.remoteTemplatesVersion || 0
@@ -2113,10 +2154,16 @@
       currentSettings.agentName = "";
     }
     currentSettings.barLayout = currentSettings.barLayout === "vertical" ? "vertical" : "horizontal";
-    const validThemes = ["frosted-cyan", "frosted-purple", "frosted-emerald", "frosted-sunset"];
-    if (!validThemes.includes(currentSettings.barTheme)) {
-      currentSettings.barTheme = "frosted-cyan";
+    let theme = String(currentSettings.barTheme || "minimal-glass").trim().toLowerCase();
+    if (theme === "frosted" || theme === "frosted-cyan") theme = "minimal-glass";
+    else if (theme === "frosted-purple") theme = "obsidian-matte";
+    else if (theme === "frosted-emerald") theme = "slate-nordic";
+    else if (theme === "frosted-sunset") theme = "mocha-dark";
+    const validThemes = ["minimal-glass", "obsidian-matte", "slate-nordic", "mocha-dark"];
+    if (!validThemes.includes(theme)) {
+      theme = "minimal-glass";
     }
+    currentSettings.barTheme = theme;
     if (data && data.customTemplates) {
       currentSettings.customTemplates = { ...currentSettings.customTemplates, ...data.customTemplates };
     }
@@ -5381,30 +5428,30 @@
                   </div>
 
                   <div class="esc-form-row" style="margin-top: 12px;">
-                    <span class="esc-form-label">Frosted Glass Color Accent</span>
+                    <span class="esc-form-label">Minimalist Bar Design &amp; Template</span>
                     <div class="esc-glass-palette-grid">
-                      <label class="esc-glass-pill ${(!currentSettings.barTheme || currentSettings.barTheme === 'frosted-cyan' || currentSettings.barTheme === 'frosted') ? 'is-selected' : ''}">
-                        <input type="radio" name="esc-bar-theme" value="frosted-cyan" ${(!currentSettings.barTheme || currentSettings.barTheme === 'frosted' || currentSettings.barTheme === 'frosted-cyan') ? 'checked' : ''}>
+                      <label class="esc-glass-pill ${(!currentSettings.barTheme || currentSettings.barTheme === 'minimal-glass' || currentSettings.barTheme === 'frosted-cyan' || currentSettings.barTheme === 'frosted') ? 'is-selected' : ''}">
+                        <input type="radio" name="esc-bar-theme" value="minimal-glass" ${(!currentSettings.barTheme || currentSettings.barTheme === 'minimal-glass' || currentSettings.barTheme === 'frosted' || currentSettings.barTheme === 'frosted-cyan') ? 'checked' : ''}>
                         <span class="esc-palette-dot" style="background:#38bdf8;box-shadow:0 0 6px #38bdf8;"></span>
-                        <span>Crystal Cyan</span>
+                        <span>🪟 Minimal Glass</span>
                       </label>
 
-                      <label class="esc-glass-pill ${currentSettings.barTheme === 'frosted-purple' ? 'is-selected' : ''}">
-                        <input type="radio" name="esc-bar-theme" value="frosted-purple" ${currentSettings.barTheme === 'frosted-purple' ? 'checked' : ''}>
-                        <span class="esc-palette-dot" style="background:#c084fc;box-shadow:0 0 6px #c084fc;"></span>
-                        <span>Midnight Violet</span>
+                      <label class="esc-glass-pill ${(currentSettings.barTheme === 'obsidian-matte' || currentSettings.barTheme === 'frosted-purple') ? 'is-selected' : ''}">
+                        <input type="radio" name="esc-bar-theme" value="obsidian-matte" ${(currentSettings.barTheme === 'obsidian-matte' || currentSettings.barTheme === 'frosted-purple') ? 'checked' : ''}>
+                        <span class="esc-palette-dot" style="background:#94a3b8;box-shadow:0 0 6px #94a3b8;"></span>
+                        <span>🌑 Obsidian Matte</span>
                       </label>
 
-                      <label class="esc-glass-pill ${currentSettings.barTheme === 'frosted-emerald' ? 'is-selected' : ''}">
-                        <input type="radio" name="esc-bar-theme" value="frosted-emerald" ${currentSettings.barTheme === 'frosted-emerald' ? 'checked' : ''}>
-                        <span class="esc-palette-dot" style="background:#34d399;box-shadow:0 0 6px #34d399;"></span>
-                        <span>Emerald Mint</span>
+                      <label class="esc-glass-pill ${(currentSettings.barTheme === 'slate-nordic' || currentSettings.barTheme === 'frosted-emerald') ? 'is-selected' : ''}">
+                        <input type="radio" name="esc-bar-theme" value="slate-nordic" ${(currentSettings.barTheme === 'slate-nordic' || currentSettings.barTheme === 'frosted-emerald') ? 'checked' : ''}>
+                        <span class="esc-palette-dot" style="background:#60a5fa;box-shadow:0 0 6px #60a5fa;"></span>
+                        <span>🌫️ Slate Nordic</span>
                       </label>
 
-                      <label class="esc-glass-pill ${currentSettings.barTheme === 'frosted-sunset' ? 'is-selected' : ''}">
-                        <input type="radio" name="esc-bar-theme" value="frosted-sunset" ${currentSettings.barTheme === 'frosted-sunset' ? 'checked' : ''}>
-                        <span class="esc-palette-dot" style="background:#fbbf24;box-shadow:0 0 6px #fbbf24;"></span>
-                        <span>Sunset Amber</span>
+                      <label class="esc-glass-pill ${(currentSettings.barTheme === 'mocha-dark' || currentSettings.barTheme === 'frosted-sunset') ? 'is-selected' : ''}">
+                        <input type="radio" name="esc-bar-theme" value="mocha-dark" ${(currentSettings.barTheme === 'mocha-dark' || currentSettings.barTheme === 'frosted-sunset') ? 'checked' : ''}>
+                        <span class="esc-palette-dot" style="background:#d97706;box-shadow:0 0 6px #d97706;"></span>
+                        <span>☕ Mocha Dark</span>
                       </label>
                     </div>
                   </div>
@@ -6258,8 +6305,11 @@
       setCheck("#esc-set-copy", currentSettings.autoCopyClipboard !== false);
       setCheck("#esc-set-sound", currentSettings.soundFeedback !== false);
       setCheck("#esc-set-return", currentSettings.autoReturnToUsers !== false);
-      let themeVal = currentSettings.barTheme || "frosted-cyan";
-      if (themeVal === "frosted") themeVal = "frosted-cyan";
+      let themeVal = currentSettings.barTheme || "minimal-glass";
+      if (themeVal === "frosted" || themeVal === "frosted-cyan") themeVal = "minimal-glass";
+      else if (themeVal === "frosted-purple") themeVal = "obsidian-matte";
+      else if (themeVal === "frosted-emerald") themeVal = "slate-nordic";
+      else if (themeVal === "frosted-sunset") themeVal = "mocha-dark";
       const themeRadio = overlay.querySelector(`input[name="esc-bar-theme"][value="${themeVal}"]`);
       if (themeRadio) {
         themeRadio.checked = true;
@@ -6428,7 +6478,7 @@
           : (currentSettings.autoReturnToUsers !== false),
         autoFindAndView: false,
         barLayout: (overlay.querySelector('input[name="esc-bar-layout"]:checked') && overlay.querySelector('input[name="esc-bar-layout"]:checked').value === "vertical") ? "vertical" : "horizontal",
-        barTheme: (overlay.querySelector('input[name="esc-bar-theme"]:checked') && overlay.querySelector('input[name="esc-bar-theme"]:checked').value) || currentSettings.barTheme || "frosted-cyan"
+        barTheme: (overlay.querySelector('input[name="esc-bar-theme"]:checked') && overlay.querySelector('input[name="esc-bar-theme"]:checked').value) || currentSettings.barTheme || "minimal-glass"
       };
       const optionsToSave = isAdminLicense() ? workingOptions : currentSettings.customOptions;
       saveSettings(updatedSettings, currentSettings.customTemplates || {}, optionsToSave, () => {

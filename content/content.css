@@ -1097,49 +1097,49 @@ body.esc-modal-scroll-lock {
 }
 
 /* =========================================================
-   Frosted Glass Escalation Bar (Default Masterpiece)
+   Minimalist Bar & Templates (Default Architecture)
    ========================================================= */
 #escalation-helper-dock {
-  background: rgba(11, 17, 28, 0.88) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
-  border-radius: 10px !important;
-  transition: border 0.25s, box-shadow 0.25s !important;
+  background: rgba(10, 15, 26, 0.9) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
 }
 
 #escalation-helper-dock .esc-bar-header {
-  background: rgba(15, 23, 42, 0.6);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  border-top-left-radius: 9px;
-  border-top-right-radius: 9px;
-  padding: 6px 12px;
+  background: rgba(15, 23, 42, 0.65);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  border-top-left-radius: 7px;
+  border-top-right-radius: 7px;
+  padding: 5px 10px;
 }
 
 #escalation-helper-dock .esc-bar-main {
-  padding: 5px 8px 7px;
+  padding: 5px 8px 6px;
 }
 
-/* Escalation Action Buttons - Frosted Jewel Finish */
+/* Escalation Action Buttons - Clean Minimalist Satin Finish */
 #escalation-helper-dock .esc-action-btn {
-  height: 30px;
-  min-height: 30px;
+  height: 29px;
+  min-height: 29px;
   width: 100%;
-  border-radius: 6px !important;
-  border: 1px solid rgba(255, 255, 255, 0.22) !important;
-  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0.05) 50%, rgba(0, 0, 0, 0.22) 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.38), 0 2px 5px rgba(0, 0, 0, 0.45);
-  font-weight: 800;
+  border-radius: 5px !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.02) 50%, rgba(0, 0, 0, 0.15) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 1px 3px rgba(0, 0, 0, 0.35);
+  font-weight: 700;
   letter-spacing: 0.2px;
-  transition: all 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.14s ease;
   padding: 0 3px;
   box-sizing: border-box;
 }
 
 #escalation-helper-dock .esc-action-btn:hover {
-  transform: translateY(-2px);
-  filter: brightness(1.22);
-  border-color: rgba(255, 255, 255, 0.55) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 6px 16px rgba(0, 0, 0, 0.55), 0 0 10px currentColor;
+  transform: translateY(-1px);
+  filter: brightness(1.15);
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 4px 10px rgba(0, 0, 0, 0.45);
   z-index: 10;
 }
 
@@ -1149,104 +1149,124 @@ body.esc-modal-scroll-lock {
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
-/* --- Accent 1: Crystal Cyan (Default) --- */
-#escalation-helper-dock.esc-accent-cyan,
-#escalation-helper-dock:not([class*="esc-accent-"]) {
-  border: 1px solid rgba(56, 189, 248, 0.42) !important;
-  border-top: 2px solid #38bdf8 !important;
-  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.75), 0 0 24px rgba(56, 189, 248, 0.22) !important;
+/* --- Template 1: Minimal Glass (Default) --- */
+#escalation-helper-dock.esc-theme-minimal-glass,
+#escalation-helper-dock:not([class*="esc-theme-"]) {
+  background: rgba(11, 17, 28, 0.9) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border: 1px solid rgba(56, 189, 248, 0.28) !important;
+  border-top: 1.5px solid rgba(56, 189, 248, 0.8) !important;
+  box-shadow: 0 10px 28px -4px rgba(0, 0, 0, 0.7), 0 0 16px rgba(56, 189, 248, 0.12) !important;
 }
 
-#escalation-helper-dock.esc-accent-cyan .esc-brand-text,
-#escalation-helper-dock:not([class*="esc-accent-"]) .esc-brand-text {
+#escalation-helper-dock.esc-theme-minimal-glass .esc-brand-text,
+#escalation-helper-dock:not([class*="esc-theme-"]) .esc-brand-text {
+  color: #e2e8f0;
+}
+
+#escalation-helper-dock.esc-theme-minimal-glass .esc-brand-version,
+#escalation-helper-dock:not([class*="esc-theme-"]) .esc-brand-version {
   color: #38bdf8;
-  text-shadow: 0 0 8px rgba(56, 189, 248, 0.45);
+  border-color: rgba(56, 189, 248, 0.35);
+  background: rgba(56, 189, 248, 0.1);
 }
 
-#escalation-helper-dock.esc-accent-cyan .esc-brand-version,
-#escalation-helper-dock:not([class*="esc-accent-"]) .esc-brand-version {
-  color: #38bdf8;
-  border-color: rgba(56, 189, 248, 0.45);
-  background: rgba(56, 189, 248, 0.15);
-  box-shadow: 0 0 8px rgba(56, 189, 248, 0.25);
-}
-
-#escalation-helper-dock.esc-accent-cyan .esc-icon-btn:hover,
-#escalation-helper-dock:not([class*="esc-accent-"]) .esc-icon-btn:hover {
+#escalation-helper-dock.esc-theme-minimal-glass .esc-icon-btn:hover,
+#escalation-helper-dock:not([class*="esc-theme-"]) .esc-icon-btn:hover {
   color: #38bdf8;
   border-color: rgba(56, 189, 248, 0.4);
 }
 
-/* --- Accent 2: Midnight Violet --- */
-#escalation-helper-dock.esc-accent-purple {
-  border: 1px solid rgba(192, 132, 252, 0.45) !important;
-  border-top: 2px solid #c084fc !important;
-  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.75), 0 0 24px rgba(192, 132, 252, 0.26) !important;
+/* --- Template 2: Obsidian Matte (Pure Glare-Free Dark) --- */
+#escalation-helper-dock.esc-theme-obsidian-matte {
+  background: #070a12 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid #1e293b !important;
+  border-top: 1.5px solid #475569 !important;
+  box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.85) !important;
 }
 
-#escalation-helper-dock.esc-accent-purple .esc-brand-text {
-  color: #c084fc;
-  text-shadow: 0 0 8px rgba(192, 132, 252, 0.45);
+#escalation-helper-dock.esc-theme-obsidian-matte .esc-bar-header {
+  background: #05070d !important;
+  border-bottom: 1px solid #162032 !important;
 }
 
-#escalation-helper-dock.esc-accent-purple .esc-brand-version {
-  color: #c084fc;
-  border-color: rgba(192, 132, 252, 0.45);
-  background: rgba(192, 132, 252, 0.15);
-  box-shadow: 0 0 8px rgba(192, 132, 252, 0.25);
+#escalation-helper-dock.esc-theme-obsidian-matte .esc-brand-text {
+  color: #f1f5f9 !important;
 }
 
-#escalation-helper-dock.esc-accent-purple .esc-icon-btn:hover {
-  color: #c084fc;
-  border-color: rgba(192, 132, 252, 0.4);
+#escalation-helper-dock.esc-theme-obsidian-matte .esc-brand-version {
+  color: #94a3b8 !important;
+  border-color: #334155 !important;
+  background: #0f172a !important;
 }
 
-/* --- Accent 3: Emerald Mint --- */
-#escalation-helper-dock.esc-accent-emerald {
-  border: 1px solid rgba(52, 211, 153, 0.45) !important;
-  border-top: 2px solid #34d399 !important;
-  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.75), 0 0 24px rgba(52, 211, 153, 0.26) !important;
+#escalation-helper-dock.esc-theme-obsidian-matte .esc-icon-btn:hover {
+  color: #f1f5f9 !important;
+  border-color: #475569 !important;
+  background: #1e293b !important;
 }
 
-#escalation-helper-dock.esc-accent-emerald .esc-brand-text {
-  color: #34d399;
-  text-shadow: 0 0 8px rgba(52, 211, 153, 0.45);
+/* --- Template 3: Slate Nordic (Clean Scandinavian Slate) --- */
+#escalation-helper-dock.esc-theme-slate-nordic {
+  background: rgba(15, 23, 42, 0.94) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(100, 116, 139, 0.35) !important;
+  border-top: 1.5px solid #60a5fa !important;
+  box-shadow: 0 10px 28px -4px rgba(0, 0, 0, 0.7), 0 0 16px rgba(96, 165, 250, 0.12) !important;
 }
 
-#escalation-helper-dock.esc-accent-emerald .esc-brand-version {
-  color: #34d399;
-  border-color: rgba(52, 211, 153, 0.45);
-  background: rgba(52, 211, 153, 0.15);
-  box-shadow: 0 0 8px rgba(52, 211, 153, 0.25);
+#escalation-helper-dock.esc-theme-slate-nordic .esc-bar-header {
+  background: rgba(10, 16, 30, 0.7) !important;
+  border-bottom: 1px solid rgba(100, 116, 139, 0.25) !important;
 }
 
-#escalation-helper-dock.esc-accent-emerald .esc-icon-btn:hover {
-  color: #34d399;
-  border-color: rgba(52, 211, 153, 0.4);
+#escalation-helper-dock.esc-theme-slate-nordic .esc-brand-text {
+  color: #93c5fd !important;
 }
 
-/* --- Accent 4: Sunset Amber --- */
-#escalation-helper-dock.esc-accent-sunset {
-  border: 1px solid rgba(251, 191, 36, 0.45) !important;
-  border-top: 2px solid #fbbf24 !important;
-  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.75), 0 0 24px rgba(251, 191, 36, 0.26) !important;
+#escalation-helper-dock.esc-theme-slate-nordic .esc-brand-version {
+  color: #60a5fa !important;
+  border-color: rgba(96, 165, 250, 0.35) !important;
+  background: rgba(96, 165, 250, 0.12) !important;
 }
 
-#escalation-helper-dock.esc-accent-sunset .esc-brand-text {
-  color: #fbbf24;
-  text-shadow: 0 0 8px rgba(251, 191, 36, 0.45);
+#escalation-helper-dock.esc-theme-slate-nordic .esc-icon-btn:hover {
+  color: #60a5fa !important;
+  border-color: rgba(96, 165, 250, 0.4) !important;
 }
 
-#escalation-helper-dock.esc-accent-sunset .esc-brand-version {
-  color: #fbbf24;
-  border-color: rgba(251, 191, 36, 0.45);
-  background: rgba(251, 191, 36, 0.15);
-  box-shadow: 0 0 8px rgba(251, 191, 36, 0.25);
+/* --- Template 4: Mocha Dark (Warm Espresso) --- */
+#escalation-helper-dock.esc-theme-mocha-dark {
+  background: rgba(18, 14, 13, 0.94) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(180, 83, 9, 0.3) !important;
+  border-top: 1.5px solid #d97706 !important;
+  box-shadow: 0 10px 28px -4px rgba(0, 0, 0, 0.75), 0 0 16px rgba(217, 119, 6, 0.12) !important;
 }
 
-#escalation-helper-dock.esc-accent-sunset .esc-icon-btn:hover {
-  color: #fbbf24;
-  border-color: rgba(251, 191, 36, 0.4);
+#escalation-helper-dock.esc-theme-mocha-dark .esc-bar-header {
+  background: rgba(14, 10, 9, 0.7) !important;
+  border-bottom: 1px solid rgba(120, 53, 15, 0.3) !important;
+}
+
+#escalation-helper-dock.esc-theme-mocha-dark .esc-brand-text {
+  color: #fde68a !important;
+}
+
+#escalation-helper-dock.esc-theme-mocha-dark .esc-brand-version {
+  color: #f59e0b !important;
+  border-color: rgba(245, 158, 11, 0.35) !important;
+  background: rgba(245, 158, 11, 0.12) !important;
+}
+
+#escalation-helper-dock.esc-theme-mocha-dark .esc-icon-btn:hover {
+  color: #f59e0b !important;
+  border-color: rgba(245, 158, 11, 0.4) !important;
 }
 
 /* =========================================================
