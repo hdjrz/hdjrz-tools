@@ -258,6 +258,10 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
           <div class="stat-title">❄️ Frozen Keys</div>
           <div class="stat-value" style="color: #f87171;" id="stat-frozen-keys">0</div>
         </div>
+        <div class="stat-card">
+          <div class="stat-title">📚 Escalations</div>
+          <div class="stat-value" style="color: #60a5fa;" id="stat-escalations-count">14 Active</div>
+        </div>
       </div>
 
       <!-- ➕ Create New License Key -->
@@ -338,6 +342,40 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
         </div>
       </div>
 
+      <!-- 📚 Escalation Library (14 Definitions) -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title"><span>📚 Escalation Library (<span id="escalation-total-count">14</span> Definitions)</span></div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <select id="filter-escalation-status" style="background: #060c18; border: 1px solid #334155; border-radius: 4px; padding: 4px 10px; color: #fff; font-size: 12px;">
+              <option value="all">All Statuses</option>
+              <option value="active" selected>Active Only</option>
+              <option value="inactive">Inactive Only</option>
+            </select>
+            <button type="button" id="reset-escalations-btn" class="btn btn-warning btn-sm">↺ Restore 14 Factory Presets</button>
+            <button type="button" id="refresh-escalations-btn" class="btn btn-secondary btn-sm">🔄 Refresh</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 40px;">#</th>
+                <th style="width: 130px;">Code</th>
+                <th style="width: 140px;">Button Label</th>
+                <th style="width: 160px;">Category / Group</th>
+                <th>Meaning & Description</th>
+                <th style="width: 100px;">Status</th>
+                <th style="width: 140px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="escalations-tbody">
+              <tr><td colspan="7" style="text-align: center; color: var(--muted); padding: 20px;">Loading escalation library...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- ⚙️ Master Password Change -->
       <div class="section-card" style="margin-bottom: 0;">
         <div class="section-header">
@@ -413,6 +451,7 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
       dashboardView.style.display = "flex";
       loadLicenses();
       loadActiveUsers();
+      loadEscalations();
       setInterval(loadActiveUsers, 15000);
     }
 
@@ -576,6 +615,90 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
         '</tr>';
       }).join("");
     }
+
+    // Escalation Library Management
+    let currentEscalations = [];
+
+    async function loadEscalations() {
+      const filterElem = document.getElementById("filter-escalation-status");
+      const filter = filterElem ? filterElem.value : "all";
+      const queryParam = filter === "all" ? "" : ("?status=" + encodeURIComponent(filter));
+      const res = await apiRequest("/api/escalations" + queryParam);
+      if (!res.ok) return;
+
+      currentEscalations = res.escalations || [];
+      const total = typeof res.total === "number" ? res.total : currentEscalations.length;
+      const countElem = document.getElementById("escalation-total-count");
+      if (countElem) countElem.textContent = total;
+
+      const activeCount = currentEscalations.filter(e => e.status !== "inactive").length;
+      const statElem = document.getElementById("stat-escalations-count");
+      if (statElem) statElem.textContent = activeCount + " Active";
+
+      renderEscalationsTable(currentEscalations);
+    }
+
+    function renderEscalationsTable(list) {
+      const tbody = document.getElementById("escalations-tbody");
+      if (!tbody) return;
+      if (!list.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--muted); padding: 20px;">No escalations found.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = list.map((item, idx) => {
+        const isActive = item.status !== "inactive";
+        const statusBadge = isActive
+          ? '<span class="badge-status active">🟢 Active</span>'
+          : '<span class="badge-status frozen">⚪ Inactive</span>';
+        const color = item.color || "#2563eb";
+        const orderNum = item.order || (idx + 1);
+
+        return '<tr>' +
+          '<td style="color: var(--muted); font-weight:600;">' + orderNum + '</td>' +
+          '<td><span class="key-tag" style="background: ' + color + '22; border-color: ' + color + '66; color: ' + color + ';">' + escapeHtml(item.code) + '</span></td>' +
+          '<td><strong>' + escapeHtml(item.label) + '</strong></td>' +
+          '<td><span class="badge-role guest">' + escapeHtml(item.group || "General") + '</span></td>' +
+          '<td><div style="font-weight:600; color:#cbd5e1;">' + escapeHtml(item.meaning || "") + '</div><div style="font-size:11px; color:var(--muted);">' + escapeHtml(item.description || "") + '</div></td>' +
+          '<td>' + statusBadge + '</td>' +
+          '<td><div class="actions-cell">' +
+            '<button type="button" class="btn ' + (isActive ? 'btn-secondary' : 'btn-primary') + ' btn-sm" onclick="toggleEscalationStatus(\\'' + escapeHtml(item.code) + '\\')">' +
+              (isActive ? '🚫 Deactivate' : '🟢 Activate') +
+            '</button>' +
+          '</div></td>' +
+        '</tr>';
+      }).join("");
+    }
+
+    window.toggleEscalationStatus = async function(code) {
+      const res = await apiRequest("/api/escalations/" + encodeURIComponent(code) + "/toggle-status", "POST");
+      if (res.ok) {
+        showToast("✓ " + (res.message || "Escalation status updated"));
+        loadEscalations();
+      } else {
+        alert("Failed to toggle status: " + (res.error || "Unknown error"));
+      }
+    };
+
+    const resetEscBtn = document.getElementById("reset-escalations-btn");
+    if (resetEscBtn) {
+      resetEscBtn.addEventListener("click", async () => {
+        if (!confirm("Restore all 14 factory escalation presets to Active status?\\n\\nThis will reset any customized templates to factory defaults.")) return;
+        const res = await apiRequest("/api/escalations/reset-factory", "POST");
+        if (res.ok) {
+          showToast("✓ Restored " + (res.count || 14) + " factory escalations");
+          loadEscalations();
+        } else {
+          alert("Failed to restore factory escalations: " + (res.error || "Unknown error"));
+        }
+      });
+    }
+
+    const refreshEscBtn = document.getElementById("refresh-escalations-btn");
+    if (refreshEscBtn) refreshEscBtn.addEventListener("click", loadEscalations);
+
+    const filterEscElem = document.getElementById("filter-escalation-status");
+    if (filterEscElem) filterEscElem.addEventListener("change", loadEscalations);
 
     // Change Master Password
     document.getElementById("change-pass-btn").addEventListener("click", async () => {

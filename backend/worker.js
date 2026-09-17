@@ -10,6 +10,7 @@ import { handleAuthRoutes } from "./routes/auth.js";
 import { handleLicenseRoutes } from "./routes/licenses.js";
 import { handleAgentRoutes } from "./routes/agents.js";
 import { handleTemplateRoutes } from "./routes/templates.js";
+import { handleEscalationRoutes } from "./routes/escalations.js";
 import { handleAuditRoutes } from "./routes/audits.js";
 import { handleSystemRoutes } from "./routes/system.js";
 
@@ -105,6 +106,10 @@ export default {
 
       // /api/templates/* and /config/templates
       response = await handleTemplateRoutes(request, env, url);
+      if (response) return response;
+
+      // /api/escalations/*
+      response = await handleEscalationRoutes(request, env, url);
       if (response) return response;
 
       // /api/audit/*
