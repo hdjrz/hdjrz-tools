@@ -81,7 +81,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.3.4";
+  const HARDCODED_VERSION = "1.3.5";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -101,9 +101,24 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.3.5",
+      title: "Categorized Settings Interface",
+      date: "Latest",
+      agentFeatures: [
+        "🗂️ Categorized Settings: Clean sidebar navigation dividing options into General, Buttons, Cloud & Backup, Audit, and Account.",
+        "🎯 Direct Category Access: 1-click instant switching between any settings category with zero sequential next/back steps.",
+        "📱 Full-Width Button Customizer: Escalation buttons manager now expands across the full dialog width with zero horizontal crowding.",
+        "☁️ Dedicated Cloud & Backup Hub: Centralized hub for team template sync, online fleet status, and configuration import/export."
+      ],
+      adminFeatures: [
+        "👑 Enhanced Admin Overview: Clear active agent presence metrics and direct access to Web Admin Portal.",
+        "🛠️ Seamless Configuration Workflow: Easily manage and preview custom buttons, reasons, and templates in a spacious full-width editor."
+      ]
+    },
+    {
       version: "1.3.4",
       title: "Remote Dynamic Loader & Live In-Use Notifications",
-      date: "Latest",
+      date: "Previous",
       agentFeatures: [
         "⚡ Zero-Touch Auto Updates: Changes go live instantly on tab reload without touching Tampermonkey.",
         "🔔 Live In-Use Notification: Gentle floating pill informs agents when an update is available while working.",
@@ -5234,106 +5249,241 @@
           </button>
         </div>
 
-        ${staffView ? "" : `
-        <div class="esc-admin-active-bar" style="display: flex; align-items: center; justify-content: space-between; margin: 0 16px 8px 16px; padding: 6px 12px; background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 6px; font-size: 11px;">
-          <div style="display: flex; align-items: center; gap: 8px; overflow-x: auto; scrollbar-width: none;">
-            <span style="font-weight: 700; color: #38bdf8; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;">
-              📋 Active Users Online <span id="esc-active-users-count" style="background: rgba(56, 189, 248, 0.2); padding: 1px 6px; border-radius: 10px; font-size: 10px; color: #7dd3fc;">${Array.isArray(lastKnownActiveUsers) ? lastKnownActiveUsers.length : 0}</span>:
-            </span>
-            <div id="esc-active-users-list" style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-              ${renderActiveUsersListHtml()}
-            </div>
+        <div class="esc-settings-body esc-settings-category-layout">
+          <!-- Sidebar Navigation -->
+          <div class="esc-settings-sidebar" role="tablist" aria-label="Settings Categories">
+            <button type="button" class="esc-settings-tab-btn is-active" data-tab="general" role="tab" aria-selected="true">
+              <span class="esc-tab-icon">⚙️</span>
+              <span class="esc-tab-label">General &amp; Defaults</span>
+            </button>
+            <button type="button" class="esc-settings-tab-btn" data-tab="buttons" role="tab" aria-selected="false">
+              <span class="esc-tab-icon">🎯</span>
+              <span class="esc-tab-label">Escalation Buttons</span>
+            </button>
+            <button type="button" class="esc-settings-tab-btn" data-tab="cloud" role="tab" aria-selected="false">
+              <span class="esc-tab-icon">☁️</span>
+              <span class="esc-tab-label">Cloud &amp; Backup</span>
+            </button>
+            <button type="button" class="esc-settings-tab-btn" data-tab="audit" role="tab" aria-selected="false">
+              <span class="esc-tab-icon">📜</span>
+              <span class="esc-tab-label">Audit Logs</span>
+            </button>
+            <button type="button" class="esc-settings-tab-btn" data-tab="account" role="tab" aria-selected="false">
+              <span class="esc-tab-icon">👤</span>
+              <span class="esc-tab-label">Account &amp; License</span>
+            </button>
           </div>
-          <a href="https://hdjrz-license.rosechel05.workers.dev/admin" target="_blank" rel="noopener noreferrer" style="font-size: 11px; color: #38bdf8; text-decoration: none; font-weight: 600; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 4px; margin-left: 12px;">
-            Admin Portal ↗
-          </a>
-        </div>
-        `}
 
-        <div class="esc-settings-body">
-          <div class="esc-settings-main">
-          <p class="esc-settings-intro">${staffView ? "Factory 14 buttons. View only. Change Defaults on the right." : "Each row stays one line. Edit opens User Notes, Zoom, and Reasons. First reason is the default."}</p>
-          <div class="esc-options-mgr-header">
-            <span class="esc-options-count-badge" id="esc-options-count-badge"></span>
-            ${staffView ? "" : `
-            <div class="esc-options-mgr-actions">
-              <button type="button" class="esc-btn-small" id="esc-add-toggle">+ Add a button</button>
-              <button type="button" class="esc-btn-small esc-btn-danger-outline" id="esc-btn-restore-presets">Restore 14 Presets</button>
-            </div>`}
-          </div>
-          <div class="esc-options-cards-list" id="esc-options-cards-list"></div>
+          <!-- Content Panels -->
+          <div class="esc-settings-content">
+            <!-- PANEL 1: GENERAL -->
+            <div class="esc-settings-panel is-active" id="esc-panel-general" role="tabpanel">
+              <div class="esc-panel-header">
+                <h3 class="esc-panel-title">General &amp; Defaults</h3>
+                <p class="esc-panel-desc">Configure agent credentials, Zoom URL handler, bar display mode, and execution options.</p>
+              </div>
 
-          </div>
-          <div class="esc-settings-defaults">
-            <div class="esc-form-row">
-              <label class="esc-form-label" for="esc-set-agent">Agent name</label>
-              <input type="text" class="esc-input" id="esc-set-agent" value="${escapeHtml(currentSettings.agentName || "")}" placeholder="Agent name">
-            </div>
-            <div class="esc-form-row">
-              <label class="esc-form-label" for="esc-set-zoom-url">Zoom URL</label>
-              <input type="text" class="esc-input" id="esc-set-zoom-url" value="${escapeHtml(currentSettings.zoomUrl || "zoomus://")}" placeholder="zoomus://">
-            </div>
-            <div class="esc-form-row">
-              <span class="esc-form-label">Bar layout</span>
-              <div class="esc-layout-toggle">
-                <label class="esc-layout-choice">
-                  <input type="radio" name="esc-bar-layout" value="horizontal" ${currentSettings.barLayout !== "vertical" ? "checked" : ""}>
-                  <span>Horizontal</span>
-                </label>
-                <label class="esc-layout-choice">
-                  <input type="radio" name="esc-bar-layout" value="vertical" ${currentSettings.barLayout === "vertical" ? "checked" : ""}>
-                  <span>Vertical</span>
-                </label>
+              <div class="esc-panel-grid">
+                <div class="esc-panel-col">
+                  <div class="esc-form-row">
+                    <label class="esc-form-label" for="esc-set-agent">Agent Name</label>
+                    <input type="text" class="esc-input" id="esc-set-agent" value="${escapeHtml(currentSettings.agentName || "")}" placeholder="e.g. Agent Name">
+                    <span class="esc-field-hint">Used when stamping templates and audit entries.</span>
+                  </div>
+
+                  <div class="esc-form-row" style="margin-top: 10px;">
+                    <label class="esc-form-label" for="esc-set-zoom-url">Zoom URL Scheme</label>
+                    <input type="text" class="esc-input" id="esc-set-zoom-url" value="${escapeHtml(currentSettings.zoomUrl || "zoomus://")}" placeholder="zoomus://">
+                    <span class="esc-field-hint">URL handler or desktop scheme to launch Zoom.</span>
+                  </div>
+
+                  <div class="esc-form-row" style="margin-top: 10px;">
+                    <span class="esc-form-label">Escalation Bar Layout</span>
+                    <div class="esc-layout-toggle">
+                      <label class="esc-layout-choice">
+                        <input type="radio" name="esc-bar-layout" value="horizontal" ${currentSettings.barLayout !== "vertical" ? "checked" : ""}>
+                        <span>Horizontal Bar</span>
+                      </label>
+                      <label class="esc-layout-choice">
+                        <input type="radio" name="esc-bar-layout" value="vertical" ${currentSettings.barLayout === "vertical" ? "checked" : ""}>
+                        <span>Vertical Dock</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="esc-panel-col">
+                  <span class="esc-form-label">Execution Behavior</span>
+                  <div class="esc-checkbox-group">
+                    <label class="esc-checkbox-label">
+                      <input type="checkbox" id="esc-set-open-zoom" ${currentSettings.autoOpenZoom !== false ? "checked" : ""}>
+                      <span>Open Zoom on Confirm &amp; Execute</span>
+                    </label>
+                    <label class="esc-checkbox-label">
+                      <input type="checkbox" id="esc-set-pin-note" ${currentSettings.autoPinNote !== false ? "checked" : ""}>
+                      <span>Insert User Notes on Confirm</span>
+                    </label>
+                    <label class="esc-checkbox-label">
+                      <input type="checkbox" id="esc-set-copy" ${currentSettings.autoCopyClipboard !== false ? "checked" : ""}>
+                      <span>Copy Zoom text to clipboard</span>
+                    </label>
+                    <label class="esc-checkbox-label" style="display: flex; align-items: center; justify-content: space-between;">
+                      <span style="display: inline-flex; align-items: center; gap: 6px;">
+                        <input type="checkbox" id="esc-set-sound" ${currentSettings.soundFeedback !== false ? "checked" : ""}>
+                        <span>🔔 Success Chime &amp; Green Ripple</span>
+                      </span>
+                      <button type="button" class="esc-btn-test-chime" id="esc-test-chime" title="Test Success Chime & Ripple">🔊 Test</button>
+                    </label>
+                    ${staffView ? "" : `
+                    <label class="esc-checkbox-label">
+                      <input type="checkbox" id="esc-set-return" ${currentSettings.autoReturnToUsers !== false ? "checked" : ""}>
+                      <span>Return to Users list</span>
+                    </label>
+                    `}
+                  </div>
+                </div>
               </div>
             </div>
-            <label class="esc-checkbox-label">
-              <input type="checkbox" id="esc-set-open-zoom" ${currentSettings.autoOpenZoom !== false ? "checked" : ""}>
-              <span>Open Zoom on Confirm &amp; Execute</span>
-            </label>
-            <label class="esc-checkbox-label">
-              <input type="checkbox" id="esc-set-pin-note" ${currentSettings.autoPinNote !== false ? "checked" : ""}>
-              <span>Insert User Notes on Confirm</span>
-            </label>
-            <label class="esc-checkbox-label">
-              <input type="checkbox" id="esc-set-copy" ${currentSettings.autoCopyClipboard !== false ? "checked" : ""}>
-              <span>Copy Zoom text to clipboard</span>
-            </label>
-            <label class="esc-checkbox-label" style="display: flex; align-items: center; justify-content: space-between;">
-              <span style="display: inline-flex; align-items: center; gap: 6px;">
-                <input type="checkbox" id="esc-set-sound" ${currentSettings.soundFeedback !== false ? "checked" : ""}>
-                <span>🔔 Success Chime &amp; Green Ripple</span>
-              </span>
-              <button type="button" class="esc-btn-test-chime" id="esc-test-chime" title="Test Success Chime & Ripple">🔊 Test</button>
-            </label>
-            ${staffView ? "" : `
-            <label class="esc-checkbox-label">
-              <input type="checkbox" id="esc-set-return" ${currentSettings.autoReturnToUsers !== false ? "checked" : ""}>
-              <span>Return to Users list</span>
-            </label>
-            `}
-            <button type="button" class="esc-btn-small esc-btn-audit" id="esc-btn-audit">Audit</button>
+
+            <!-- PANEL 2: BUTTONS -->
+            <div class="esc-settings-panel" id="esc-panel-buttons" role="tabpanel">
+              <div class="esc-panel-header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px;">
+                <div>
+                  <h3 class="esc-panel-title">Escalation Buttons</h3>
+                  <p class="esc-panel-desc">${staffView ? "Standard presets (Read-only for Staff). Admins can modify button labels, colors, and templates." : "Each row stays one line. Edit opens User Notes, Zoom, and Reasons. First reason is the default."}</p>
+                </div>
+                <div class="esc-options-mgr-actions" style="display: flex; align-items: center; gap: 8px;">
+                  <span class="esc-options-count-badge" id="esc-options-count-badge"></span>
+                  ${staffView ? "" : `
+                  <button type="button" class="esc-btn-small esc-btn-add" id="esc-add-toggle">+ Add a button</button>
+                  <button type="button" class="esc-btn-small esc-btn-danger-outline" id="esc-btn-restore-presets">Restore 14 Presets</button>
+                  `}
+                </div>
+              </div>
+              <div class="esc-options-cards-list" id="esc-options-cards-list"></div>
+            </div>
+
+            <!-- PANEL 3: CLOUD & BACKUP -->
+            <div class="esc-settings-panel" id="esc-panel-cloud" role="tabpanel">
+              <div class="esc-panel-header">
+                <h3 class="esc-panel-title">Cloud &amp; Backup</h3>
+                <p class="esc-panel-desc">Synchronize button templates across your team or export/import configuration files.</p>
+              </div>
+
+              <div class="esc-cloud-section-card">
+                <div class="esc-cloud-card-header">
+                  <div class="esc-cloud-card-info">
+                    <span class="esc-cloud-title">Cloud Templates Synchronization</span>
+                    <span class="esc-cloud-subtitle">${staffView ? "Pull the latest approved templates from Cloudflare KV" : "Publish button templates to Cloudflare KV for all active agents"}</span>
+                  </div>
+                  <button type="button" class="esc-btn-secondary esc-btn-sync" id="esc-settings-sync" title="Sync with Cloud">
+                    <svg class="esc-sync-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                    </svg>
+                    <span>${staffView ? "Sync from Cloud" : "Publish to Cloud"}</span>
+                  </button>
+                </div>
+
+                ${staffView ? "" : `
+                <div class="esc-admin-active-box" style="margin-top: 12px; padding: 10px 12px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 6px;">
+                  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="font-weight: 700; color: #38bdf8; font-size: 11px;">
+                      📋 Active Users Online <span id="esc-active-users-count" style="background: rgba(56, 189, 248, 0.2); padding: 1px 6px; border-radius: 10px; font-size: 10px; color: #7dd3fc;">${Array.isArray(lastKnownActiveUsers) ? lastKnownActiveUsers.length : 0}</span>
+                    </span>
+                    <a href="https://hdjrz-license.rosechel05.workers.dev/admin" target="_blank" rel="noopener noreferrer" style="font-size: 11px; color: #38bdf8; text-decoration: none; font-weight: 600;">
+                      Admin Portal ↗
+                    </a>
+                  </div>
+                  <div id="esc-active-users-list" style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                    ${renderActiveUsersListHtml()}
+                  </div>
+                </div>
+                `}
+              </div>
+
+              <div class="esc-cloud-section-card" style="margin-top: 10px;">
+                <div class="esc-cloud-card-header">
+                  <div class="esc-cloud-card-info">
+                    <span class="esc-cloud-title">Local Backup &amp; Restore</span>
+                    <span class="esc-cloud-subtitle">Save a local copy of your settings or restore from a JSON file.</span>
+                  </div>
+                  <div style="display: flex; gap: 8px;">
+                    ${staffView ? "" : `<button type="button" class="esc-btn-secondary" id="esc-settings-export">Export</button>`}
+                    <button type="button" class="esc-btn-secondary" id="esc-settings-import">Import</button>
+                    <input type="file" id="esc-settings-import-file" accept=".json,application/json" hidden>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- PANEL 4: AUDIT -->
+            <div class="esc-settings-panel" id="esc-panel-audit" role="tabpanel">
+              <div class="esc-panel-header">
+                <h3 class="esc-panel-title">Audit Logs</h3>
+                <p class="esc-panel-desc">Review your recent shift escalation history and dispatched player details.</p>
+              </div>
+
+              <div class="esc-audit-panel-card" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 36px 20px; background: #070b14; border: 1px dashed #334155; border-radius: 8px; text-align: center; gap: 12px; margin-top: 8px;">
+                <div style="font-size: 32px;">📜</div>
+                <div style="max-width: 440px;">
+                  <h4 style="margin: 0 0 6px 0; color: #f8fafc; font-size: 14px;">Review Escalation History</h4>
+                  <p style="margin: 0; color: #94a3b8; font-size: 12px; line-height: 1.4;">View all player escalations recorded during this session, including player IDs, reasons, generated User Notes, and Zoom messages.</p>
+                </div>
+                <button type="button" class="esc-btn-primary esc-btn-audit" id="esc-btn-audit" style="width: auto; padding: 8px 24px; margin-top: 4px;">
+                  Open Audit Log
+                </button>
+              </div>
+            </div>
+
+            <!-- PANEL 5: ACCOUNT & LICENSE -->
+            <div class="esc-settings-panel" id="esc-panel-account" role="tabpanel">
+              <div class="esc-panel-header">
+                <h3 class="esc-panel-title">Account &amp; License</h3>
+                <p class="esc-panel-desc">Current device authorization tier, version status, and session control.</p>
+              </div>
+
+              <div class="esc-account-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 4px;">
+                <div class="esc-account-stat-card">
+                  <span class="esc-account-stat-label">License Role</span>
+                  <span class="esc-account-stat-val" style="color: ${isAdminLicense() ? '#38bdf8' : '#34d399'};">
+                    ${isAdminLicense() ? '👑 Administrator' : '🛡️ Staff Agent'}
+                  </span>
+                </div>
+
+                <div class="esc-account-stat-card">
+                  <span class="esc-account-stat-label">Installed Version</span>
+                  <span class="esc-account-stat-val" style="color: #cbd5e1;">v${safeEsc(SCRIPT_VERSION)}</span>
+                </div>
+
+                <div class="esc-account-stat-card">
+                  <span class="esc-account-stat-label">Device Status</span>
+                  <span class="esc-account-stat-val" id="esc-account-device-id" style="font-size: 12px; color: #94a3b8; font-family: ui-monospace, monospace;">Authorized</span>
+                </div>
+              </div>
+
+              <div class="esc-account-actions-card" style="margin-top: 14px; padding: 14px 16px; background: #070d18; border: 1px solid #1e293b; border-radius: 8px; display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                  <span style="font-weight: 700; color: #e2e8f0; font-size: 12px; display: block;">Session Management</span>
+                  <span style="font-size: 11px; color: #94a3b8;">Sign out will release this device's license seat from the Cloudflare server.</span>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  ${staffView ? "" : `
+                  <a href="https://hdjrz-license.rosechel05.workers.dev/admin" target="_blank" rel="noopener noreferrer" class="esc-btn-secondary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px; font-size: 12px; padding: 6px 12px;">
+                    Admin Portal ↗
+                  </a>
+                  `}
+                  <button type="button" class="esc-btn-secondary esc-btn-danger-outline" id="esc-settings-signout" style="padding: 6px 14px;">Sign out</button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div class="esc-modal-footer">
-          <div class="esc-settings-footer-left">
-            ${staffView ? `
-            <button type="button" class="esc-btn-secondary" id="esc-settings-import">Import</button>
-            <input type="file" id="esc-settings-import-file" accept=".json,application/json" hidden>
-            ` : `
-            <button type="button" class="esc-btn-secondary" id="esc-settings-export">Export</button>
-            <button type="button" class="esc-btn-secondary" id="esc-settings-import">Import</button>
-            <input type="file" id="esc-settings-import-file" accept=".json,application/json" hidden>
-            `}
-            <button type="button" class="esc-btn-secondary esc-btn-sync" id="esc-settings-sync" title="Sync with Cloud">
-              <svg class="esc-sync-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
-              </svg>
-              <span>Sync</span>
-            </button>
-            <button type="button" class="esc-btn-secondary" id="esc-settings-signout">Sign out</button>
+        <div class="esc-modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+          <div class="esc-settings-footer-info" style="font-size: 11px; color: #64748b;">
+            Select any category to customize settings. Changes apply upon clicking Save.
           </div>
-          <div class="esc-settings-footer-right">
+          <div class="esc-settings-footer-right" style="display: flex; gap: 8px;">
             <button type="button" class="esc-btn-secondary" id="esc-settings-cancel">Cancel</button>
             <button type="button" class="esc-btn-primary" id="esc-settings-save">Save Changes</button>
           </div>
@@ -5344,6 +5494,45 @@
     activeModal = overlay;
     playModalOpen(overlay);
     renderSettingsUpdateControls();
+
+    const tabButtons = overlay.querySelectorAll(".esc-settings-tab-btn");
+    const panels = overlay.querySelectorAll(".esc-settings-panel");
+
+    function switchSettingsTab(tabId) {
+      tabButtons.forEach(btn => {
+        const isActive = btn.getAttribute("data-tab") === tabId;
+        btn.classList.toggle("is-active", isActive);
+        btn.setAttribute("aria-selected", isActive ? "true" : "false");
+      });
+      panels.forEach(panel => {
+        panel.classList.toggle("is-active", panel.id === `esc-panel-${tabId}`);
+      });
+      try {
+        localStorage.setItem("hdjrz_active_settings_tab", tabId);
+      } catch (e) {}
+    }
+
+    tabButtons.forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        const tabId = btn.getAttribute("data-tab");
+        if (tabId) switchSettingsTab(tabId);
+      });
+    });
+
+    let initialTab = "general";
+    try {
+      initialTab = localStorage.getItem("hdjrz_active_settings_tab") || "general";
+    } catch (e) {}
+    switchSettingsTab(initialTab);
+
+    const deviceIdEl = overlay.querySelector("#esc-account-device-id");
+    if (deviceIdEl && typeof ensureLicenseDeviceId === "function") {
+      ensureLicenseDeviceId((id) => {
+        if (deviceIdEl) deviceIdEl.textContent = id ? id.substring(0, 16) + "..." : "Authorized";
+      });
+    }
+
     if (!staffView) {
       fetchRemoteTemplates(() => {});
     }
@@ -5972,6 +6161,7 @@
       setCheck("#esc-set-sound", currentSettings.soundFeedback !== false);
       setCheck("#esc-set-return", currentSettings.autoReturnToUsers !== false);
     }
+    fillSettingsDefaultsForm();
 
     const testChimeBtn = overlay.querySelector("#esc-test-chime");
     if (testChimeBtn) {
