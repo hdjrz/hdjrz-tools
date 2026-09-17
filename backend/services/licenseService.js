@@ -9,6 +9,7 @@ import { logAuditEvent } from "./auditService.js";
 const SYSTEM_KEYS = new Set([
   "SYSTEM_CONFIG",
   "REMOTE_TEMPLATES",
+  "TEMPLATE_DRAFT",
   "ACTIVE_AGENTS",
   "ADMIN_PASSWORD",
   "AUDIT_LOGS",
