@@ -148,7 +148,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.4.0";
+  const HARDCODED_VERSION = "1.4.1";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -168,9 +168,21 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.4.1",
+      title: "Removed Age Detection from Confirmation Modal",
+      date: "Latest",
+      agentFeatures: [
+        "🛡️ Clean Modal Summary: Removed the age detection compliance badge from the confirmation modal across all escalation options for a simpler, decluttered view.",
+        "📋 Pure Name / DOB Display: Modal now displays cleanly as Name / DOB without automated age tag overlays."
+      ],
+      adminFeatures: [
+        "✨ Streamlined Operations: Faster visual scanning during escalation confirmation."
+      ]
+    },
+    {
       version: "1.4.0",
       title: "Aesthetic Button Color Palettes & 1-Click Switcher",
-      date: "Latest",
+      date: "Previous",
       agentFeatures: [
         "🎨 Eye-Friendly Button Color Palette: Upgraded escalation button colors from dull murky tones to vibrant, high-clarity designer hues (Cobalt Blue, Sky Azure, Ruby Crimson, Emerald, Amber, Royal Amethyst, Rose Coral).",
         "🎛️ 1-Click Palette Switcher: Switch between Modern Pro, Soft Pastel, and Jewel Rich palettes in Settings > Escalation Buttons with instant dock updates.",
@@ -4626,11 +4638,7 @@
       const n = isBlankPersonValue(name) ? "" : String(name).trim();
       const d = isBlankPersonValue(dob) ? "" : String(dob).trim();
       if (!n && !d) return "—";
-      const info = d ? getPagcorAgeInfo(d) : null;
-      const badgeHtml = info
-        ? ` <span class="esc-pagcor-badge ${info.badgeClass}" title="${escapeHtml(info.status)}">${escapeHtml(info.badgeText)}</span>`
-        : "";
-      return `${escapeHtml(n || "—")}${d ? " / " + escapeHtml(d) : ""}${badgeHtml}`;
+      return `${escapeHtml(n || "—")}${d ? " / " + escapeHtml(d) : ""}`;
     }
 
     // Default reason configured for this option ("Reason when clicked")
