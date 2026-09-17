@@ -1,43 +1,41 @@
-# hdjrzTools Chrome Extension — Project Memory
+# hdjrzTools Chrome Extension & Userscript — Project Memory
 
 ## 0. Overview & Purpose
-This Chrome Extension automates player escalation workflows on backoffice User Overview pages:
-- **Dynamic Player Scraping (Any Client / Any Player)**: Reads player credentials directly from the DOM (`User ID`, `Public ID`, `Affiliate`, `Created Date`, `KYC Status`, `Username`). It operates dynamically for *all* searched users, with **zero hardcoded sample fallbacks**.
+**Current Production Version**: `v1.4.5` (Dual-Channel Release Architecture, Centralized Web Admin Portal, Staged Template Deployment Pipeline)
+
+This tool automates player escalation workflows on backoffice User Overview pages (e.g. `nano-admin.bet88.ph`):
+- **Dynamic Player Scraping (Any Client / Any Player)**: Reads player credentials directly from the DOM (`User ID`, `Public ID`, `Affiliate`, `Created Date`, `KYC Status`, `Username`, `Maya Mini App ID`, `DOB`, `Name`). Operates dynamically for *all* searched users with **zero hardcoded sample fallbacks**.
 - **Dynamic User ID Extraction**: Scrapes whatever is in the "User ID" on screen. If the client ID has parentheses (e.g. `15511274 (4LG14LGG)`), the parenthetical ID is prioritized. If it's a numeric or plain ID (e.g. `1172031960185783`), that exact ID is used in `{userId}`.
-- **Interactive User ID Input in Confirmation Modal**: The confirmation modal displays a prominent, editable "Client User ID" field. If scraped from screen, it is auto-filled. If opening a new client or if not detected, the agent can type/paste any User ID and the live note preview updates in real time. Empty Confirm fields use short placeholders only (`Enter Client User ID`, `Player CID`, `Enter Verified User ID`) — no example IDs.
-- **First-run license**: Until a valid key is entered, only the license popover shows — the floating options bar appears after Unlock. Unlock POSTs to `https://hdjrz-license.rosechel05.workers.dev/` with a per-Chrome `hdjrzLicenseDeviceId`. Role is stored in `chrome.storage.local` (`hdjrzLicenseRole`) plus a session flag (`hdjrzLicenseAlive`). Reloading the extension on `chrome://extensions` or Load unpacked of a new zip always shows the key box again (session flag is gone); the Cloudflare KV seat is **not** freed. Refreshing a backoffice page without reloading the extension stays unlocked. `hdjrzLicenseDeviceId` is kept so the same Chrome can type the same KV key. **Settings Sign out** POSTs `action: release` so KV goes back to `{"role":"guest","deviceId":""}` or `{"role":"admin","deviceId":""}` for that key (only if this Chrome’s device id matches). Worker source to paste in Cloudflare is `license/worker.js`. **Admin** (Worker role): full Settings (Edit, Add, Restore, Export/Import, Save wording). **Guest**: factory 14 buttons; Import of `hdjrzTools-settings.json` applies that file’s reasons, User Notes, and Zoom onto those 14 codes (Defaults too). Extra imported buttons are ignored. Export stays admin-only. Keys live in Cloudflare KV (`LICENSES`), not in the zip. This is a gate, not encryption.
-- **Dynamic Options Manager (Add / Remove / Edit Click Reason)**: Agents can add new buttons, remove unneeded options, customize button colors and chip markers, and define the exact "Reason when clicked" for each button.
-- **Accidental Click Prevention**: Every escalation selection opens a confirmation modal (preview only). The Confirm card stays within ~92vh. User Notes and Zoom previews show the full text (no 44px/88px clip). Confirm hides the User Notes preview when that button has no User Notes (NDRP, UA WO/FUNDS, and custom Zoom-only). The body scrolls only if KYC SWITCH fields are taller than the screen. Settings stays within 90vh. User Notes, clipboard copy, and Zoom open only on **Confirm & Execute**. Pasting CID or User ID only updates the preview. Enter in those fields does not execute. **Which reason?** uses the reasons in Settings only, including **ACR-PAGCOR**. Factory extras (NGP Underage, NDRP Custom watchlist, KYC/PAGCOR, and the rest) are written into Settings on wording version 17 so they can be edited. Confirm has **no** Escalation Reason dropdown; notes and Zoom use the first pick. **KYC SWITCH** opens **2 ACCOUNTS / 3 OR MORE**. Factory KYC SWITCH has one reason (`Escalation requested`), so Confirm has no extra Which reason? unless Settings has two or more reasons.
-- **User Notes Injection**: On **Confirm & Execute**, targets the `+` button in the backoffice **User Notes** section and fills **that button’s chosen User Notes sentence**. If a button has no User Notes (NDRP / UA WO/FUNDS Zoom-only), it skips typing and still copies Zoom.
-- **CID from existing User Notes**: After the player overview is open, the extension reads the latest `CODE / CID / reason` line in User Notes (example `ACR / 1172031960185783 / Losing player`) and uses the middle value as `{cid}`. Agents do not type CID when it is already on the player. Confirm shows **Player CID** (and the CID summary) only for **ACR**, **ACR-PAGCOR**, **ACR - PERMA**, **REACT**, **REACT NOT**, **NGP NON-X**, **UA W/FUNDS**, **UA WO/FUNDS**, **NDRP**, and **ABUSER**. If that field is shown and empty, **Confirm & Execute** is blocked until CID is typed. Hide CID for MANUAL KYC, KYC SWITCH, GLIFE.1, GLIFE.2, and any other code. **KYC SWITCH** Confirm still uses User ID + Verified UID only.
-- **Per-button wording (BIT88 process, plain language)**:
-  - Each option stores `userNotesText`, `zoomText`, `reasons[]`, and optional `noteChoices` / `zoomChoices`.
-  - Settings never asks agents to type curly-brace tokens.
-  - Insert chips: User ID, CID, Reason, Name, DOB, Age, GLife ID (`[User ID]`, `[CID]`, `[Reason]`, `[Name]`, `[DOB]`, `[AGE]`, `[GLife ID]`).
-  - User Notes follow BIT88 circle wording (chips fill live values). ACR `ACR / [CID] / [Reason]`; ACR-PAGCOR `[CID] - ACR Self-Exclusion with PAGCOR`; ACR - PERMA `ACR / [CID] / Permanent Block - [Reason]`; REACT `[CID] - Reactivation - [Reason]`; REACT NOT `Reactivation - for reset KYC not started` or `UA to legal - For reset | [CID]`; NGP / UA W/FUNDS `NOT OK for RETAKE: Doc-UA | [Name] | [DOB]`; NDRP and UA WO/FUNDS empty (Zoom-only); MANUAL KYC `For Manual Verification | [Name] | [DOB]`; KYC SWITCH the two BIT88 sentences; GLIFE.1 `GLIFE Override | [Name] | [DOB]`; GLIFE.2 `GLife Override / [GLife ID]`; ABUSER `ACR / [CID] / Permanently Blocked – BONUS ABUSER with Funds`. Old saved Settings pick up notes **and Zoom** on wording version 15 and factory reason lists on wording version 18 (live BIT88 Settings JSON; KYC SWITCH one reason).
-  - Name/DOB come from User Attributes first (`firstName` / `First Name` / `th`+`td` / `dt`+`dd`, plus middle and full name). If name or DOB is still blank, fill **only the missing field** from pinned User Notes for NGP NON-X, UA W/FUNDS, UA WO/FUNDS, GLIFE.1, GLIFE.2, MANUAL KYC, KYC SWITCH, REACT, and REACT NOT. Notes may be split across lines — join them so `ALL CAPS name` + `Date of birth` + date still fills (example `MECHAEL BAYANG PATANO JR`), not the TL line (`Hiede Labaguis`). Title Case on the line above Date of birth is accepted if there is no ALL CAPS run. Still accept pipe `|` and `Name:` / `DOB:`. NGP/UA lines like `NOT OK for RETAKE: Doc-UA PRINCE ARCHIROW ESPIRITU MARTINEZ | 03 Jun, 2008 (18)` and `NAME | 03 Jun, 2008 (18) / UA` fill Name/DOB when attributes are empty — do not skip `NOT OK for RETAKE`. Skip only a short `NOT OK` line with no name and no date. Confirm’s **Name / DOB** row and Zoom use that fill. **NDRP** Name comes from User Attributes unless a User Note actually says NDRP; never use a KYC/other note as Name.
-  - KYC SWITCH Confirm has no reason dropdown. Zoom Name/DOB from User Attributes. If the rejected-to-verify tab is `NULL` / empty, use Name/DOB from the **Verified** other tab (e.g. Juan Dela Cruz). New Verified User Notes: `New Verified account: KYC switch - [Name] / [DOB] ([AGE]) - DUP ID's: [Verified UID]` — always close the age `)`. If age is empty, omit `()`. Example `New Verified account: KYC switch - REYNALD LANTANO LEONGAS / 26 Jun, 1992 (34) - DUP ID's: 4LP9G4GQ/AWDUH/AWDKUA/AKWDBWA`. DOB is `D MMM, YYYY`. DUP IDs have no extra parentheses and are joined with `/` (no spaces). Old account follows the Settings sentence. If that wording has no `()` around the new UID, the live note does not add them. Only close a `)` when Settings already opened `UID:(`. Default preset is still `The Old account: KYC switch - New account UID:([New Account UID])`. Saved Settings pick up wording via `notesWordingVersion` 18. Factory 14 matches the live BIT88 Settings JSON (KYC SWITCH one reason → 2 ACCOUNTS / 3 OR MORE only; ACR uses the live reason list). Every button Edit includes Reasons.
-  - Zoom / Final escalation note has **no UTC clock stamp** and **no agent name**. Keep `Date of Birth` / `DOB`. Confirm’s Agent Name row stays in the summary only. Confirm hides User Notes when the note is empty. **REACT** Zoom `Name:` is the player name from User Attributes, or `gLifeUserId` when name is empty; omit a blank `DOB:` line. REACT User Notes stay `[CID] - Reactivation - [Reason]`. NDRP blocking Zoom is the refund template. UA W/FUNDS Zoom is `FOR BLOCKING - UNDERAGE WITH FUNDS - waiting for national ID` plus User ID / CID / Name / DOB. UA WO/FUNDS is Zoom-only: `FOR BLOCKING - UNDERAGE WITHOUT FUNDS` plus User ID / CID / Name / DOB (`Pasuyo po TLs`). NDRP Name comes from User Attributes unless a User Note actually says NDRP; never use a KYC/other note as Name. Strip `YYYY-MM-DD HH:MM:SS UTC` from Zoom.
-  - **Two-tab KYC SWITCH (2 ACCOUNTS):** BIT88 uses a green circle on the new player and a red circle on the old player (no tab sync). Escalation pairs **exactly one other** User Overview tab (different User ID). Confirm auto-fills Verified-to-rejected only from that live other tab, or from what the agent pastes. **Do not** read an old DUP ID from User Notes on this page — one tab means no second user. Confirm & Execute writes New Verified notes here and fills the Old-account note on the other tab from the **Settings Old account** sentence (no second Confirm, no Zoom arm there). Auto-return to `/users` is skipped so the agent can pin the other tab. Same User ID in two tabs does not pair. Zoom is `FOR KYC SWITCH` with combined User IDs: this tab `Rejected wants to verify.`, then the other tab `Verified to rejected.`
-  - **3 OR MORE tabs:** Confirm on the new player. Hide the **Verified to rejected** input. New Verified DUP ID's / Confirm summary list **other-tab** public IDs only (not old notes on this page) as `4LP9G4GQ/AWDUH/AWDKUA`. Zoom is `FOR KYC ASSESSMENT`. Line 1 is always this tab `Rejected wants to verify.` Line 2 is the **Verified** other tab `Verified to rejected.` even if that tab is last (e.g. tab 4). Remaining other tabs are `Rejected.` Combined User IDs (`15335978 (LJMQ9GXL)`). Confirm & Execute still writes the Old-account note on every other distinct player tab.
-- **Clipboard & Zoom Automation**: Copies the final note to clipboard (`Ctrl+V`) and launches Zoom on **Confirm & Execute** (not after Add Comment).
-- **In-Page Settings Modal**: Gear opens **one tab**. Body is two columns: button wording on the **left**, **Defaults** on the **right** (~240px: agent name, Zoom URL, **Bar layout** Horizontal/Vertical, Open Zoom on Confirm & Execute, insert User Notes, copy clipboard, return to Users list, **Audit**). The left list is a dashed Zoom-style box as tall as the **Defaults** column (remaining buttons scroll; scrollbar hidden). Name tap does not expand. **Edit** opens a spring popover for that button’s User Notes, Zoom, and Reasons. Apply writes the working list; **Save Changes** still persists. Settings stays open behind Edit or Add (Escape closes that popover first). **+ Add a button** sits beside **Restore 14 Presets** and opens a spring popover (same as Edit), not a form inside Settings. Stacks vertically only if the window is too narrow. Settings overlay is **clear** (no dim, no blur). Settings, Confirm, Audit, Edit-button, and the ACR/KYC **reason-pick** card use the same rectangular **spring popover** (Web Animations API, ~380ms open / ~260ms close, `cubic-bezier(0.22, 1, 0.36, 1)`): uniform scale + fade from the live trigger, no mesh. Confirm and reason-pick may use a light independent dim (~0.2). Confirm Zoom/User Notes show full text (`max-height` ~92vh). `prefers-reduced-motion: reduce` fades ~180ms. Dialogs keep `role="dialog"` `aria-modal="true"`. While any of these overlays is open, the backoffice page cannot scroll. Auto Find User, glossary, templates tab, and colors stay hidden. Button wording, Defaults, and layout save in `chrome.storage.local` (sync is only a one-time migrate). Settings footer **Export** / **Import** save a `hdjrzTools-settings.json` of buttons, reasons, User Notes, Zoom, and Defaults (not Audit). After a new install or Remove + Load unpacked, Import that file to restore custom reasons. Reload without Remove keeps Settings. **Audit** lists Confirm & Execute rows as **Player UID** then process (button), newest first, about 200 rows — not filtered to the open client. Click a row to show the full audit (time, reason, User Notes, Zoom). Edit **+ Add reason** keeps a blank row until Apply.
+- **Interactive User ID Input in Confirmation Modal**: The confirmation modal displays a prominent, editable "Client User ID" field. If scraped from screen, it is auto-filled. If opening a new client or if not detected, the agent can type/paste any User ID and the live note preview updates in real time.
+- **Dual-Tier License & Device Security**: Authenticated against Cloudflare Worker API (`https://hdjrz-license.rosechel05.workers.dev/`) with hardware-bound device IDs (`hdjrzLicenseDeviceId`).
+  - **👑 Administrator**: Access to Web Admin Portal, early-access release channels, template staging/publishing, active user telemetry, and full configuration.
+  - **🛡️ Staff Agent**: Clean, locked-down player escalation workflow; cloud templates sync-only mode; admin links and export tools suppressed.
+- **Web Admin Portal (`/admin`)**: Centralized web dashboard for license key generation, device resets, live staff telemetry, staged template authoring, automated 8-point validation, and release channel management.
+- **Dual-Channel Release Architecture**: Allows Admins to test new updates on Admin devices first (`adminLatestVersion`) while keeping all staff agents on stable production (`agentLatestVersion`), deployable with 1-click fleet promotion from a single unified `main` branch.
 
 ---
 
 ## 1. Stack & Architecture
-- **Platform**: Google Chrome Extension (Manifest V3)
-- **Permissions**: `storage`, `clipboardWrite`, `tabs`
-- **Host Permissions**: `<all_urls>` (runs on backoffice domain/IP and any web page)
+- **Client Platform**: Tampermonkey Userscript (`hdjrzTools.user.js` / `dist/bundle.js`) & Chrome Extension (Manifest V3)
+- **Edge Backend**: Cloudflare Worker with KV storage (`LICENSES`), RESTful modular API (`backend/` router architecture) and standalone deployment script (`license/worker.js`)
+- **Permissions**: `GM_xmlhttpRequest`, `GM_setValue`, `GM_getValue`, `GM_setClipboard`, `storage`, `clipboardWrite`
+- **Host Permissions**: `<all_urls>` (runs on backoffice domain/IP and authorized web pages)
 - **Directory Layout**:
   - `manifest.json`: Extension Manifest V3 definition
   - `content/templates.js`: Escalation presets (all 14 types), per-option User Notes / Zoom wording, sequence order, and note renderer
-  - `content/content.js`: Universal DOM scraper, horizontal toolbar renderer, confirmation modal with editable User ID, in-page settings modal, clipboard & User Notes injector
-  - `content/content.css`: Theme styles, horizontal bar layout, chips, confirmation & settings modal styling, toast notifications
-  - `background/background.js`: Service worker for Zoom tab/app, KYC sibling-tab find/inject, and default storage initialization
-  - `options/options.html`, `options.js`, `options.css`: Backup extension options page
-  - `options/popup.html`, `popup.js`: Quick status popup in the browser toolbar with toolbar toggle
-  - `icons/`: 16x16, 48x48, 128x128 PNG extension icons
+  - `content/content.js`: Universal DOM scraper, horizontal/vertical dock renderer, confirmation modal, in-page settings modal, clipboard & User Notes injector, update management
+  - `content/content.css`: Theme styles, dock layout, chips, modal styling, haptic animations, toast notifications
+  - `backend/`: Modular Cloudflare Worker backend:
+    - `worker.js`: Cloudflare Worker entry point and static asset/proxy handler
+    - `routes/`: RESTful routes (`auth.js`, `licenses.js`, `agents.js`, `templates.js`, `escalations.js`, `audits.js`, `system.js`)
+    - `services/`: Business logic services (`licenseService.js`, `systemService.js`, `templateService.js`, `escalationService.js`, `auditService.js`)
+    - `views/adminPortal.js`: Full Web Admin Portal HTML/CSS/JS single-page application
+  - `license/worker.js`: Standalone bundled Cloudflare Worker script for manual web editor deployment
+  - `build-userscript.js`: Build script with `javascript-obfuscator` integration (`npm run build`)
+  - `dist/bundle.js`: Compiled and obfuscated bundle
+  - `hdjrzTools.user.js`: Compiled Tampermonkey userscript
+  - `hdjrzTools.loader.user.js`: Lightweight userscript auto-loader
+  - `docs/PROJECT_MEMORY.md`: Authoritative architectural documentation and memory bank
 
 ---
 
@@ -376,4 +374,153 @@ Under Settings (gear) — **one screen**:
   - Setting: `currentSettings.soundFeedback` (default `true`).
   - Checkbox in Settings modal: `🔔 Success Chime & Green Ripple`.
   - Dedicated `🔊 Test` button next to the checkbox for instant auditioning.
+
+---
+
+## 14. Fast Keyboard Navigation & Universal Modal Controls (v1.2.4)
+
+### 14.1 Keyboard Navigation
+- **Enter to Execute**: Pressing `Enter` anywhere inside the confirmation modal (`.esc-modal-overlay`) immediately executes the escalation — pins the User Note, copies the Zoom tracker, and opens the Zoom workspace without requiring a mouse click.
+- **Esc to Cancel**: Universal dismissal across all modals (Confirmation, Settings, What's New, Reason Picker, or Audit logs).
+- **Form Safety**: Pressing Enter while typing inside the editable User ID or CID inputs updates the preview in real time without accidentally triggering early submission.
+
+---
+
+## 15. In-Tool Zero-Popup Auto-Updates & Live Discovery (v1.2.5)
+
+### 15.1 In-Tool Zero-Popup Updates
+- **Problem Solved**: Standard userscript updates opened raw GitHub tabs or Tampermonkey installation dialogs that disrupted staff mid-shift.
+- **`performInToolUpdate`**: Directly downloads and hot-swaps the userscript payload in the background using Tampermonkey's elevated `GM_xmlhttpRequest` bridge.
+- **Live Visual Progress**: Displays real-time download and installation progress right on the screen.
+- **Bypasses Website CSP**: By using `GM_xmlhttpRequest`, all updates and heartbeats route outside page Content Security Policies.
+
+---
+
+## 16. Enterprise Legal Age Status Badge on Dock (v1.2.6 – v1.2.7)
+
+### 16.1 Live Toolbar Evaluation
+- **Minimalist Status Dot Badge**: Sleek status pill embedded directly beside the player ID on the floating dock.
+- **Real-Time Evaluation**: As soon as player attributes or notes load, evaluates the age against PAGCOR compliance rules:
+  - 🟢 **Legal (21+)**: Fully compliant adult.
+  - 🟠 **Restricted (18–20)**: Civil adult, but restricted from casino gaming under PAGCOR regulations.
+  - 🔴 **Minor (<18)**: Prohibited underage account.
+- **Alignment**: Height (32px) and rectangular radius (4px) match the dock elements seamlessly.
+
+---
+
+## 17. Side-by-Side Account Comparator Modal for KYC Switch (v1.2.8)
+
+### 17.1 Real-Time Cross-Tab Account Comparison
+- **Visual Sibling Comparison**: In KYC Switch operations (2 ACCOUNTS), the confirmation modal renders a side-by-side visual comparison between the **New Account (Wants to Verify)** and the **Old Duplicate Account (Verified to Rejected)**.
+- **Live Attribute Diff**: Displays Public ID, Numeric ID, Full Name, Verification Status, and Registration Date side-by-side.
+- **Cross-Tab Synchronization**: Uses `BroadcastChannel("hdjrz_kyc_channel")` to scrape and pair attributes between concurrent tabs without tab reloading.
+
+---
+
+## 18. Escalation Library Architecture (v1.4.0)
+
+### 18.1 Managed Definition Model
+- Defined in `backend/services/escalationService.js`:
+  - 14 standardized escalation codes (`ACR`, `ACR-PAGCOR`, `ACR - PERMA`, `REACT`, `REACT NOT`, `NGP NON-X`, `NDRP`, `UA W/FUNDS`, `UA WO/FUNDS`, `MANUAL KYC`, `KYC SWITCH`, `GLIFE.1`, `GLIFE.2`, `ABUSER`).
+- **RESTful Endpoints**:
+  - `GET /api/escalations`: Lists all definitions with active state, button labels, descriptions, and category groupings.
+  - `POST /api/escalations/toggle`: Toggles an escalation between active and inactive.
+  - `POST /api/escalations/reset`: Restores all 14 standard definitions to factory presets.
+
+---
+
+## 19. Staged Template Deployment Pipeline (v1.4.1)
+
+### 19.1 4-Step Production Pipeline
+Replaces direct writes to production templates with an enterprise 4-stage pipeline:
+1. **1️⃣ Admin Edits (Draft)**: Admins edit button wording, reasons, and templates in the Web Admin Portal or extension. Changes are saved as a staged candidate in KV key `"TEMPLATE_DRAFT"`.
+2. **2️⃣ Automated Validation**: The draft undergoes strict 8-point automated validation.
+3. **3️⃣ Visual Preview & Diff**: Full visual comparison vs live production (`+ Added`, `~ Modified`, `- Removed`, `Unchanged`) plus live interactive button dock preview.
+4. **4️⃣ Production Release (vN → vN+1)**: One-click atomic promotion to live `"REMOTE_TEMPLATES"` KV key, broadcasting the new template version to all active workstations worldwide within seconds.
+
+---
+
+## 20. 8-Point Automated Template Validation Engine (v1.4.2)
+
+### 20.1 Engine Rules (`validateTemplateDraft`)
+Before any template draft can be published, it must pass 8 automated checks:
+1. **JSON Syntax & Structure**: Valid object array structure with version metadata.
+2. **Standard Escalation Codes**: Every preset matches a recognized system escalation code.
+3. **Required Reasons Presence**: All 14 standard definitions must have at least one defined reason.
+4. **User Note Template Syntax**: Valid placeholders, balanced brackets, and correct chip formatting.
+5. **Zoom Escalation Template Syntax**: Valid tracker formulas and token syntax.
+6. **Token Integrity**: Tokens match recognized system variables (`[User ID]`, `[CID]`, `[Name]`, `[DOB]`, etc.).
+7. **No Duplicate Reasons**: Reasons within a button must be unique.
+8. **Required Field Schema**: Mandatory properties (`id`, `label`, `userNotesText`, `zoomText`) must be present.
+
+---
+
+## 21. Maya Mini App Native Scraper (v1.4.3)
+
+### 21.1 Dynamic Extraction
+- Automatically parses and extracts player details from Maya Mini App DOM elements:
+  - `mayaminiapp-firstName`
+  - `mayaminiapp-lastName`
+  - `mayaminiapp-dateOfBirth`
+  - `mayaMiniAppId`
+- **Robust Date Parsing**: Converts `MM-DD-YYYY` formats into standard `D MMM, YYYY` and computes precise PAGCOR legal age status.
+
+---
+
+## 22. Update Requirement Transparency (v1.4.4)
+
+### 22.1 Update Status Transparency
+- **⚠️ Required Update**: Triggered when the installed version is below the Cloudflare `minRequiredVersion`. Displays prominent red badges and warning alerts.
+- **🚀 Optional Update**: Triggered when a new feature release is available but older versions remain compliant. Displays friendly blue badges without blocking workflows.
+- **What's New Changelog**:
+  - Condensed single-line bullet highlights.
+  - Scrollbars completely hidden (`scrollbar-width: none; ::-webkit-scrollbar { display: none; }`) for a clean, modern aesthetic.
+
+---
+
+## 23. Centralized Publishing & Streamlined Settings UI (v1.4.5)
+
+### 23.1 Removal of In-Page Publishing
+- To eliminate accidental overwrites of company-wide templates from agent workstations, in-page publishing was removed from the extension Settings modal.
+- Publishing is strictly managed through the **Web Admin Portal (`/admin`)**.
+
+### 23.2 Streamlined Settings Hierarchy
+- **Cloud & Backup Tab**:
+  - Contains **`🔄 Sync from Cloud`** as its single, clear action.
+  - Removed all duplicate "Admin Portal" buttons and redundant jump links from the **Active Users Online** box.
+  - Contains **Export** / **Import** for local configuration files.
+- **Account & License Tab**:
+  - Established as the single authoritative home for administrative actions.
+  - Features **`🌐 Web Admin Portal ↗`** alongside **`Sign out`** under **Session & License Management**.
+  - Displays Role, Installed Version, Server Version, Update Status, Device Status, and Release Channel.
+
+---
+
+## 24. Dual-Channel Release Architecture & Fleet Rollout (v1.4.5+)
+
+### 24.1 Architecture & Problem Solved
+- **Problem Solved**: Avoids the need to create and maintain separate Git branches (`admin`, `agent`, `main`), which causes merge conflicts and requires agents to reinstall Tampermonkey scripts.
+- **Single `main` Branch**: All staff and admins install and update from the single `main` branch.
+- **Role-Aware Cloudflare Edge Routing**:
+  - When an **Admin** device heartbeats, Cloudflare evaluates versioning against `adminLatestVersion` (Early Access channel).
+  - When an **Agent** device heartbeats, Cloudflare evaluates versioning against `agentLatestVersion` (Production Fleet channel).
+- **1-Click Fleet Promotion**:
+  - In the Web Admin Portal, the **"🚀 Release Channels & Fleet Rollout"** card allows admins to set `adminLatestVersion` (e.g. `1.5.0`) to test on admin devices while agents stay on `1.4.5`.
+  - Clicking **`🚀 Promote to Fleet`** atomically syncs `agentLatestVersion = adminLatestVersion` in KV, releasing the update to all staff workstations simultaneously!
+
+---
+
+## 25. Master Web Admin Portal Architecture (`/admin`)
+
+### 25.1 Edge Web Application
+- Served directly by Cloudflare Worker at `https://hdjrz-license.rosechel05.workers.dev/admin`.
+- Authenticated via Master Admin Password (stored in KV `"ADMIN_PASSWORD"`, rotatable from the portal).
+
+### 25.2 Integrated Control Center
+1. **Live Staff Telemetry**: Real-time monitor of active staff, current script versions, and last seen timestamps.
+2. **License Key Management**: Generate Admin or Staff keys, view hardware device bindings, 1-click device binding reset, freeze/unfreeze keys, and permanent key deletion.
+3. **Template Deployment Pipeline**: Staged candidate editor, 8-point automated validation report, live visual preview & diff, and production release trigger.
+4. **Escalation Library**: View and toggle all 14 managed escalation definitions.
+5. **Release Channels & Fleet Rollout**: Configure early-access Admin versions vs stable Agent Fleet versions with 1-click promotion.
+6. **Master Password Rotation**: Secure password update tool directly on the edge.
 
