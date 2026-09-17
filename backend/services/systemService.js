@@ -5,8 +5,8 @@ import { AppError } from "../utils/errors.js";
 
 export const DEFAULT_SYSTEM_CONFIG = {
   minRequiredVersion: "1.1.4",
-  latestVersion: "1.4.6",
-  adminLatestVersion: "1.4.6",
+  latestVersion: "1.4.7",
+  adminLatestVersion: "1.4.7",
   agentLatestVersion: "1.4.5",
   killSwitch: false,
   killSwitchMessage: "hdjrzTools is temporarily disabled for emergency maintenance.",

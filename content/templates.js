@@ -719,10 +719,7 @@ const DEFAULT_SETTINGS = {
   customOptions: null,
   notesWordingVersion: 0,
   remoteTemplatesVersion: 0,
-  tlMentions: "@Jetro",
-  sendZoomWebhook: false,
-  zoomWebhookUrl: "https://integrations.zoom.us/chat/webhooks/incomingwebhook/57gIqt2RCCnjh9Clcq8KQ",
-  zoomWebhookToken: "USh3ydx5S8SEMly00cbNNw"
+  tlMentions: "@Jetro"
 };
 
 function ageFromDob(dobStr) {

@@ -526,7 +526,7 @@ Before any template draft can be published, it must pass 8 automated checks:
 
 ---
 
-## 26. Team Leader Mentions & Zoom Webhook Integration (v1.4.5+)
+## 26. Team Leader Mentions (Admin-Gated) (v1.4.7+)
 
 ### 26.1 Universal Team Leader Mentioning
 - **Default Mention**: `@Jetro` (configurable by Admin).
@@ -536,15 +536,9 @@ Before any template draft can be published, it must pass 8 automated checks:
   - Staff agents cannot modify this setting; the configured TL mention applies fleet-wide automatically.
 - **Dynamic Note Formatting (`applyTlMentionsToNote` / `applyTlMentionsToZoomNote`)**:
   - Replaces `Pasuyo po TLs`, `Pasuyo tl`, or existing mentions across all 14 preset templates (and custom buttons) with `Pasuyo po TLs {tlMentions}`.
-  - Automatically reflected in the confirmation modal preview, clipboard copy, and Zoom webhook dispatch.
-
-### 26.2 Zoom Incoming Webhook Dispatch
-- **Endpoint**: `https://integrations.zoom.us/chat/webhooks/incomingwebhook/57gIqt2RCCnjh9Clcq8KQ` (using `?format=message`).
-- **Authorization**: Verification Token `USh3ydx5S8SEMly00cbNNw`.
-- **Admin Toggle & Credentials**:
-  - Checkbox `#esc-set-send-zoom-webhook`: Automatically dispatches the final escalation note to the Zoom channel upon clicking **Confirm & Execute**.
-  - URL and Token fields configurable under the Admin section in Settings.
-  - Interactive **`💬 Test Webhook`** button to send live test pings directly to the Zoom channel and confirm connectivity.
-- **CSP Bypass**: Dispatches using `sendWorkerRequest()` (`GM_xmlhttpRequest`) to bypass website Content Security Policies.
+  - Automatically reflected in the confirmation modal preview, clipboard copy, and audit trail.
+- **Zoom Chat Desktop Mentioning Workflow**:
+  - Zoom desktop chat deliberately does not parse plain-text pasted `@mentions` into active notification pills to prevent spam.
+  - When agents paste (`Ctrl+V`) the note into Zoom, tapping `Backspace` + letter (e.g. backspace `o` and type `o` or `Enter`) triggers Zoom's native autocomplete menu, instantly locking `@Jetro` into an active notification mention under the agent's personal account.
 
 

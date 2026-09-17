@@ -115,10 +115,7 @@
     remoteTemplatesVersion: 0,
     theme: "dark",
     barTheme: "minimal-glass",
-    tlMentions: "@Jetro",
-    sendZoomWebhook: false,
-    zoomWebhookUrl: "https://integrations.zoom.us/chat/webhooks/incomingwebhook/57gIqt2RCCnjh9Clcq8KQ",
-    zoomWebhookToken: "USh3ydx5S8SEMly00cbNNw"
+    tlMentions: "@Jetro"
   };
 
   let workingOptions = [];
@@ -560,46 +557,6 @@
         finish(err && err.message ? err.message : "offline", null, 0);
       });
     }
-  }
-
-  const DEFAULT_ZOOM_WEBHOOK_URL = "https://integrations.zoom.us/chat/webhooks/incomingwebhook/57gIqt2RCCnjh9Clcq8KQ";
-  const DEFAULT_ZOOM_WEBHOOK_TOKEN = "USh3ydx5S8SEMly00cbNNw";
-
-  function sendZoomWebhookMessage(text, cb) {
-    const rawUrl = (currentSettings.zoomWebhookUrl || DEFAULT_ZOOM_WEBHOOK_URL).trim();
-    const token = (currentSettings.zoomWebhookToken || DEFAULT_ZOOM_WEBHOOK_TOKEN).trim();
-    if (!rawUrl) {
-      if (cb) cb(new Error("No Zoom Webhook URL configured"));
-      return;
-    }
-    const sep = rawUrl.includes("?") ? "&" : "?";
-    const endpoint = rawUrl.includes("format=") ? rawUrl : `${rawUrl}${sep}format=message`;
-
-    const payload = {
-      body: text
-    };
-
-    const headers = {
-      "Content-Type": "application/json"
-    };
-    if (token) {
-      headers["Authorization"] = token;
-    }
-
-    sendWorkerRequest({
-      url: endpoint,
-      method: "POST",
-      headers,
-      data: payload,
-      timeout: 10000
-    }, (err, resp, status) => {
-      if (err) {
-        console.warn("[hdjrzTools] Zoom webhook error:", err);
-        if (cb) cb(err);
-      } else {
-        if (cb) cb(null, resp);
-      }
-    });
   }
 
   function postLicenseServer(payload, cb) {
@@ -2270,10 +2227,7 @@
         soundFeedback: currentSettings.soundFeedback !== false,
         notesWordingVersion: currentSettings.notesWordingVersion || 0,
         remoteTemplatesVersion: currentSettings.remoteTemplatesVersion || 0,
-        tlMentions: currentSettings.tlMentions != null ? currentSettings.tlMentions : "@Jetro",
-        sendZoomWebhook: !!currentSettings.sendZoomWebhook,
-        zoomWebhookUrl: currentSettings.zoomWebhookUrl || "",
-        zoomWebhookToken: currentSettings.zoomWebhookToken || ""
+        tlMentions: currentSettings.tlMentions != null ? currentSettings.tlMentions : "@Jetro"
       },
       customTemplates: currentSettings.customTemplates || {},
       customOptions: currentSettings.customOptions
@@ -5377,16 +5331,6 @@
           });
         }
 
-        if (currentSettings.sendZoomWebhook) {
-          sendZoomWebhookMessage(finalNoteForZoom, (err) => {
-            if (err) {
-              console.warn("[hdjrzTools] Zoom webhook auto-dispatch failed:", err);
-            } else {
-              console.log("[hdjrzTools] Zoom webhook note delivered successfully.");
-            }
-          });
-        }
-
         if (shouldPin) {
           injectUserNoteOnPage(userNoteToInject, (injected) => {
             if (injected) {
@@ -5701,23 +5645,6 @@
                       </div>
                       <input type="text" class="esc-input" id="esc-set-tl-mentions" value="${escapeHtml(currentSettings.tlMentions || "@Jetro")}" placeholder="@Jetro" style="font-weight: 600;">
                       <span class="esc-field-hint" style="display: block; margin-top: 4px; font-size: 11px; color: #94a3b8;">Handle(s) appended after "Pasuyo po TLs" in all escalation notes.</span>
-
-                      <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.08);">
-                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-                          <span class="esc-form-label" style="margin-bottom: 0; font-size: 12px; font-weight: 700; color: #34d399;">⚡ Zoom Webhook Dispatch</span>
-                          <button type="button" class="esc-btn-test-chime" id="esc-test-zoom-webhook" title="Send test message to Zoom channel" style="padding: 2px 8px; font-size: 11px;">💬 Test Webhook</button>
-                        </div>
-                        <label class="esc-checkbox-label" style="margin-bottom: 6px; font-size: 12px;">
-                          <input type="checkbox" id="esc-set-send-zoom-webhook" ${currentSettings.sendZoomWebhook ? "checked" : ""}>
-                          <span>Auto-dispatch escalation note to Zoom channel</span>
-                        </label>
-                        <div id="esc-webhook-details" style="${currentSettings.sendZoomWebhook ? '' : 'display: none;'} margin-top: 8px;">
-                          <label class="esc-form-label" for="esc-set-zoom-webhook-url" style="font-size: 11px;">Incoming Webhook URL</label>
-                          <input type="text" class="esc-input" id="esc-set-zoom-webhook-url" value="${escapeHtml(currentSettings.zoomWebhookUrl || "https://integrations.zoom.us/chat/webhooks/incomingwebhook/57gIqt2RCCnjh9Clcq8KQ")}" placeholder="https://integrations.zoom.us/chat/webhooks/..." style="font-size: 11px; margin-bottom: 6px; font-family: monospace;">
-                          <label class="esc-form-label" for="esc-set-zoom-webhook-token" style="font-size: 11px;">Verification Token</label>
-                          <input type="password" class="esc-input" id="esc-set-zoom-webhook-token" value="${escapeHtml(currentSettings.zoomWebhookToken || "USh3ydx5S8SEMly00cbNNw")}" placeholder="Zoom token" style="font-size: 11px; font-family: monospace;">
-                        </div>
-                      </div>
                     </div>
                     `}
                   </div>
@@ -6654,11 +6581,6 @@
       if (!staffView) {
         const tlInput = overlay.querySelector("#esc-set-tl-mentions");
         if (tlInput) tlInput.value = currentSettings.tlMentions != null ? currentSettings.tlMentions : "@Jetro";
-        setCheck("#esc-set-send-zoom-webhook", !!currentSettings.sendZoomWebhook);
-        const whUrl = overlay.querySelector("#esc-set-zoom-webhook-url");
-        if (whUrl) whUrl.value = currentSettings.zoomWebhookUrl || DEFAULT_ZOOM_WEBHOOK_URL;
-        const whTok = overlay.querySelector("#esc-set-zoom-webhook-token");
-        if (whTok) whTok.value = currentSettings.zoomWebhookToken || DEFAULT_ZOOM_WEBHOOK_TOKEN;
       }
     }
     fillSettingsDefaultsForm();
@@ -6698,37 +6620,6 @@
         e.stopPropagation();
         notifyEscalationSuccess(true);
       });
-    }
-
-    if (!staffView) {
-      const sendWebhookCheck = overlay.querySelector("#esc-set-send-zoom-webhook");
-      const webhookDetails = overlay.querySelector("#esc-webhook-details");
-      if (sendWebhookCheck && webhookDetails) {
-        sendWebhookCheck.addEventListener("change", () => {
-          webhookDetails.style.display = sendWebhookCheck.checked ? "block" : "none";
-        });
-      }
-
-      const testWebhookBtn = overlay.querySelector("#esc-test-zoom-webhook");
-      if (testWebhookBtn) {
-        testWebhookBtn.addEventListener("click", (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          testWebhookBtn.disabled = true;
-          testWebhookBtn.textContent = "⏳ Sending...";
-          const currentTl = (overlay.querySelector("#esc-set-tl-mentions") && overlay.querySelector("#esc-set-tl-mentions").value.trim()) || currentSettings.tlMentions || "@Jetro";
-          const testMsg = `🔔 Test Notification from HDJRZ Tools\n\nPasuyo po TLs ${currentTl}\nTimestamp: ${new Date().toLocaleString()}`;
-          sendZoomWebhookMessage(testMsg, (err) => {
-            testWebhookBtn.disabled = false;
-            testWebhookBtn.textContent = "💬 Test Webhook";
-            if (err) {
-              showToast("⚠️ Zoom Webhook Failed: " + err, false);
-            } else {
-              showToast("✅ Test message delivered to Zoom channel!", true);
-            }
-          });
-        });
-      }
     }
 
     const exportBtn = overlay.querySelector("#esc-settings-export");
@@ -6826,9 +6717,6 @@
       const agentInput = overlay.querySelector("#esc-set-agent");
       const zoomUrlInput = overlay.querySelector("#esc-set-zoom-url");
       const tlInput = overlay.querySelector("#esc-set-tl-mentions");
-      const sendWhCheck = overlay.querySelector("#esc-set-send-zoom-webhook");
-      const whUrlInput = overlay.querySelector("#esc-set-zoom-webhook-url");
-      const whTokInput = overlay.querySelector("#esc-set-zoom-webhook-token");
 
       const updatedSettings = {
         agentName: (agentInput && agentInput.value.trim()) || "",
@@ -6844,10 +6732,7 @@
         autoFindAndView: false,
         barLayout: (overlay.querySelector('input[name="esc-bar-layout"]:checked') && overlay.querySelector('input[name="esc-bar-layout"]:checked').value === "vertical") ? "vertical" : "horizontal",
         barTheme: (overlay.querySelector('input[name="esc-bar-theme"]:checked') && overlay.querySelector('input[name="esc-bar-theme"]:checked').value) || currentSettings.barTheme || "minimal-glass",
-        tlMentions: (!staffView && tlInput) ? tlInput.value.trim() : (currentSettings.tlMentions || "@Jetro"),
-        sendZoomWebhook: (!staffView && sendWhCheck) ? !!sendWhCheck.checked : !!currentSettings.sendZoomWebhook,
-        zoomWebhookUrl: (!staffView && whUrlInput) ? whUrlInput.value.trim() : (currentSettings.zoomWebhookUrl || ""),
-        zoomWebhookToken: (!staffView && whTokInput) ? whTokInput.value.trim() : (currentSettings.zoomWebhookToken || "")
+        tlMentions: (!staffView && tlInput) ? tlInput.value.trim() : (currentSettings.tlMentions || "@Jetro")
       };
       const optionsToSave = isAdminLicense() ? workingOptions : currentSettings.customOptions;
       saveSettings(updatedSettings, currentSettings.customTemplates || {}, optionsToSave, () => {
