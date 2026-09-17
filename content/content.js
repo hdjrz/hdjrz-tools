@@ -47,7 +47,8 @@
     customTemplates: {},
     customOptions: null,
     remoteTemplatesVersion: 0,
-    theme: "dark"
+    theme: "dark",
+    barTheme: "frosted"
   };
 
   let workingOptions = [];
@@ -81,7 +82,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.3.5";
+  const HARDCODED_VERSION = "1.3.6";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -101,9 +102,24 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.3.6",
+      title: "4 Premium Bar Themes & Design Selector",
+      date: "Latest",
+      agentFeatures: [
+        "🔮 Modern Frosted Glass Theme: Translucent acrylic backdrop with blur effect, glossy gradient buttons, and soft glowing hover lift.",
+        "⚡ Cyberpunk Dark Theme: High-tech obsidian chassis with neon cyan accents and crisp monospace typography.",
+        "📐 Ultra-Compact Theme: Low-profile design saving 30% vertical space on Bet88.",
+        "🏛️ Classic Solid Theme: Original familiar design preserved for quick switching.",
+        "🎛️ Live Theme Selector: Instant real-time preview directly inside Settings > General tab."
+      ],
+      adminFeatures: [
+        "🎨 Fleet Aesthetic Customization: Both agents and admins can select their preferred visual workspace style effortlessly."
+      ]
+    },
+    {
       version: "1.3.5",
       title: "Categorized Settings Interface",
-      date: "Latest",
+      date: "Previous",
       agentFeatures: [
         "🗂️ Categorized Settings: Clean sidebar navigation dividing options into General, Buttons, Cloud & Backup, Audit, and Account.",
         "🎯 Direct Category Access: 1-click instant switching between any settings category with zero sequential next/back steps.",
@@ -1290,6 +1306,14 @@
     }
   }
 
+  function applyBarTheme() {
+    const dock = dockElement || document.getElementById("escalation-helper-dock");
+    if (!dock) return;
+    const theme = currentSettings.barTheme || "frosted";
+    dock.classList.remove("esc-theme-frosted", "esc-theme-cyber", "esc-theme-compact", "esc-theme-classic");
+    dock.classList.add(`esc-theme-${theme}`);
+  }
+
   function stripGenieCloneIds(root) {
     if (!root) return;
     if (root.removeAttribute) root.removeAttribute("id");
@@ -2051,12 +2075,17 @@
       currentSettings.agentName = "";
     }
     currentSettings.barLayout = currentSettings.barLayout === "vertical" ? "vertical" : "horizontal";
+    const validThemes = ["frosted", "cyber", "compact", "classic"];
+    if (!validThemes.includes(currentSettings.barTheme)) {
+      currentSettings.barTheme = "frosted";
+    }
     if (data && data.customTemplates) {
       currentSettings.customTemplates = { ...currentSettings.customTemplates, ...data.customTemplates };
     }
     if (data && Array.isArray(data.customOptions)) {
       currentSettings.customOptions = data.customOptions;
     }
+    applyBarTheme();
   }
 
   function hasStoredSettings(data) {
@@ -3839,6 +3868,7 @@
     if (isLockedOut) return;
     if (document.getElementById("escalation-helper-dock")) {
       dockElement = document.getElementById("escalation-helper-dock");
+      applyBarTheme();
       updateHorizontalDockButtons();
       return;
     }
@@ -3894,6 +3924,7 @@
     document.body.appendChild(dock);
 
     applyBarLayout();
+    applyBarTheme();
     updateHorizontalDockButtons();
     bindDockEvents(dock);
     updatePlayerStatusBadge();
@@ -5310,6 +5341,63 @@
                       </label>
                     </div>
                   </div>
+
+                  <div class="esc-form-row" style="margin-top: 12px;">
+                    <span class="esc-form-label">Bar Design &amp; Theme (Live Preview)</span>
+                    <div class="esc-theme-grid">
+                      <label class="esc-theme-card ${(!currentSettings.barTheme || currentSettings.barTheme === 'frosted') ? 'is-selected' : ''}">
+                        <input type="radio" name="esc-bar-theme" value="frosted" ${(!currentSettings.barTheme || currentSettings.barTheme === 'frosted') ? 'checked' : ''}>
+                        <div class="esc-theme-preview esc-preview-frosted">
+                          <span class="esc-preview-dot" style="background:#38bdf8;"></span>
+                          <span class="esc-preview-dot" style="background:#10b981;"></span>
+                          <span class="esc-preview-dot" style="background:#f59e0b;"></span>
+                        </div>
+                        <div class="esc-theme-meta">
+                          <span class="esc-theme-name">🔮 Frosted Glass</span>
+                          <span class="esc-theme-badge">Recommended</span>
+                        </div>
+                      </label>
+
+                      <label class="esc-theme-card ${currentSettings.barTheme === 'cyber' ? 'is-selected' : ''}">
+                        <input type="radio" name="esc-bar-theme" value="cyber" ${currentSettings.barTheme === 'cyber' ? 'checked' : ''}>
+                        <div class="esc-theme-preview esc-preview-cyber">
+                          <span class="esc-preview-dot" style="background:#00f0ff;"></span>
+                          <span class="esc-preview-dot" style="background:#ff0055;"></span>
+                          <span class="esc-preview-dot" style="background:#00ff66;"></span>
+                        </div>
+                        <div class="esc-theme-meta">
+                          <span class="esc-theme-name">⚡ Cyberpunk</span>
+                          <span class="esc-theme-badge" style="color:#00f0ff;border-color:rgba(0,240,255,0.3);background:rgba(0,240,255,0.1);">High-Tech</span>
+                        </div>
+                      </label>
+
+                      <label class="esc-theme-card ${currentSettings.barTheme === 'compact' ? 'is-selected' : ''}">
+                        <input type="radio" name="esc-bar-theme" value="compact" ${currentSettings.barTheme === 'compact' ? 'checked' : ''}>
+                        <div class="esc-theme-preview esc-preview-compact">
+                          <span class="esc-preview-dot" style="background:#60a5fa;"></span>
+                          <span class="esc-preview-dot" style="background:#34d399;"></span>
+                          <span class="esc-preview-dot" style="background:#a78bfa;"></span>
+                        </div>
+                        <div class="esc-theme-meta">
+                          <span class="esc-theme-name">📐 Ultra-Compact</span>
+                          <span class="esc-theme-badge" style="color:#94a3b8;border-color:#334155;background:rgba(51,65,85,0.2);">Low-Profile</span>
+                        </div>
+                      </label>
+
+                      <label class="esc-theme-card ${currentSettings.barTheme === 'classic' ? 'is-selected' : ''}">
+                        <input type="radio" name="esc-bar-theme" value="classic" ${currentSettings.barTheme === 'classic' ? 'checked' : ''}>
+                        <div class="esc-theme-preview esc-preview-classic">
+                          <span class="esc-preview-dot" style="background:#2563eb;"></span>
+                          <span class="esc-preview-dot" style="background:#059669;"></span>
+                          <span class="esc-preview-dot" style="background:#d97706;"></span>
+                        </div>
+                        <div class="esc-theme-meta">
+                          <span class="esc-theme-name">🏛️ Classic Solid</span>
+                          <span class="esc-theme-badge" style="color:#cbd5e1;border-color:#475569;background:rgba(71,85,105,0.2);">Original</span>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
                 </div>
 
                 <div class="esc-panel-col">
@@ -6160,8 +6248,26 @@
       setCheck("#esc-set-copy", currentSettings.autoCopyClipboard !== false);
       setCheck("#esc-set-sound", currentSettings.soundFeedback !== false);
       setCheck("#esc-set-return", currentSettings.autoReturnToUsers !== false);
+      const themeVal = currentSettings.barTheme || "frosted";
+      const themeRadio = overlay.querySelector(`input[name="esc-bar-theme"][value="${themeVal}"]`);
+      if (themeRadio) {
+        themeRadio.checked = true;
+        overlay.querySelectorAll(".esc-theme-card").forEach(c => c.classList.remove("is-selected"));
+        const parentCard = themeRadio.closest(".esc-theme-card");
+        if (parentCard) parentCard.classList.add("is-selected");
+      }
     }
     fillSettingsDefaultsForm();
+
+    overlay.querySelectorAll('input[name="esc-bar-theme"]').forEach(radio => {
+      radio.addEventListener("change", () => {
+        overlay.querySelectorAll(".esc-theme-card").forEach(c => c.classList.remove("is-selected"));
+        const parentCard = radio.closest(".esc-theme-card");
+        if (parentCard) parentCard.classList.add("is-selected");
+        currentSettings.barTheme = radio.value;
+        applyBarTheme();
+      });
+    });
 
     const testChimeBtn = overlay.querySelector("#esc-test-chime");
     if (testChimeBtn) {
@@ -6292,10 +6398,12 @@
           ? !!(overlay.querySelector("#esc-set-return") && overlay.querySelector("#esc-set-return").checked)
           : (currentSettings.autoReturnToUsers !== false),
         autoFindAndView: false,
-        barLayout: (overlay.querySelector('input[name="esc-bar-layout"]:checked') && overlay.querySelector('input[name="esc-bar-layout"]:checked').value === "vertical") ? "vertical" : "horizontal"
+        barLayout: (overlay.querySelector('input[name="esc-bar-layout"]:checked') && overlay.querySelector('input[name="esc-bar-layout"]:checked').value === "vertical") ? "vertical" : "horizontal",
+        barTheme: (overlay.querySelector('input[name="esc-bar-theme"]:checked') && overlay.querySelector('input[name="esc-bar-theme"]:checked').value) || "frosted"
       };
       const optionsToSave = isAdminLicense() ? workingOptions : currentSettings.customOptions;
       saveSettings(updatedSettings, currentSettings.customTemplates || {}, optionsToSave, () => {
+        applyBarTheme();
         showToast("Saved.");
         closeSettings();
       });
