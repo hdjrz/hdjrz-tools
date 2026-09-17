@@ -175,8 +175,8 @@
         "🔄 Clean Cloud Sync: Extension settings now sync directly from approved production templates with zero accidental publishes."
       ],
       adminFeatures: [
-        "🌐 Centralized Pipeline: Publishing is now strictly managed via Web Admin Portal (/admin) with full staging and validation.",
-        "🛡️ Overwrite Protection: In-page Settings modal now features direct access to Admin Portal."
+        "🌐 Centralized Pipeline: Publishing is strictly managed via Web Admin Portal (/admin) with full staging and validation.",
+        "🛡️ Streamlined Settings: Centralized Web Admin Portal access in Account & License, eliminating duplicate actions in Cloud & Backup."
       ]
     },
     {
@@ -5680,30 +5680,20 @@
                     <span class="esc-cloud-title">Cloud Templates Synchronization</span>
                     <span class="esc-cloud-subtitle">Pull the latest team templates published in the Web Admin Portal</span>
                   </div>
-                  <div style="display: flex; gap: 8px; align-items: center;">
-                    ${staffView ? "" : `
-                    <a href="https://hdjrz-license.rosechel05.workers.dev/admin" target="_blank" rel="noopener noreferrer" class="esc-btn-secondary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 5px; font-weight: 700; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.12);" title="Open Admin Portal to draft, preview, and publish team templates">
-                      <span>🌐 Admin Portal (Publish) ↗</span>
-                    </a>
-                    `}
-                    <button type="button" class="esc-btn-secondary esc-btn-sync" id="esc-settings-sync" title="Pull latest approved templates from Cloud">
-                      <svg class="esc-sync-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
-                      </svg>
-                      <span>Sync from Cloud</span>
-                    </button>
-                  </div>
+                  <button type="button" class="esc-btn-secondary esc-btn-sync" id="esc-settings-sync" title="Pull latest approved templates from Cloud">
+                    <svg class="esc-sync-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                    </svg>
+                    <span>Sync from Cloud</span>
+                  </button>
                 </div>
 
                 ${staffView ? "" : `
                 <div class="esc-admin-active-box" style="margin-top: 12px; padding: 10px 12px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 6px;">
-                  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                  <div style="display: flex; align-items: center; margin-bottom: 6px;">
                     <span style="font-weight: 700; color: #38bdf8; font-size: 11px;">
                       📋 Active Users Online <span id="esc-active-users-count" style="background: rgba(56, 189, 248, 0.2); padding: 1px 6px; border-radius: 10px; font-size: 10px; color: #7dd3fc;">${Array.isArray(lastKnownActiveUsers) ? lastKnownActiveUsers.length : 0}</span>
                     </span>
-                    <a href="https://hdjrz-license.rosechel05.workers.dev/admin" target="_blank" rel="noopener noreferrer" style="font-size: 11px; color: #38bdf8; text-decoration: none; font-weight: 600;">
-                      Admin Portal ↗
-                    </a>
                   </div>
                   <div id="esc-active-users-list" style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                     ${renderActiveUsersListHtml()}
@@ -5794,13 +5784,13 @@
 
               <div class="esc-account-actions-card" style="margin-top: 14px; padding: 14px 16px; background: #070d18; border: 1px solid #1e293b; border-radius: 8px; display: flex; align-items: center; justify-content: space-between;">
                 <div>
-                  <span style="font-weight: 700; color: #e2e8f0; font-size: 12px; display: block;">Session Management</span>
-                  <span style="font-size: 11px; color: #94a3b8;">Sign out will release this device's license seat from the Cloudflare server.</span>
+                  <span style="font-weight: 700; color: #e2e8f0; font-size: 12px; display: block;">Session &amp; License Management</span>
+                  <span style="font-size: 11px; color: #94a3b8;">Manage seats, licenses, and cloud templates in the Web Admin Portal, or release this device.</span>
                 </div>
                 <div style="display: flex; gap: 8px; align-items: center;">
                   ${staffView ? "" : `
-                  <a href="https://hdjrz-license.rosechel05.workers.dev/admin" target="_blank" rel="noopener noreferrer" class="esc-btn-secondary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px; font-size: 12px; padding: 6px 12px;">
-                    Admin Portal ↗
+                  <a href="https://hdjrz-license.rosechel05.workers.dev/admin" target="_blank" rel="noopener noreferrer" class="esc-btn-secondary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: #38bdf8; border-color: rgba(56, 189, 248, 0.35); background: rgba(56, 189, 248, 0.08); padding: 6px 12px;" title="Open Web Admin Portal to manage licenses, active seats, and templates">
+                    🌐 Web Admin Portal ↗
                   </a>
                   `}
                   <button type="button" class="esc-btn-secondary esc-btn-danger-outline" id="esc-settings-signout" style="padding: 6px 14px;">Sign out</button>
