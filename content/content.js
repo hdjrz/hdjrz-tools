@@ -148,7 +148,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.4.2";
+  const HARDCODED_VERSION = "1.4.3";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -168,9 +168,21 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.4.3",
+      title: "Maya Mini App User Attributes & Name/DOB Extraction",
+      date: "Latest",
+      agentFeatures: [
+        "📱 Maya Mini App User Attributes: Added full auto-detection for Maya Mini App users (mayaminiapp-firstName, mayaminiapp-lastName, mayaminiapp-dateOfBirth, mayaMiniAppId).",
+        "🎂 Robust Date of Birth Parsing: Added native support for MM-DD-YYYY and DD-MM-YYYY formats (e.g. 04-23-1998) ensuring seamless Name & DOB filling in notes, Zoom, and age calculations."
+      ],
+      adminFeatures: [
+        "⚡ Cross-Platform Coverage: Automatic extraction now handles both standard Bet88, GLife, and Maya Mini App player profiles flawlessly."
+      ]
+    },
+    {
       version: "1.4.2",
       title: "Escalation Library & 8-Point Pre-Publish Validation",
-      date: "Latest",
+      date: "Previous",
       agentFeatures: [
         "📚 Escalation Library Support: Seamless synchronization with backend-managed escalation codes and requirements.",
         "⚡ Safe Publishing Pipeline: Guaranteed template consistency ensuring no broken tags or missing tokens ever reach agent workstations."
@@ -1954,6 +1966,21 @@
       const m = raw.match(/^(\d{1,2})\s+([A-Za-z]{3,9}),?\s+(\d{4})$/);
       if (m) d = new Date(`${m[2]} ${m[1]}, ${m[3]}`);
     }
+    if (isNaN(d.getTime())) {
+      const mdy = raw.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+      if (mdy) {
+        let p1 = parseInt(mdy[1], 10);
+        let p2 = parseInt(mdy[2], 10);
+        const y = parseInt(mdy[3], 10);
+        let month = p1 - 1;
+        let day = p2;
+        if (p1 > 12 && p2 <= 12) {
+          day = p1;
+          month = p2 - 1;
+        }
+        d = new Date(y, month, day);
+      }
+    }
     if (isNaN(d.getTime())) return "";
     const today = new Date();
     let age = today.getFullYear() - d.getFullYear();
@@ -2922,35 +2949,35 @@
     const key = String(rawKey || "").replace(/\s+/g, " ").replace(/[:：]+$/g, "").trim();
     const value = String(rawValue || "").replace(/\s+/g, " ").trim();
     if (!key || /^user\s*name$/i.test(key) || /^username$/i.test(key)) return;
-    const isGlife = /^glife[-_\s]/i.test(key);
-    if (/^(glife[-_\s])?first\s*name$/i.test(key)) {
+    const isSpecialApp = /^((glife|mayaminiapp|maya)[-_\s]*)/i.test(key);
+    if (/^((glife|mayaminiapp|maya)[-_\s]*)?first[-_\s]*name$/i.test(key)) {
       if (!isBlankPersonValue(value)) {
-        if (isGlife) out.firstName = out.firstName || value;
+        if (isSpecialApp) out.firstName = out.firstName || value;
         else out.firstName = value;
       }
       return;
     }
-    if (/^(glife[-_\s])?middle\s*name$/i.test(key)) {
+    if (/^((glife|mayaminiapp|maya)[-_\s]*)?middle[-_\s]*name$/i.test(key)) {
       if (!isBlankPersonValue(value)) {
-        if (isGlife) out.middleName = out.middleName || value;
+        if (isSpecialApp) out.middleName = out.middleName || value;
         else out.middleName = value;
       }
       return;
     }
-    if (/^(glife[-_\s])?last\s*name$/i.test(key)) {
+    if (/^((glife|mayaminiapp|maya)[-_\s]*)?last[-_\s]*name$/i.test(key)) {
       if (!isBlankPersonValue(value)) {
-        if (isGlife) out.lastName = out.lastName || value;
+        if (isSpecialApp) out.lastName = out.lastName || value;
         else out.lastName = value;
       }
       return;
     }
-    if (/^(full\s*name|fullname)$/i.test(key) || /^name$/i.test(key)) {
+    if (/^((glife|mayaminiapp|maya)[-_\s]*)?(full[-_\s]*name|fullname)$/i.test(key) || /^((glife|mayaminiapp|maya)[-_\s]+)?name$/i.test(key)) {
       if (!isBlankPersonValue(value)) out.fullName = out.fullName || value;
       return;
     }
-    if (/^(glife[-_\s])?(date\s*of\s*birth|dateofbirth|dob)$/i.test(key)) {
+    if (/^((glife|mayaminiapp|maya)[-_\s]*)?(date[-_\s]*(of[-_\s]*)?birth|dateofbirth|dob|birth[-_\s]*date|birthdate)$/i.test(key)) {
       if (!isBlankPersonValue(value)) {
-        if (isGlife) out.dob = out.dob || value;
+        if (isSpecialApp) out.dob = out.dob || value;
         else out.dob = value;
       }
       return;
@@ -2958,13 +2985,17 @@
     if (/^gLifeUserId$/i.test(key) || /^glife\s*user\s*id$/i.test(key)) {
       out.gLifeUserId = value;
     }
+    if (/^(mayaMiniAppId|mayaminiapp[-_\s]*profileId|mayaminiapp[-_\s]*id)$/i.test(key)) {
+      out.mayaMiniAppId = value;
+      if (!out.gLifeUserId) out.gLifeUserId = value;
+    }
   }
 
   /**
    * Name and DOB from Nano User Attributes (firstName, lastName, dateOfBirth).
    */
   function scrapeUserAttributes() {
-    const out = { firstName: "", middleName: "", lastName: "", fullName: "", name: "", dob: "", gLifeUserId: "" };
+    const out = { firstName: "", middleName: "", lastName: "", fullName: "", name: "", dob: "", gLifeUserId: "", mayaMiniAppId: "" };
     if (typeof document === "undefined") return out;
 
     const rows = document.querySelectorAll("table tr");
@@ -3362,6 +3393,21 @@
       const m = raw.match(/^(\d{1,2})\s+([A-Za-z]{3,9}),?\s+(\d{4})$/);
       if (m) d = new Date(`${m[2]} ${m[1]}, ${m[3]}`);
     }
+    if (isNaN(d.getTime())) {
+      const mdy = raw.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+      if (mdy) {
+        let p1 = parseInt(mdy[1], 10);
+        let p2 = parseInt(mdy[2], 10);
+        const y = parseInt(mdy[3], 10);
+        let month = p1 - 1;
+        let day = p2;
+        if (p1 > 12 && p2 <= 12) {
+          day = p1;
+          month = p2 - 1;
+        }
+        d = new Date(y, month, day);
+      }
+    }
     if (isNaN(d.getTime())) return "";
     const today = new Date();
     let age = today.getFullYear() - d.getFullYear();
@@ -3380,6 +3426,21 @@
       const day = parseInt(iso[3], 10);
       const month = parseInt(iso[2], 10) - 1;
       if (month >= 0 && month < 12) return `${day} ${months[month]}, ${iso[1]}`;
+    }
+    const mdy = raw.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+    if (mdy) {
+      let p1 = parseInt(mdy[1], 10);
+      let p2 = parseInt(mdy[2], 10);
+      const y = parseInt(mdy[3], 10);
+      let month = p1 - 1;
+      let day = p2;
+      if (p1 > 12 && p2 <= 12) {
+        day = p1;
+        month = p2 - 1;
+      }
+      if (month >= 0 && month < 12) {
+        return `${day} ${months[month]}, ${y}`;
+      }
     }
     let d = new Date(raw);
     if (isNaN(d.getTime())) {
