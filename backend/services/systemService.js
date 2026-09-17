@@ -6,6 +6,8 @@ import { AppError } from "../utils/errors.js";
 export const DEFAULT_SYSTEM_CONFIG = {
   minRequiredVersion: "1.1.4",
   latestVersion: "1.4.5",
+  adminLatestVersion: "1.4.5",
+  agentLatestVersion: "1.4.5",
   killSwitch: false,
   killSwitchMessage: "hdjrzTools is temporarily disabled for emergency maintenance.",
   allowedDomains: ["nano-admin.bet88.ph"]
@@ -30,6 +32,16 @@ export function isVersionBelow(clientVer, minVer) {
     if (a[i] > b[i]) return false;
   }
   return false;
+}
+
+/**
+ * Return effective target version for a given license role
+ */
+export function getEffectiveVersionForRole(sysConfig, role = "guest") {
+  if (role === "admin") {
+    return sysConfig.adminLatestVersion || sysConfig.latestVersion || "1.4.5";
+  }
+  return sysConfig.agentLatestVersion || sysConfig.latestVersion || "1.4.5";
 }
 
 /**
@@ -75,11 +87,20 @@ export async function getSystemConfig(env) {
     const liveGhVer = await getLiveGitHubVersion(env);
     if (liveGhVer && !isVersionBelow(liveGhVer, cfg.latestVersion)) {
       cfg.latestVersion = liveGhVer;
+      if (!cfg.adminLatestVersion || isVersionBelow(cfg.adminLatestVersion, liveGhVer)) {
+        cfg.adminLatestVersion = liveGhVer;
+      }
     }
   } catch (e) {}
 
   if (isVersionBelow(cfg.latestVersion, DEFAULT_SYSTEM_CONFIG.latestVersion)) {
     cfg.latestVersion = DEFAULT_SYSTEM_CONFIG.latestVersion;
+  }
+  if (!cfg.adminLatestVersion) {
+    cfg.adminLatestVersion = cfg.latestVersion;
+  }
+  if (!cfg.agentLatestVersion) {
+    cfg.agentLatestVersion = cfg.latestVersion;
   }
   if (isVersionBelow(cfg.minRequiredVersion, DEFAULT_SYSTEM_CONFIG.minRequiredVersion)) {
     cfg.minRequiredVersion = DEFAULT_SYSTEM_CONFIG.minRequiredVersion;
@@ -96,9 +117,26 @@ export async function updateSystemConfig(env, updates = {}) {
     ...current,
     minRequiredVersion: updates.minRequiredVersion ? String(updates.minRequiredVersion).trim() : current.minRequiredVersion,
     latestVersion: updates.latestVersion ? String(updates.latestVersion).trim() : current.latestVersion,
+    adminLatestVersion: updates.adminLatestVersion ? String(updates.adminLatestVersion).trim() : current.adminLatestVersion,
+    agentLatestVersion: updates.agentLatestVersion ? String(updates.agentLatestVersion).trim() : current.agentLatestVersion,
     killSwitch: typeof updates.killSwitch === "boolean" ? updates.killSwitch : current.killSwitch,
     killSwitchMessage: updates.killSwitchMessage ? String(updates.killSwitchMessage).trim() : current.killSwitchMessage,
     allowedDomains: Array.isArray(updates.allowedDomains) ? updates.allowedDomains : current.allowedDomains
+  };
+  await env.LICENSES.put("SYSTEM_CONFIG", JSON.stringify(updated));
+  return updated;
+}
+
+/**
+ * Promote the Admin Channel version to all Agents (Fleet Rollout)
+ */
+export async function promoteAdminChannelToFleet(env, actor = "admin") {
+  const current = await getSystemConfig(env);
+  const targetVer = current.adminLatestVersion || current.latestVersion || "1.4.5";
+  const updated = {
+    ...current,
+    agentLatestVersion: targetVer,
+    latestVersion: targetVer
   };
   await env.LICENSES.put("SYSTEM_CONFIG", JSON.stringify(updated));
   return updated;

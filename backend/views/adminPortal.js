@@ -547,6 +547,49 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
         </div>
       </div>
 
+      <!-- 🚀 Release Channels & Fleet Rollout -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title"><span>🚀 Release Channels &amp; Fleet Rollout</span></div>
+          <span style="font-size: 11px; color: var(--muted);">Staged rollouts: Test updates on Admin devices first before releasing to Agents</span>
+        </div>
+        <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+          <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 5px;">
+              <span>👑 Admin Channel Version</span>
+              <span style="font-size: 10px; color: #60a5fa;">(Early Access)</span>
+            </label>
+            <input type="text" id="channel-admin-version" placeholder="e.g. 1.5.0">
+          </div>
+          <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 5px;">
+              <span>🛡️ Agent Fleet Version</span>
+              <span style="font-size: 10px; color: #34d399;">(Production)</span>
+            </label>
+            <input type="text" id="channel-agent-version" placeholder="e.g. 1.4.5">
+          </div>
+          <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 5px;">
+              <span>⚠️ Min Enforced Version</span>
+              <span style="font-size: 10px; color: #f87171;">(Mandatory)</span>
+            </label>
+            <input type="text" id="channel-min-version" placeholder="e.g. 1.1.4">
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" id="save-channels-btn" class="btn btn-secondary" style="height: 38px;">
+              💾 Save Channels
+            </button>
+            <button type="button" id="promote-channel-btn" class="btn btn-primary" style="height: 38px; background: #10b981; border: 1px solid #059669;" title="Instantly promote the Admin Channel version to all Agents">
+              🚀 Promote to Fleet
+            </button>
+          </div>
+        </div>
+        <div id="channel-status-banner" style="margin-top: 12px; padding: 10px 14px; background: #060c18; border: 1px solid #1e293b; border-radius: 6px; font-size: 12px; display: flex; align-items: center; justify-content: space-between;">
+          <span id="channel-status-text" style="color: #cbd5e1;">Loading release channels...</span>
+          <span id="channel-status-badge" class="badge-status active">Synchronized</span>
+        </div>
+      </div>
+
       <!-- ⚙️ Master Password Change -->
       <div class="section-card" style="margin-bottom: 0;">
         <div class="section-header">
@@ -652,6 +695,7 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
       loadActiveUsers();
       loadEscalations();
       loadPipelineStatus();
+      loadReleaseChannels();
       setInterval(loadActiveUsers, 15000);
     }
 
@@ -1145,6 +1189,91 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
         }
       });
     }
+
+    // Release Channels & Fleet Rollout
+    async function loadReleaseChannels() {
+      try {
+        const res = await apiRequest("/api/system/config");
+        if (res.ok && res.config) {
+          const c = res.config;
+          const adminV = c.adminLatestVersion || c.latestVersion || "1.4.5";
+          const agentV = c.agentLatestVersion || c.latestVersion || "1.4.5";
+          const minV = c.minRequiredVersion || "1.1.4";
+
+          document.getElementById("channel-admin-version").value = adminV;
+          document.getElementById("channel-agent-version").value = agentV;
+          document.getElementById("channel-min-version").value = minV;
+
+          const isStaged = adminV !== agentV;
+          const banner = document.getElementById("channel-status-text");
+          const badge = document.getElementById("channel-status-badge");
+          if (isStaged) {
+            banner.innerHTML = "👑 <strong>Staged Early Access:</strong> Admins are on <strong>v" + escapeHtml(adminV) + "</strong> while Agents remain on stable <strong>v" + escapeHtml(agentV) + "</strong>.";
+            badge.className = "badge-status frozen";
+            badge.textContent = "Staged Testing";
+          } else {
+            banner.innerHTML = "🟢 <strong>Fleet Aligned:</strong> All Admins &amp; Agents are on <strong>v" + escapeHtml(agentV) + "</strong>.";
+            badge.className = "badge-status active";
+            badge.textContent = "Fleet Aligned";
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load release channels", err);
+      }
+    }
+
+    document.getElementById("save-channels-btn").addEventListener("click", async () => {
+      const adminV = document.getElementById("channel-admin-version").value.trim();
+      const agentV = document.getElementById("channel-agent-version").value.trim();
+      const minV = document.getElementById("channel-min-version").value.trim();
+      if (!adminV || !agentV || !minV) return alert("Please fill in all version fields.");
+
+      const btn = document.getElementById("save-channels-btn");
+      btn.disabled = true;
+      btn.textContent = "Saving...";
+      try {
+        const res = await apiRequest("/api/system/config", "POST", {
+          adminLatestVersion: adminV,
+          agentLatestVersion: agentV,
+          latestVersion: agentV,
+          minRequiredVersion: minV
+        });
+        if (res.ok) {
+          showToast("💾 Release channels saved successfully!");
+          loadReleaseChannels();
+        } else {
+          alert("Error: " + (res.error || "Failed to update"));
+        }
+      } catch (err) {
+        alert("Error: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "💾 Save Channels";
+      }
+    });
+
+    document.getElementById("promote-channel-btn").addEventListener("click", async () => {
+      const adminV = document.getElementById("channel-admin-version").value.trim();
+      if (!confirm("Are you sure you want to promote Admin version v" + adminV + " to all staff agents?")) return;
+
+      const btn = document.getElementById("promote-channel-btn");
+      btn.disabled = true;
+      btn.textContent = "Promoting...";
+      try {
+        const res = await apiRequest("/api/system/promote-channel", "POST");
+        if (res.ok) {
+          showToast("🚀 v" + adminV + " successfully released to all staff agents!");
+          loadReleaseChannels();
+        } else {
+          alert("Error: " + (res.error || "Failed to promote channel"));
+        }
+      } catch (err) {
+        alert("Error: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "🚀 Promote to Fleet";
+      }
+    });
 
     // Change Master Password
     document.getElementById("change-pass-btn").addEventListener("click", async () => {

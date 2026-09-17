@@ -3,7 +3,7 @@
  */
 import { parseJsonBody } from "../middleware/validation.js";
 import { requireAdmin, requireActiveLicense } from "../middleware/authorization.js";
-import { getSystemConfig, updateSystemConfig } from "../services/systemService.js";
+import { getSystemConfig, updateSystemConfig, promoteAdminChannelToFleet, getEffectiveVersionForRole } from "../services/systemService.js";
 import { logAuditEvent } from "../services/auditService.js";
 import { jsonSuccess, jsonError } from "../utils/response.js";
 import { ForbiddenError } from "../utils/errors.js";
@@ -21,9 +21,28 @@ export async function handleSystemRoutes(request, env, url) {
   // GET /api/system/version
   if (method === "GET" && path === "/api/system/version") {
     const config = await getSystemConfig(env);
+    const roleParam = (url.searchParams.get("role") || "guest").toLowerCase();
+    const effectiveLatest = getEffectiveVersionForRole(config, roleParam);
     return jsonSuccess({
-      latestVersion: config.latestVersion,
+      latestVersion: effectiveLatest,
+      adminLatestVersion: config.adminLatestVersion || config.latestVersion,
+      agentLatestVersion: config.agentLatestVersion || config.latestVersion,
       minRequiredVersion: config.minRequiredVersion
+    });
+  }
+
+  // POST /api/system/promote-channel
+  if (method === "POST" && (path === "/api/system/promote-channel" || path === "/admin/api/system/promote-channel")) {
+    await requireAdmin(request, env);
+    const updated = await promoteAdminChannelToFleet(env, "admin_portal");
+    await logAuditEvent(env, {
+      action: "CHANNEL_PROMOTED_TO_FLEET",
+      actor: "admin",
+      details: { promotedVersion: updated.agentLatestVersion }
+    });
+    return jsonSuccess({
+      message: `Admin version (${updated.agentLatestVersion}) successfully promoted to all Agents!`,
+      config: updated
     });
   }
 

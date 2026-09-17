@@ -3,7 +3,7 @@
  */
 import { generateLicenseKey } from "../utils/crypto.js";
 import { AppError, NotFoundError, UnauthorizedError, ForbiddenError } from "../utils/errors.js";
-import { getSystemConfig, isVersionBelow } from "./systemService.js";
+import { getSystemConfig, isVersionBelow, getEffectiveVersionForRole } from "./systemService.js";
 import { logAuditEvent } from "./auditService.js";
 
 const SYSTEM_KEYS = new Set([
@@ -223,8 +223,12 @@ export async function activateOrVerifyLicense(env, { key = "", deviceId = "", ac
     return { ok: true, role };
   }
 
+  const targetLatest = getEffectiveVersionForRole(sysConfig, role);
   const verMeta = {
-    latestVersion: sysConfig.latestVersion,
+    latestVersion: targetLatest,
+    adminLatestVersion: sysConfig.adminLatestVersion || sysConfig.latestVersion,
+    agentLatestVersion: sysConfig.agentLatestVersion || sysConfig.latestVersion,
+    releaseChannel: role === "admin" ? "admin" : "fleet",
     minRequiredVersion: sysConfig.minRequiredVersion,
     updateUrl: "https://hdjrz-license.rosechel05.workers.dev/script.user.js"
   };

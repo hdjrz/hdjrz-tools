@@ -864,6 +864,9 @@
     latestKnownServerVersion = v;
     latestUpdateData = {
       latestVersion: v,
+      adminLatestVersion: data.adminLatestVersion,
+      agentLatestVersion: data.agentLatestVersion,
+      releaseChannel: data.releaseChannel || (isAdminLicense() ? "admin" : "fleet"),
       minRequiredVersion: (data.systemConfig && data.systemConfig.minRequiredVersion) || data.minRequiredVersion || "1.1.4",
       updateUrl: data.updateUrl || "https://hdjrz-license.rosechel05.workers.dev/script.user.js"
     };
@@ -5773,6 +5776,13 @@
                         ? (isVersionBelow(SCRIPT_VERSION, (latestUpdateData && latestUpdateData.minRequiredVersion) || '1.1.4') ? '⚠️ Update Required' : '🚀 Optional Update')
                         : '✅ Up to Date'
                     }
+                  </span>
+                </div>
+
+                <div class="esc-account-stat-card">
+                  <span class="esc-account-stat-label">Release Channel</span>
+                  <span class="esc-account-stat-val" style="color: ${isAdminLicense() ? '#60a5fa' : '#34d399'}; font-size: 11.5px; font-weight: 700;">
+                    ${isAdminLicense() ? '👑 Admin Channel' : '🛡️ Production Fleet'}
                   </span>
                 </div>
 

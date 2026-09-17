@@ -6,6 +6,8 @@
 const DEFAULT_SYSTEM_CONFIG = {
   minRequiredVersion: "1.1.4",
   latestVersion: "1.4.5",
+  adminLatestVersion: "1.4.5",
+  agentLatestVersion: "1.4.5",
   killSwitch: false,
   killSwitchMessage: "hdjrzTools is temporarily disabled for emergency maintenance.",
   allowedDomains: ["nano-admin.bet88.ph"]
@@ -76,6 +78,12 @@ async function getSystemConfig(env) {
 
   if (isVersionBelow(cfg.latestVersion, DEFAULT_SYSTEM_CONFIG.latestVersion)) {
     cfg.latestVersion = DEFAULT_SYSTEM_CONFIG.latestVersion;
+  }
+  if (!cfg.adminLatestVersion) {
+    cfg.adminLatestVersion = cfg.latestVersion;
+  }
+  if (!cfg.agentLatestVersion) {
+    cfg.agentLatestVersion = cfg.latestVersion;
   }
   if (isVersionBelow(cfg.minRequiredVersion, DEFAULT_SYSTEM_CONFIG.minRequiredVersion)) {
     cfg.minRequiredVersion = DEFAULT_SYSTEM_CONFIG.minRequiredVersion;
@@ -619,8 +627,15 @@ export default {
         return json({ ok: true, role }, cors);
       }
 
+      const targetLatest = (role === "admin")
+        ? (sysConfig.adminLatestVersion || sysConfig.latestVersion || "1.4.5")
+        : (sysConfig.agentLatestVersion || sysConfig.latestVersion || "1.4.5");
+
       const verMeta = {
-        latestVersion: sysConfig.latestVersion,
+        latestVersion: targetLatest,
+        adminLatestVersion: sysConfig.adminLatestVersion || sysConfig.latestVersion,
+        agentLatestVersion: sysConfig.agentLatestVersion || sysConfig.latestVersion,
+        releaseChannel: role === "admin" ? "admin" : "fleet",
         minRequiredVersion: sysConfig.minRequiredVersion,
         updateUrl: "https://hdjrz-license.rosechel05.workers.dev/script.user.js"
       };
