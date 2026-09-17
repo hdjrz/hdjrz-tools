@@ -1,5 +1,5 @@
 name = "hdjrz-license"
-main = "license/worker.js"
+main = "backend/worker.js"
 compatibility_date = "2024-01-01"
 
 kv_namespaces = [
