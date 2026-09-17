@@ -148,7 +148,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.4.4";
+  const HARDCODED_VERSION = "1.4.5";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -168,9 +168,21 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.4.5",
+      title: "Centralized Publishing via Admin Portal",
+      date: "Latest",
+      agentFeatures: [
+        "🔄 Clean Cloud Sync: Extension settings now sync directly from approved production templates with zero accidental publishes."
+      ],
+      adminFeatures: [
+        "🌐 Centralized Pipeline: Publishing is now strictly managed via Web Admin Portal (/admin) with full staging and validation.",
+        "🛡️ Overwrite Protection: In-page Settings modal now features direct access to Admin Portal."
+      ]
+    },
+    {
       version: "1.4.4",
       title: "Update Status & Requirement Transparency",
-      date: "Latest",
+      date: "Previous",
       agentFeatures: [
         "📊 Version & Update Clarity: Instantly see installed version and whether an update is Required or Optional.",
         "🚀 Smart Update Indicators: Distinct badges and labels in Dock, Settings, and Notifications (⚠️ Required vs 🚀 Optional)."
@@ -5666,14 +5678,21 @@
                 <div class="esc-cloud-card-header">
                   <div class="esc-cloud-card-info">
                     <span class="esc-cloud-title">Cloud Templates Synchronization</span>
-                    <span class="esc-cloud-subtitle">${staffView ? "Pull the latest approved templates from Cloudflare KV" : "Publish button templates to Cloudflare KV for all active agents"}</span>
+                    <span class="esc-cloud-subtitle">Pull the latest team templates published in the Web Admin Portal</span>
                   </div>
-                  <button type="button" class="esc-btn-secondary esc-btn-sync" id="esc-settings-sync" title="Sync with Cloud">
-                    <svg class="esc-sync-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
-                    </svg>
-                    <span>${staffView ? "Sync from Cloud" : "Publish to Cloud"}</span>
-                  </button>
+                  <div style="display: flex; gap: 8px; align-items: center;">
+                    ${staffView ? "" : `
+                    <a href="https://hdjrz-license.rosechel05.workers.dev/admin" target="_blank" rel="noopener noreferrer" class="esc-btn-secondary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 5px; font-weight: 700; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.12);" title="Open Admin Portal to draft, preview, and publish team templates">
+                      <span>🌐 Admin Portal (Publish) ↗</span>
+                    </a>
+                    `}
+                    <button type="button" class="esc-btn-secondary esc-btn-sync" id="esc-settings-sync" title="Pull latest approved templates from Cloud">
+                      <svg class="esc-sync-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                      </svg>
+                      <span>Sync from Cloud</span>
+                    </button>
+                  </div>
                 </div>
 
                 ${staffView ? "" : `
@@ -6629,32 +6648,19 @@
         if (icon) icon.classList.add("is-spinning");
         syncBtn.disabled = true;
 
-        if (isAdminLicense()) {
-          syncCardInputsToWorkingOptions();
-          openPrePublishValidationModal(workingOptions, (err, res) => {
-            if (icon) icon.classList.remove("is-spinning");
-            syncBtn.disabled = false;
-            if (err) {
-              showToast("Cloud sync: " + err);
-            } else if (res && !res.cancelled) {
-              renderOptionsList();
-            }
-          });
-        } else {
-          fetchRemoteTemplates((err, res) => {
-            if (icon) icon.classList.remove("is-spinning");
-            syncBtn.disabled = false;
-            if (err) {
-              showToast("Cloud sync: " + err);
-            } else if (res && res.updated) {
-              workingOptions = JSON.parse(JSON.stringify(getActiveOptions()));
-              renderOptionsList();
-              showToast(`✨ Synced with Cloud!`);
-            } else {
-              showToast("Already up to date with Cloud.");
-            }
-          });
-        }
+        fetchRemoteTemplates((err, res) => {
+          if (icon) icon.classList.remove("is-spinning");
+          syncBtn.disabled = false;
+          if (err) {
+            showToast("Cloud sync: " + err);
+          } else if (res && res.updated) {
+            workingOptions = JSON.parse(JSON.stringify(getActiveOptions()));
+            renderOptionsList();
+            showToast(`✨ Synced with Cloud! (v${currentSettings.remoteTemplatesVersion || 'latest'})`);
+          } else {
+            showToast("Already up to date with Cloud.");
+          }
+        });
       });
     }
 
