@@ -18,24 +18,38 @@ import { checkSystemAccess } from "../services/systemService.js";
 import { jsonSuccess, jsonError } from "../utils/response.js";
 import { ForbiddenError, AppError } from "../utils/errors.js";
 
+async function authenticateAdminOrAdminLicense(request, env, body = {}) {
+  const licenseKey = body.key || request.headers.get("X-License-Key") || "";
+  if (licenseKey) {
+    const license = await requireActiveLicense(env, licenseKey);
+    if (license.role !== "admin") {
+      throw new ForbiddenError("Admin license key required to perform this action", "admin_required");
+    }
+    return { role: "admin", actor: license.key };
+  }
+  await requireAdmin(request, env);
+  return { role: "admin", actor: "admin" };
+}
+
 export async function handleTemplateRoutes(request, env, url) {
   const method = request.method;
   const path = url.pathname;
 
-  // 1. GET /api/templates/draft (Admin)
+  // 1. GET /api/templates/draft (Admin session or Admin license)
   if (method === "GET" && path === "/api/templates/draft") {
-    await requireAdmin(request, env);
+    const key = url.searchParams.get("key") || "";
+    await authenticateAdminOrAdminLicense(request, env, { key });
     const draft = await getTemplateDraft(env);
     return jsonSuccess(draft);
   }
 
   // 2. POST /api/templates/draft (Save draft without modifying production)
   if (method === "POST" && path === "/api/templates/draft") {
-    await requireAdmin(request, env);
     const body = await parseJsonBody(request);
     validateRequired(body, ["options"]);
+    const auth = await authenticateAdminOrAdminLicense(request, env, body);
     const draft = await saveTemplateDraft(env, {
-      adminKey: "admin",
+      adminKey: auth.actor,
       options: body.options,
       notes: body.notes
     });
@@ -47,8 +61,8 @@ export async function handleTemplateRoutes(request, env, url) {
 
   // 3. POST /api/templates/draft/validate (Run automated integrity & schema check)
   if (method === "POST" && path === "/api/templates/draft/validate") {
-    await requireAdmin(request, env);
-    const body = await parseJsonBody(request);
+    const body = await parseJsonBody(request).catch(() => ({}));
+    await authenticateAdminOrAdminLicense(request, env, body);
     let optionsToValidate = body.options;
     if (!optionsToValidate) {
       const draft = await getTemplateDraft(env);
@@ -66,15 +80,17 @@ export async function handleTemplateRoutes(request, env, url) {
 
   // 4. GET /api/templates/preview (Retrieve visual preview & side-by-side production diff)
   if (method === "GET" && path === "/api/templates/preview") {
-    await requireAdmin(request, env);
+    const key = url.searchParams.get("key") || "";
+    await authenticateAdminOrAdminLicense(request, env, { key });
     const preview = await getTemplatePreview(env);
     return jsonSuccess(preview);
   }
 
   // 5. POST /api/templates/draft/publish (MANDATORY GATE: Atomic publish to production)
   if (method === "POST" && path === "/api/templates/draft/publish") {
-    await requireAdmin(request, env);
-    const published = await publishDraftToProduction(env, { adminKey: "admin" });
+    const body = await parseJsonBody(request).catch(() => ({}));
+    const auth = await authenticateAdminOrAdminLicense(request, env, body);
+    const published = await publishDraftToProduction(env, { adminKey: auth.actor });
     const activeList = await getActiveAgents(env);
     return jsonSuccess({
       message: `Templates successfully published to Production as v${published.version}!`,
@@ -87,8 +103,9 @@ export async function handleTemplateRoutes(request, env, url) {
 
   // 6. POST /api/templates/draft/discard (Discard draft and revert to production)
   if (method === "POST" && path === "/api/templates/draft/discard") {
-    await requireAdmin(request, env);
-    const res = await discardTemplateDraft(env, { adminKey: "admin" });
+    const body = await parseJsonBody(request).catch(() => ({}));
+    const auth = await authenticateAdminOrAdminLicense(request, env, body);
+    const res = await discardTemplateDraft(env, { adminKey: auth.actor });
     return jsonSuccess(res);
   }
 

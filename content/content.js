@@ -847,6 +847,158 @@
     });
   }
 
+  function openPrePublishValidationModal(options, cb) {
+    const api = localStorageApi();
+    if (!api) {
+      if (cb) cb("Storage API unavailable");
+      return;
+    }
+
+    api.get(["hdjrzLicenseKey"], (data) => {
+      const key = (data && String(data.hdjrzLicenseKey || "").trim()) || "";
+      if (!key) {
+        showToast("Error: No admin license key found.");
+        if (cb) cb("No license key");
+        return;
+      }
+
+      const existing = document.getElementById("esc-val-modal-overlay");
+      if (existing) existing.remove();
+
+      const modalOverlay = document.createElement("div");
+      modalOverlay.className = "esc-modal-overlay";
+      modalOverlay.id = "esc-val-modal-overlay";
+      modalOverlay.style.zIndex = "1000005";
+
+      modalOverlay.innerHTML = `
+        <div class="esc-modal esc-val-modal-card" role="dialog" aria-modal="true" aria-label="Template Validation">
+          <div class="esc-val-header">
+            <div>
+              <div class="esc-val-title">VALIDATION</div>
+              <div class="esc-val-sub">Pre-publishing system &amp; schema verification</div>
+            </div>
+            <span class="esc-val-candidate-badge" id="esc-val-candidate-tag">v... Candidate</span>
+          </div>
+
+          <div class="esc-val-checklist" id="esc-val-checklist">
+            <div style="text-align: center; padding: 18px; color: #94a3b8;">
+              <span class="esc-sync-icon is-spinning" style="display:inline-block; margin-right:6px;">🔄</span>
+              Running 8-point pre-publish verification...
+            </div>
+          </div>
+
+          <div id="esc-val-error-summary" class="esc-val-error-box" style="display: none;"></div>
+
+          <div class="esc-val-footer">
+            <button type="button" class="esc-val-btn esc-val-btn-cancel" id="esc-val-cancel-btn">Cancel</button>
+            <button type="button" class="esc-val-btn esc-val-btn-publish" id="esc-val-publish-btn" disabled>Publish</button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(modalOverlay);
+
+      const cancelBtn = modalOverlay.querySelector("#esc-val-cancel-btn");
+      const publishBtn = modalOverlay.querySelector("#esc-val-publish-btn");
+      const checklistContainer = modalOverlay.querySelector("#esc-val-checklist");
+      const errorBox = modalOverlay.querySelector("#esc-val-error-summary");
+      const candidateTag = modalOverlay.querySelector("#esc-val-candidate-tag");
+
+      const closeModal = () => {
+        modalOverlay.remove();
+        if (cb) cb(null, { cancelled: true });
+      };
+
+      cancelBtn.addEventListener("click", closeModal);
+      modalOverlay.addEventListener("click", (e) => {
+        if (e.target === modalOverlay) closeModal();
+      });
+
+      // 1. Save draft to backend first
+      sendWorkerRequest({
+        url: "https://hdjrz-license.rosechel05.workers.dev/api/templates/draft",
+        method: "POST",
+        data: { key, options, notes: "Draft from extension settings" }
+      }, (draftErr, draftRes) => {
+        if (draftErr || !draftRes || !draftRes.ok) {
+          checklistContainer.innerHTML = `<div style="color: #fca5a5; padding: 10px;">Failed saving draft: ${safeEsc(draftErr || (draftRes && draftRes.error) || "Network error")}</div>`;
+          return;
+        }
+
+        // 2. Fetch preview to determine candidate version and run validation check
+        sendWorkerRequest({
+          url: "https://hdjrz-license.rosechel05.workers.dev/api/templates/preview?key=" + encodeURIComponent(key),
+          method: "GET"
+        }, (prevErr, prevRes) => {
+          if (prevErr || !prevRes || !prevRes.ok) {
+            checklistContainer.innerHTML = `<div style="color: #fca5a5; padding: 10px;">Validation request failed: ${safeEsc(prevErr || (prevRes && prevRes.error) || "Network error")}</div>`;
+            return;
+          }
+
+          const prodVer = (prevRes.production && typeof prevRes.production.version === "number") ? prevRes.production.version : 0;
+          const targetVer = prodVer + 1;
+          candidateTag.textContent = `v${targetVer} Candidate`;
+          publishBtn.textContent = `Publish v${targetVer}`;
+
+          const checks = prevRes.draft && Array.isArray(prevRes.draft.validationChecks) ? prevRes.draft.validationChecks : [];
+          const isValid = prevRes.draft && prevRes.draft.validated === true;
+
+          if (!checks.length) {
+            checklistContainer.innerHTML = `<div style="color: #cbd5e1; padding: 10px;">Validation checks completed.</div>`;
+          } else {
+            checklistContainer.innerHTML = checks.map(c => {
+              const isPassed = c.passed === true;
+              return `
+                <div class="esc-val-item ${isPassed ? "passed" : "failed"}">
+                  <span>${isPassed ? "✓" : "✗"} ${safeEsc(c.label)}</span>
+                  <span class="esc-val-status">${isPassed ? "Verified" : "Failed"}</span>
+                </div>
+              `;
+            }).join("");
+          }
+
+          if (isValid) {
+            publishBtn.disabled = false;
+            errorBox.style.display = "none";
+          } else {
+            publishBtn.disabled = true;
+            errorBox.style.display = "block";
+            const errList = prevRes.draft.validationErrors || [];
+            errorBox.innerHTML = `<strong>Validation Blocking Release:</strong><br>${errList.map(e => "• " + safeEsc(e)).join("<br>")}`;
+          }
+
+          // 3. Handle Publish Click
+          publishBtn.addEventListener("click", () => {
+            publishBtn.disabled = true;
+            publishBtn.textContent = `Publishing v${targetVer}...`;
+
+            sendWorkerRequest({
+              url: "https://hdjrz-license.rosechel05.workers.dev/api/templates/draft/publish",
+              method: "POST",
+              data: { key }
+            }, (pubErr, pubRes) => {
+              if (!pubErr && pubRes && pubRes.ok) {
+                currentSettings.remoteTemplatesVersion = pubRes.version;
+                currentSettings.customOptions = options;
+                saveSettings({}, null, options, () => {
+                  updateHorizontalDockButtons();
+                  modalOverlay.remove();
+                  const totalActive = (pubRes && typeof pubRes.totalActiveAgents === "number") ? pubRes.totalActiveAgents : 0;
+                  showToast(`🚀 Published to Cloud (v${pubRes.version})! Broadcast sent to ${totalActive} active agent(s).`);
+                  if (cb) cb(null, pubRes);
+                });
+              } else {
+                publishBtn.disabled = false;
+                publishBtn.textContent = `Publish v${targetVer}`;
+                alert("Publish failed: " + (pubErr || (pubRes && pubRes.error) || "Unknown error"));
+              }
+            });
+          });
+        });
+      });
+    });
+  }
+
   function updateEscalationDictionary(options) {
     const list = Array.isArray(options) ? options : [];
     list.forEach(opt => {
@@ -6561,14 +6713,13 @@
 
         if (isAdminLicense()) {
           syncCardInputsToWorkingOptions();
-          publishTemplatesToCloud(workingOptions, (err, res) => {
+          openPrePublishValidationModal(workingOptions, (err, res) => {
             if (icon) icon.classList.remove("is-spinning");
             syncBtn.disabled = false;
             if (err) {
-              showToast("Cloud sync failed: " + err);
-            } else {
-              const activeCount = (res && typeof res.totalActive === "number") ? res.totalActive : 0;
-              showToast(`✨ Published to Cloud (v${res.version})! Broadcast sent to ${activeCount} active agent(s).`);
+              showToast("Cloud sync: " + err);
+            } else if (res && !res.cancelled) {
+              renderOptionsList();
             }
           });
         } else {
