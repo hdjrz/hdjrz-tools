@@ -718,7 +718,11 @@ const DEFAULT_SETTINGS = {
   customTemplates: {},
   customOptions: null,
   notesWordingVersion: 0,
-  remoteTemplatesVersion: 0
+  remoteTemplatesVersion: 0,
+  tlMentions: "@Jetro",
+  sendZoomWebhook: false,
+  zoomWebhookUrl: "https://integrations.zoom.us/chat/webhooks/incomingwebhook/57gIqt2RCCnjh9Clcq8KQ",
+  zoomWebhookToken: "USh3ydx5S8SEMly00cbNNw"
 };
 
 function ageFromDob(dobStr) {
@@ -849,9 +853,23 @@ function renderEscalationNote(templateStr, data) {
   return String(text).replace(/^\s+|\s+$/g, "");
 }
 
-function renderFinalEscalationNote(data, customTemplate) {
+function applyTlMentionsToNote(text, tlMentions) {
+  if (!text) return "";
+  const m = (tlMentions != null ? String(tlMentions) : "@Jetro").trim();
+  const pasuyoRegex = /(?:Pasuyo(?:\s+po)?\s+TLs?)(?:\s+@[^\r\n]*)?/i;
+  if (pasuyoRegex.test(text)) {
+    return text.replace(pasuyoRegex, m ? `Pasuyo po TLs ${m}` : "Pasuyo po TLs");
+  } else if (m) {
+    return text.trim() + `\n\nPasuyo po TLs ${m}`;
+  }
+  return text;
+}
+
+function renderFinalEscalationNote(data, customTemplate, tlMentions) {
   const tpl = customTemplate || DEFAULT_FINAL_NOTE_TEMPLATE;
-  return renderEscalationNote(tpl, data);
+  const baseNote = renderEscalationNote(tpl, data);
+  const mentions = tlMentions != null ? tlMentions : (data && data.tlMentions);
+  return applyTlMentionsToNote(baseNote, mentions);
 }
 
 if (typeof window !== "undefined") {
@@ -863,6 +881,7 @@ if (typeof window !== "undefined") {
   window.DefaultEscalationSettings = DEFAULT_SETTINGS;
   window.renderEscalationNote = renderEscalationNote;
   window.renderFinalEscalationNote = renderFinalEscalationNote;
+  window.applyTlMentionsToNote = applyTlMentionsToNote;
   window.getPagcorAgeInfo = getPagcorAgeInfo;
 }
 
@@ -875,6 +894,7 @@ if (typeof globalThis !== "undefined") {
   globalThis.DefaultEscalationSettings = DEFAULT_SETTINGS;
   globalThis.renderEscalationNote = renderEscalationNote;
   globalThis.renderFinalEscalationNote = renderFinalEscalationNote;
+  globalThis.applyTlMentionsToNote = applyTlMentionsToNote;
   globalThis.getPagcorAgeInfo = getPagcorAgeInfo;
 }
 
@@ -888,6 +908,7 @@ if (typeof module !== "undefined" && module.exports) {
     DEFAULT_SETTINGS,
     renderEscalationNote,
     renderFinalEscalationNote,
+    applyTlMentionsToNote,
     getPagcorAgeInfo
   };
 }
