@@ -148,7 +148,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.4.1";
+  const HARDCODED_VERSION = "1.4.2";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -168,9 +168,22 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.4.2",
+      title: "Escalation Library & 8-Point Pre-Publish Validation",
+      date: "Latest",
+      agentFeatures: [
+        "📚 Escalation Library Support: Seamless synchronization with backend-managed escalation codes and requirements.",
+        "⚡ Safe Publishing Pipeline: Guaranteed template consistency ensuring no broken tags or missing tokens ever reach agent workstations."
+      ],
+      adminFeatures: [
+        "🛡️ 8-Point Pre-Publish Validation: Mandatory pre-flight audit directly within Extension Settings and Web Admin (verifying JSON integrity, escalation codes, token syntax, and uniqueness).",
+        "🚀 Draft → Preview → Publish Workflow: Test and preview template drafts safely before publishing live to all active agents."
+      ]
+    },
+    {
       version: "1.4.1",
       title: "Removed Age Detection from Confirmation Modal",
-      date: "Latest",
+      date: "Previous",
       agentFeatures: [
         "🛡️ Clean Modal Summary: Removed the age detection compliance badge from the confirmation modal across all escalation options for a simpler, decluttered view.",
         "📋 Pure Name / DOB Display: Modal now displays cleanly as Name / DOB without automated age tag overlays."
