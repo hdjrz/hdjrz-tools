@@ -150,7 +150,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.5.0";
+  const HARDCODED_VERSION = "1.5.1";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -170,9 +170,21 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.5.1",
+      title: "Direct Sound Trigger on Confirm & Execute",
+      date: "Latest",
+      agentFeatures: [
+        "🔊 Instant Escalation Sound: Success sound effect now triggers immediately when you click 'Confirm & Execute'.",
+        "🔇 No Update Sounds: Removed sound playback from extension updates and system notifications."
+      ],
+      adminFeatures: [
+        "👑 Accurate Audio Activation: Direct user-gesture audio dispatch ensures 100% reliable sound playback."
+      ]
+    },
+    {
       version: "1.5.0",
       title: "Settings Save & Execution Behavior Fix",
-      date: "Latest",
+      date: "Previous",
       agentFeatures: [
         "⚙️ Seamless Preference Saving: Fixed execution behavior toggles and settings save handler.",
         "🔔 Responsive Feedback: Clear instant visual confirmation upon saving preferences."
@@ -3988,10 +4000,6 @@
     const existing = document.querySelector(".esc-toast");
     if (existing) existing.remove();
 
-    if (isSuccess && (templateText || String(message).includes("Copied") || String(message).includes("User Notes") || String(message).includes("Success"))) {
-      notifyEscalationSuccess();
-    }
-
     const toast = document.createElement("div");
     toast.className = templateText ? "esc-toast esc-toast-card is-success-animated" : "esc-toast";
     if (!isSuccess) toast.style.borderLeftColor = "#f59e0b";
@@ -5346,6 +5354,9 @@
           return;
         }
       }
+
+      // Play escalation success sound and ripple directly upon Confirm & Execute
+      notifyEscalationSuccess();
 
       if (currentId) {
         if (!detectedPlayer) detectedPlayer = {};
