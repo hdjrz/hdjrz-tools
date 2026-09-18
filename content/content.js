@@ -150,7 +150,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.4.8";
+  const HARDCODED_VERSION = "1.4.9";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;

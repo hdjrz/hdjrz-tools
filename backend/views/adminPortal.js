@@ -83,10 +83,12 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
       font-weight: 600;
       cursor: pointer;
       border: none;
+      white-space: nowrap;
       transition: all 0.15s;
     }
-    .btn-primary { background: var(--primary); color: #fff; width: 100%; }
+    .btn-primary { background: var(--primary); color: #fff; }
     .btn-primary:hover { background: var(--primary-hover); }
+    .login-card .btn-primary { width: 100%; }
     .btn-sm { padding: 4px 10px; font-size: 11.5px; border-radius: 4px; }
     .btn-danger { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4); }
     .btn-danger:hover { background: rgba(239, 68, 68, 0.35); }
@@ -585,14 +587,14 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
               <option value="chime">🔔 Melodic Bell Chime (Standard)</option>
             </select>
           </div>
-          <div style="display: flex; gap: 8px;">
-            <button type="button" id="save-channels-btn" class="btn btn-secondary" style="height: 38px;">
-              💾 Save Channels
-            </button>
-            <button type="button" id="promote-channel-btn" class="btn btn-primary" style="height: 38px; background: #10b981; border: 1px solid #059669;" title="Instantly promote the Admin Channel version to all Agents">
-              🚀 Promote to Fleet
-            </button>
-          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; margin-top: 14px; flex-wrap: wrap;">
+          <button type="button" id="save-channels-btn" class="btn btn-secondary" style="height: 38px; padding: 0 18px; font-size: 13px; font-weight: 600; white-space: nowrap;">
+            💾 Save Channels
+          </button>
+          <button type="button" id="promote-channel-btn" class="btn btn-primary" style="height: 38px; width: auto; padding: 0 18px; background: #10b981; border: 1px solid #059669; font-size: 13px; font-weight: 600; white-space: nowrap;" title="Instantly promote the Admin Channel version to all Agents">
+            🚀 Promote to Fleet
+          </button>
         </div>
         <div id="channel-status-banner" style="margin-top: 12px; padding: 10px 14px; background: #060c18; border: 1px solid #1e293b; border-radius: 6px; font-size: 12px; display: flex; align-items: center; justify-content: space-between;">
           <span id="channel-status-text" style="color: #cbd5e1;">Loading release channels...</span>
