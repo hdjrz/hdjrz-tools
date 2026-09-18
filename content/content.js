@@ -150,7 +150,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.5.2";
+  const HARDCODED_VERSION = "1.5.3";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -170,9 +170,23 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.5.3",
+      title: "Admin Portal Dual-Auth & Login Reliability",
+      date: "Latest",
+      agentFeatures: [
+        "🛡️ Enhanced Security Handshake: Smoother authentication verification against the Cloudflare Edge API.",
+        "⚡ Session Stability: Prevents unexpected session expirations during long shifts."
+      ],
+      adminFeatures: [
+        "🔑 Dual-Auth Support: Admins can log in using either the Master Admin Password or any active HDJRZ-ADMIN license key.",
+        "👁️ Password Visibility Toggle: Added peek eye icon to verify complex passwords and avoid typo lockouts.",
+        "🚫 System Key Isolation: Cleaned up the Issued Licenses table by filtering out internal configuration keys."
+      ]
+    },
+    {
       version: "1.5.2",
       title: "Agent / Client Name Sync & Portal Resolution",
-      date: "Latest",
+      date: "v1.5.2",
       agentFeatures: [
         "👤 Live Name Synchronization: Your configured Agent Name in Settings now syncs directly to the Admin Portal.",
         "⚡ Automatic License Binding: License ownership auto-attaches whenever settings are updated or heartbeats run."

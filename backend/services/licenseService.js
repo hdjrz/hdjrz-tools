@@ -11,6 +11,7 @@ const SYSTEM_KEYS = new Set([
   "REMOTE_TEMPLATES",
   "TEMPLATE_DRAFT",
   "ACTIVE_AGENTS",
+  "DEVICE_AGENTS",
   "ADMIN_PASSWORD",
   "AUDIT_LOGS",
   "ESCALATION_LIBRARY"
@@ -36,7 +37,7 @@ export async function listLicenses(env) {
   } catch (e) {}
 
   for (const item of list.keys) {
-    if (SYSTEM_KEYS.has(item.name)) continue;
+    if (SYSTEM_KEYS.has(item.name) || !item.name.startsWith("HDJRZ-")) continue;
     const raw = await env.LICENSES.get(item.name);
     let record = {
       key: item.name,

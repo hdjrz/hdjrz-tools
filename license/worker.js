@@ -104,17 +104,47 @@ async function verifyAdminAuth(request, env) {
   const master = await getAdminPassword(env);
   const authHeader = request.headers.get("Authorization") || "";
   const directPass = request.headers.get("X-Admin-Password") || "";
-  if (directPass && directPass === master) return true;
+  if (directPass) {
+    if (directPass === master) return true;
+    if (directPass.startsWith("HDJRZ-")) {
+      const licRaw = await env.LICENSES.get(directPass);
+      if (licRaw) {
+        try {
+          const lic = JSON.parse(licRaw);
+          if (lic.role === "admin" && lic.active !== false) return true;
+        } catch (e) {}
+      }
+    }
+  }
   if (authHeader.startsWith("Bearer ")) {
     const token = authHeader.slice(7).trim();
     if (token === master) return true;
     try {
       const decoded = atob(token);
-      const [type, ts, prefix] = decoded.split(":");
-      if (type === "admin" && master.startsWith(prefix)) {
+      const parts = decoded.split(":");
+      const type = parts[0];
+      const ts = parts[1];
+      if (type === "admin" && master.startsWith(parts[2])) {
         if (Date.now() - Number(ts) < 7 * 24 * 60 * 60 * 1000) return true;
       }
+      if (type === "adminkey") {
+        const key = parts.slice(2).join(":");
+        const licRaw = await env.LICENSES.get(key);
+        if (licRaw) {
+          const lic = JSON.parse(licRaw);
+          if (lic.role === "admin" && lic.active !== false) return true;
+        }
+      }
     } catch (e) {}
+    if (token.startsWith("HDJRZ-")) {
+      const licRaw = await env.LICENSES.get(token);
+      if (licRaw) {
+        try {
+          const lic = JSON.parse(licRaw);
+          if (lic.role === "admin" && lic.active !== false) return true;
+        } catch (e) {}
+      }
+    }
   }
   return false;
 }
@@ -150,7 +180,7 @@ export default {
       }
 
       // Admin Auth API
-      if (request.method === "POST" && url.pathname === "/admin/api/auth") {
+      if (request.method === "POST" && (url.pathname === "/admin/api/auth" || url.pathname === "/api/auth/login")) {
         let body = {};
         try { body = await request.json(); } catch (e) {}
         const pass = String(body.password || "").trim();
@@ -159,11 +189,23 @@ export default {
           const token = btoa("admin:" + Date.now() + ":" + master.slice(0, 4));
           return json({ ok: true, token }, cors);
         }
+        if (pass.startsWith("HDJRZ-")) {
+          const licRaw = await env.LICENSES.get(pass);
+          if (licRaw) {
+            try {
+              const lic = JSON.parse(licRaw);
+              if (lic.role === "admin" && lic.active !== false) {
+                const token = btoa("adminkey:" + Date.now() + ":" + pass);
+                return json({ ok: true, token }, cors);
+              }
+            } catch (e) {}
+          }
+        }
         return json({ ok: false, error: "invalid_password" }, cors);
       }
 
       // Admin API: List Licenses
-      if (request.method === "GET" && url.pathname === "/admin/api/licenses") {
+      if (request.method === "GET" && (url.pathname === "/admin/api/licenses" || url.pathname === "/api/licenses")) {
         if (!(await verifyAdminAuth(request, env))) {
           return json({ ok: false, error: "unauthorized" }, cors, 401);
         }
@@ -182,7 +224,7 @@ export default {
 
         const licenses = [];
         for (const item of list.keys) {
-          if (systemKeys.has(item.name)) continue;
+          if (systemKeys.has(item.name) || !item.name.startsWith("HDJRZ-")) continue;
           const raw = await env.LICENSES.get(item.name);
           let record = { key: item.name, role: "guest", owner: "—", deviceId: "", active: true, createdAt: null, usedAt: null };
           let parsed = null;

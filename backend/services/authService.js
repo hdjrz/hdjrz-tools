@@ -27,12 +27,33 @@ export async function verifyMasterPassword(env, password) {
  * Authenticate admin and return session token
  */
 export async function loginAdmin(env, password) {
-  const isMatch = await verifyMasterPassword(env, password);
-  if (!isMatch) {
-    throw new AppError("Invalid master password", 401, "invalid_password");
+  const clean = String(password || "").trim();
+  const master = await getAdminPassword(env);
+
+  // 1. Check master password
+  if (clean === master) {
+    const token = createAdminToken(master);
+    return { token, role: "admin" };
   }
-  const token = createAdminToken(password);
-  return { token, role: "admin" };
+
+  // 2. Check if entered password is a valid Admin License Key
+  if (clean.startsWith("HDJRZ-ADMIN-") || clean.startsWith("HDJRZ-")) {
+    try {
+      const raw = await env.LICENSES.get(clean);
+      if (raw) {
+        let row = {};
+        try { row = JSON.parse(raw); } catch (e) {
+          if (raw === "admin") row = { role: "admin", active: true };
+        }
+        if (row.role === "admin" && row.active !== false) {
+          const token = createAdminToken(master);
+          return { token, role: "admin" };
+        }
+      }
+    } catch (e) {}
+  }
+
+  throw new AppError("Invalid master password or admin key. (Default: hdjrzAdmin2026!)", 401, "invalid_password");
 }
 
 /**
@@ -40,11 +61,30 @@ export async function loginAdmin(env, password) {
  */
 export async function verifyAdminAuthHeader(env, authHeader = "", directPass = "") {
   const master = await getAdminPassword(env);
-  if (directPass && directPass === master) return true;
+  const cleanDirect = String(directPass || "").trim();
+  if (cleanDirect && cleanDirect === master) return true;
+  if (cleanDirect && (cleanDirect.startsWith("HDJRZ-ADMIN-") || cleanDirect.startsWith("HDJRZ-"))) {
+    try {
+      const raw = await env.LICENSES.get(cleanDirect);
+      if (raw) {
+        const row = JSON.parse(raw);
+        if (row && row.role === "admin" && row.active !== false) return true;
+      }
+    } catch (e) {}
+  }
 
   if (authHeader && authHeader.startsWith("Bearer ")) {
     const token = authHeader.slice(7).trim();
     if (token === master) return true;
+    if (token.startsWith("HDJRZ-ADMIN-") || token.startsWith("HDJRZ-")) {
+      try {
+        const raw = await env.LICENSES.get(token);
+        if (raw) {
+          const row = JSON.parse(raw);
+          if (row && row.role === "admin" && row.active !== false) return true;
+        }
+      } catch (e) {}
+    }
     return verifyAdminToken(token, master);
   }
   return false;

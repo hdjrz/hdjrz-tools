@@ -322,9 +322,13 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
       <img class="login-logo" src="https://raw.githubusercontent.com/hdjrz/hdjrz-tools/main/icons/icon48.png" alt="Logo">
       <h1 class="login-title">hdjrzTools</h1>
       <p class="login-subtitle">Private Web Admin & License Control Portal</p>
-      <input type="password" id="admin-pass-input" class="input-field" placeholder="Enter Master Admin Password" autocomplete="current-password">
+      <div style="position: relative; margin-bottom: 16px;">
+        <input type="password" id="admin-pass-input" class="input-field" placeholder="Enter Master Password or Admin Key" autocomplete="current-password" style="margin-bottom: 0; padding-right: 42px;">
+        <button type="button" id="toggle-pass-visibility" title="Show / Hide Password" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 16px; color: #94a3b8; padding: 4px; line-height: 1;">👁️</button>
+      </div>
+      <div id="login-error-msg" style="display: none; color: #fca5a5; font-size: 12px; margin-bottom: 14px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 12px; border-radius: 6px; text-align: left; line-height: 1.4;"></div>
       <button type="button" id="login-btn" class="btn btn-primary">Unlock Portal 🚀</button>
-      <p style="font-size: 11px; color: #64748b; margin-top: 14px;">Protected Cloudflare Worker Endpoint</p>
+      <p style="font-size: 11px; color: #64748b; margin-top: 14px;">Master Password or HDJRZ-ADMIN Key</p>
     </div>
   </div>
 
@@ -670,26 +674,62 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
       return res.json();
     }
 
+    function showLoginError(msg) {
+      const errBox = document.getElementById("login-error-msg");
+      if (errBox) {
+        errBox.textContent = msg;
+        errBox.style.display = "block";
+      } else {
+        alert(msg);
+      }
+    }
+
     async function doLogin() {
+      const errBox = document.getElementById("login-error-msg");
+      if (errBox) errBox.style.display = "none";
       const pass = adminPassInput.value.trim();
-      if (!pass) return alert("Please enter master password.");
+      if (!pass) return showLoginError("Please enter Master Password or Admin License Key.");
       loginBtn.disabled = true;
       loginBtn.textContent = "Verifying...";
       try {
-        const res = await apiRequest("/api/auth/login", "POST", { password: pass });
-        if (res.ok && res.token) {
+        let res = null;
+        try {
+          res = await apiRequest("/api/auth/login", "POST", { password: pass });
+        } catch (e) {
+          res = null;
+        }
+        if (!res || !res.ok) {
+          try {
+            const fallback = await apiRequest("/admin/api/auth", "POST", { password: pass });
+            if (fallback && fallback.ok) res = fallback;
+          } catch (_) {}
+        }
+        if (res && res.ok && res.token) {
           authToken = res.token;
           sessionStorage.setItem("hdjrz_admin_token", authToken);
           showDashboard();
         } else {
-          alert("Wrong password. Default is hdjrzAdmin2026!");
+          showLoginError((res && res.error) ? "Login failed: " + res.error : "Invalid password or admin key. Please verify and try again.");
         }
       } catch (err) {
-        alert("Server connection error: " + err.message);
+        showLoginError("Server connection error: " + err.message);
       } finally {
         loginBtn.disabled = false;
         loginBtn.textContent = "Unlock Portal 🚀";
       }
+    }
+
+    const togglePassBtn = document.getElementById("toggle-pass-visibility");
+    if (togglePassBtn) {
+      togglePassBtn.addEventListener("click", () => {
+        if (adminPassInput.type === "password") {
+          adminPassInput.type = "text";
+          togglePassBtn.textContent = "🙈";
+        } else {
+          adminPassInput.type = "password";
+          togglePassBtn.textContent = "👁️";
+        }
+      });
     }
 
     loginBtn.addEventListener("click", doLogin);
@@ -697,8 +737,18 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
     logoutBtn.addEventListener("click", () => {
       authToken = "";
       sessionStorage.removeItem("hdjrz_admin_token");
-      location.reload();
+      dashboardView.style.display = "none";
+      loginView.style.display = "flex";
+      adminPassInput.value = "";
     });
+
+    function handleUnauthorized() {
+      authToken = "";
+      sessionStorage.removeItem("hdjrz_admin_token");
+      dashboardView.style.display = "none";
+      loginView.style.display = "flex";
+      showLoginError("Session expired or unauthorized. Please sign in again.");
+    }
 
     function showDashboard() {
       loginView.style.display = "none";
@@ -717,9 +767,7 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
       const res = await apiRequest("/api/licenses");
       if (!res.ok) {
         if (res.error === "unauthorized") {
-          authToken = "";
-          sessionStorage.removeItem("hdjrz_admin_token");
-          location.reload();
+          handleUnauthorized();
         }
         return;
       }
