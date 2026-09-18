@@ -150,7 +150,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.5.1";
+  const HARDCODED_VERSION = "1.5.2";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -170,9 +170,22 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.5.2",
+      title: "Agent / Client Name Sync & Portal Resolution",
+      date: "Latest",
+      agentFeatures: [
+        "👤 Live Name Synchronization: Your configured Agent Name in Settings now syncs directly to the Admin Portal.",
+        "⚡ Automatic License Binding: License ownership auto-attaches whenever settings are updated or heartbeats run."
+      ],
+      adminFeatures: [
+        "👑 Real-time Agent Identification: Web Admin Portal dynamically resolves and displays the exact agent using each license key.",
+        "✏️ Direct Inline Editing: Admins can manually update or rename license owners right from the Issued License Keys table."
+      ]
+    },
+    {
       version: "1.5.1",
       title: "Direct Sound Trigger on Confirm & Execute",
-      date: "Latest",
+      date: "Previous",
       agentFeatures: [
         "🔊 Instant Escalation Sound: Success sound effect now triggers immediately when you click 'Confirm & Execute'.",
         "🔇 No Update Sounds: Removed sound playback from extension updates and system notifications."
@@ -621,7 +634,7 @@
 
   function activateLicenseOnServer(key, cb) {
     ensureLicenseDeviceId((deviceId) => {
-      postLicenseServer({ key, deviceId, version: SCRIPT_VERSION }, (err, data) => {
+      postLicenseServer({ key, deviceId, version: SCRIPT_VERSION, agent: currentSettings.agentName || "" }, (err, data) => {
         if (err) {
           cb(err);
           return;
@@ -1359,17 +1372,20 @@
     if (isLockedOut) return;
     lastRemoteHeartbeatTime = Date.now();
     const api = localStorageApi();
-    const getDevId = (done) => {
-      if (!api) return done("");
-      api.get(["hdjrzLicenseDeviceId"], (d) => done((d && d.hdjrzLicenseDeviceId) || ""));
+    const getCreds = (done) => {
+      if (!api) return done("", "");
+      api.get(["hdjrzLicenseDeviceId", "hdjrzLicenseKey"], (d) => {
+        done((d && d.hdjrzLicenseDeviceId) || "", (d && d.hdjrzLicenseKey) || "");
+      });
     };
 
-    getDevId((devId) => {
+    getCreds((devId, key) => {
       const agent = encodeURIComponent(currentSettings.agentName || "");
       const v = encodeURIComponent(SCRIPT_VERSION);
       const tmplVer = currentSettings.remoteTemplatesVersion || 0;
       const domain = encodeURIComponent((typeof window !== "undefined" && window.location && window.location.hostname) || "");
-      const url = `${REMOTE_CONFIG_URL}?agent=${agent}&v=${v}&tmpl_v=${tmplVer}&dev=${encodeURIComponent(devId)}&domain=${domain}&_t=${Date.now()}`;
+      const k = encodeURIComponent(key || "");
+      const url = `${REMOTE_CONFIG_URL}?agent=${agent}&v=${v}&tmpl_v=${tmplVer}&dev=${encodeURIComponent(devId)}&key=${k}&domain=${domain}&_t=${Date.now()}`;
 
       sendWorkerRequest({ url, method: "GET" }, (err, json) => {
         if (err || !json) {
@@ -6896,6 +6912,7 @@
           }
           showToast("Saved.");
           closeSettings();
+          fetchRemoteTemplates(() => {});
         });
       } catch (err) {
         console.error("[hdjrzTools] Error saving settings:", err);

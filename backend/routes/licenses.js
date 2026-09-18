@@ -9,7 +9,8 @@ import {
   activateOrVerifyLicense,
   resetDeviceBinding,
   toggleFreezeLicense,
-  deleteLicense
+  deleteLicense,
+  updateLicenseOwner
 } from "../services/licenseService.js";
 import { jsonSuccess } from "../utils/response.js";
 
@@ -60,6 +61,18 @@ export async function handleLicenseRoutes(request, env, url) {
     return jsonSuccess(res);
   }
 
+  // POST /api/licenses/update-owner or legacy POST /admin/api/licenses/update-owner
+  if (method === "POST" && (
+    path === "/api/licenses/update-owner" ||
+    path === "/admin/api/licenses/update-owner"
+  )) {
+    await requireAdmin(request, env);
+    const body = await parseJsonBody(request);
+    validateRequired(body, ["key"]);
+    const res = await updateLicenseOwner(env, body.key, body.owner);
+    return jsonSuccess(res);
+  }
+
   // DELETE /api/licenses or POST /api/licenses/delete or legacy POST /admin/api/licenses/delete
   if ((method === "DELETE" && path.startsWith("/api/licenses/")) ||
       (method === "POST" && (path === "/api/licenses/delete" || path === "/admin/api/licenses/delete"))) {
@@ -87,7 +100,8 @@ export async function handleLicenseRoutes(request, env, url) {
       key: body.key,
       deviceId: body.deviceId,
       action: body.action,
-      version: body.version
+      version: body.version,
+      agent: body.agent
     });
     return jsonSuccess(res);
   }

@@ -125,12 +125,14 @@ export async function handleTemplateRoutes(request, env, url) {
 
     const agentName = String(url.searchParams.get("agent") || "").trim();
     const devId = String(url.searchParams.get("dev") || "").trim();
+    const key = String(url.searchParams.get("key") || "").trim();
 
-    if (devId || agentName) {
+    if (devId || agentName || key) {
       await recordAgentHeartbeat(env, {
         agent: agentName,
         version: clientVer,
-        devId
+        devId,
+        key
       });
     }
 

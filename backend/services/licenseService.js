@@ -23,6 +23,18 @@ export async function listLicenses(env) {
   const list = await env.LICENSES.list({ limit: 500 });
   const licenses = [];
 
+  let activeMap = {};
+  try {
+    const rawActive = await env.LICENSES.get("ACTIVE_AGENTS");
+    if (rawActive) activeMap = JSON.parse(rawActive);
+  } catch (e) {}
+
+  let devMap = {};
+  try {
+    const rawDev = await env.LICENSES.get("DEVICE_AGENTS");
+    if (rawDev) devMap = JSON.parse(rawDev);
+  } catch (e) {}
+
   for (const item of list.keys) {
     if (SYSTEM_KEYS.has(item.name)) continue;
     const raw = await env.LICENSES.get(item.name);
@@ -36,8 +48,9 @@ export async function listLicenses(env) {
       usedAt: null
     };
 
+    let parsed = null;
     try {
-      const parsed = JSON.parse(raw);
+      parsed = JSON.parse(raw);
       if (typeof parsed === "object" && parsed !== null) {
         record = { ...record, ...parsed, key: item.name };
       } else if (typeof parsed === "string") {
@@ -46,6 +59,40 @@ export async function listLicenses(env) {
     } catch (e) {
       if (raw === "admin" || raw === "guest") record.role = raw;
     }
+
+    // Auto-resolve Agent Name:
+    // If owner is empty, '—', or default 'Agent',
+    // look it up by deviceId from active online agents or persistent device map
+    const boundDev = record.deviceId;
+    let resolvedName = (record.owner && record.owner !== "—" && record.owner !== "Agent") ? record.owner : "";
+
+    if (!resolvedName && boundDev) {
+      if (activeMap[boundDev] && activeMap[boundDev].agent && activeMap[boundDev].agent !== "Agent") {
+        resolvedName = activeMap[boundDev].agent;
+      } else if (devMap[boundDev] && devMap[boundDev] !== "Agent") {
+        resolvedName = devMap[boundDev];
+      }
+    }
+
+    if (resolvedName) {
+      record.owner = resolvedName;
+      // Auto-heal KV record so it's permanently saved on the license key
+      if (parsed && typeof parsed === "object" && parsed.owner !== resolvedName) {
+        try {
+          parsed.owner = resolvedName;
+          await env.LICENSES.put(item.name, JSON.stringify(parsed));
+        } catch (e) {}
+      }
+    }
+
+    // Attach online status & client version
+    if (boundDev && activeMap[boundDev]) {
+      record.isOnline = true;
+      record.clientVersion = activeMap[boundDev].version || "";
+    } else {
+      record.isOnline = false;
+    }
+
     licenses.push(record);
   }
 
@@ -158,12 +205,49 @@ export async function deleteLicense(env, key, actor = "admin") {
 }
 
 /**
+ * Update the owner / agent name of a license key
+ */
+export async function updateLicenseOwner(env, key, newOwner, actor = "admin") {
+  const targetKey = String(key || "").trim();
+  if (!targetKey) throw new AppError("License key is required", 400, "missing_key");
+
+  const raw = await env.LICENSES.get(targetKey);
+  if (!raw) throw new NotFoundError(`License key ${targetKey} not found`);
+
+  let row = {};
+  try { row = JSON.parse(raw); } catch (e) {}
+  const prevOwner = row.owner || "—";
+  row.owner = String(newOwner || "").trim() || "—";
+  await env.LICENSES.put(targetKey, JSON.stringify(row));
+
+  if (row.deviceId && row.owner !== "—") {
+    try {
+      let devMap = {};
+      const rawDev = await env.LICENSES.get("DEVICE_AGENTS");
+      if (rawDev) devMap = JSON.parse(rawDev);
+      devMap[row.deviceId] = row.owner;
+      await env.LICENSES.put("DEVICE_AGENTS", JSON.stringify(devMap));
+    } catch (e) {}
+  }
+
+  await logAuditEvent(env, {
+    action: "OWNER_UPDATED",
+    actor,
+    target: targetKey,
+    details: { previousOwner: prevOwner, newOwner: row.owner }
+  });
+
+  return { key: targetKey, owner: row.owner };
+}
+
+/**
  * Activate, verify, or release a license key for a client device
  */
-export async function activateOrVerifyLicense(env, { key = "", deviceId = "", action = "", version = "1.1.4" } = {}) {
+export async function activateOrVerifyLicense(env, { key = "", deviceId = "", action = "", version = "1.1.4", agent = "" } = {}) {
   const cleanKey = String(key || "").trim();
   const cleanDevice = String(deviceId || "").trim();
   const cleanVersion = String(version || "1.1.4").trim();
+  const cleanAgent = String(agent || "").trim();
 
   if (!cleanKey || !cleanDevice) {
     throw new AppError("Missing license key or deviceId", 400, "missing");
@@ -233,6 +317,18 @@ export async function activateOrVerifyLicense(env, { key = "", deviceId = "", ac
     updateUrl: "https://hdjrz-license.rosechel05.workers.dev/script.user.js"
   };
 
+  // Update agent name if supplied
+  if (cleanAgent && cleanAgent !== "Agent") {
+    row.owner = cleanAgent;
+    try {
+      let devMap = {};
+      const rawDev = await env.LICENSES.get("DEVICE_AGENTS");
+      if (rawDev) devMap = JSON.parse(rawDev);
+      devMap[cleanDevice] = cleanAgent;
+      await env.LICENSES.put("DEVICE_AGENTS", JSON.stringify(devMap));
+    } catch (e) {}
+  }
+
   // Master Admin: always allow login and re-bind device seamlessly
   if (role === "admin") {
     row.role = "admin";
@@ -254,6 +350,9 @@ export async function activateOrVerifyLicense(env, { key = "", deviceId = "", ac
 
   // Already bound to this exact device
   if (used === cleanDevice) {
+    if (cleanAgent && cleanAgent !== "Agent") {
+      await env.LICENSES.put(cleanKey, JSON.stringify(row));
+    }
     return { ok: true, role, ...verMeta };
   }
 

@@ -766,18 +766,30 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
           : '<span class="badge-status active">Active</span>';
 
         const createdDate = item.createdAt ? new Date(item.createdAt).toLocaleDateString() : '—';
+        const ownerName = item.owner && item.owner !== "—" && item.owner !== "Agent" ? item.owner : (item.owner || "");
+        const isOnline = !!item.isOnline;
+        const ownerDisplay = ownerName
+          ? '<div style="display:flex; align-items:center; gap:6px;">' +
+              (isOnline ? '<span title="Online now" style="color:#10b981; font-size:11px;">🟢</span>' : '<span title="Offline" style="color:#64748b; font-size:11px;">⚪</span>') +
+              '<strong style="color:#f1f5f9;">' + escapeHtml(ownerName) + '</strong>' +
+              '<button type="button" class="btn btn-secondary btn-sm" style="padding:1px 5px; font-size:10px; margin-left:4px;" title="Edit Client Name" onclick="editOwner(\'' + escapeHtml(item.key) + '\', \'' + escapeHtml(ownerName) + '\')">✏️</button>' +
+            '</div>'
+          : '<div style="display:flex; align-items:center; gap:6px;">' +
+              '<span style="color:#94a3b8; font-style:italic;">Unassigned</span>' +
+              '<button type="button" class="btn btn-secondary btn-sm" style="padding:1px 5px; font-size:10px; margin-left:4px;" title="Assign Client Name" onclick="editOwner(\'' + escapeHtml(item.key) + '\', \'\')">✏️</button>' +
+            '</div>';
 
         return '<tr>' +
           '<td><span class="key-tag">' + escapeHtml(item.key) + '</span></td>' +
           '<td><span class="badge-role ' + roleClass + '">' + escapeHtml(item.role || "guest") + '</span></td>' +
-          '<td><strong>' + escapeHtml(item.owner || "—") + '</strong></td>' +
+          '<td>' + ownerDisplay + '</td>' +
           '<td>' + boundDisplay + '</td>' +
           '<td>' + statusBadge + '</td>' +
           '<td>' + createdDate + '</td>' +
           '<td><div class="actions-cell">' +
-            (isBound ? '<button type="button" class="btn btn-warning btn-sm" onclick="resetDevice(\\'' + escapeHtml(item.key) + '\\')">🔄 Reset Device</button>' : '') +
-            '<button type="button" class="btn btn-secondary btn-sm" onclick="toggleFreeze(\\'' + escapeHtml(item.key) + '\\')">' + (isFrozen ? '🟢 Unfreeze' : '🚫 Freeze') + '</button>' +
-            '<button type="button" class="btn btn-danger btn-sm" onclick="deleteKey(\\'' + escapeHtml(item.key) + '\\')">🗑️</button>' +
+            (isBound ? '<button type="button" class="btn btn-warning btn-sm" onclick="resetDevice(\'' + escapeHtml(item.key) + '\')">🔄 Reset Device</button>' : '') +
+            '<button type="button" class="btn btn-secondary btn-sm" onclick="toggleFreeze(\'' + escapeHtml(item.key) + '\')">' + (isFrozen ? '🟢 Unfreeze' : '🚫 Freeze') + '</button>' +
+            '<button type="button" class="btn btn-danger btn-sm" onclick="deleteKey(\'' + escapeHtml(item.key) + '\')">🗑️</button>' +
           '</div></td>' +
         '</tr>';
       }).join("");
@@ -785,6 +797,20 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
 
     document.getElementById("search-keys").addEventListener("input", () => renderLicensesTable(currentLicenses));
     document.getElementById("refresh-keys-btn").addEventListener("click", loadLicenses);
+
+    // Edit License Owner
+    window.editOwner = async function(key, current) {
+      const newOwner = prompt("Enter Agent / Client Name for " + key + ":", current || "");
+      if (newOwner === null) return;
+      const trimmed = newOwner.trim();
+      const res = await apiRequest("/api/licenses/update-owner", "POST", { key, owner: trimmed });
+      if (res.ok) {
+        showToast("✓ Agent name updated for " + key);
+        loadLicenses();
+      } else {
+        alert("Failed to update name: " + (res.error || "Unknown error"));
+      }
+    };
 
     // Create New Key
     document.getElementById("create-key-btn").addEventListener("click", async () => {
