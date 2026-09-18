@@ -8,6 +8,7 @@ const fs = require('fs');
 const path = require('path');
 
 const rootDir = __dirname;
+const soundsPath = path.join(rootDir, 'content', 'sounds.js');
 const templatesPath = path.join(rootDir, 'content', 'templates.js');
 const cssPath = path.join(rootDir, 'content', 'content.css');
 const contentJsPath = path.join(rootDir, 'content', 'content.js');
@@ -16,6 +17,7 @@ const outputPath = path.join(rootDir, 'hdjrzTools.user.js');
 const shouldObfuscate = process.argv.includes('--obfuscate') || !process.argv.includes('--no-obfuscate');
 
 console.log('Reading source files...');
+const soundsCode = fs.existsSync(soundsPath) ? fs.readFileSync(soundsPath, 'utf8') : '';
 const templatesCode = fs.readFileSync(templatesPath, 'utf8');
 const cssCode = fs.readFileSync(cssPath, 'utf8');
 const contentJsCode = fs.readFileSync(contentJsPath, 'utf8');
@@ -358,6 +360,9 @@ const codePayload = [
   polyfillCode,
   '',
   cssInjectionCode,
+  '',
+  '/* --- Audio Assets --- */',
+  soundsCode,
   '',
   '/* --- Templates & Presets --- */',
   templatesCode,

@@ -115,7 +115,8 @@
     remoteTemplatesVersion: 0,
     theme: "dark",
     barTheme: "minimal-glass",
-    tlMentions: "@Jetro"
+    tlMentions: "@Jetro",
+    successSound: "voice"
   };
 
   let workingOptions = [];
@@ -149,7 +150,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.4.5";
+  const HARDCODED_VERSION = "1.4.8";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -168,6 +169,30 @@
   const LICENSE_ACTIVATE_URL = "https://hdjrz-license.rosechel05.workers.dev/";
 
   const CHANGELOG_HISTORY = [
+    {
+      version: "1.4.8",
+      title: "Success Sound Customization & Fleet Control",
+      date: "Latest",
+      agentFeatures: [
+        "🔊 Voice Shoutout Effect: Escalation confirmations now celebrate with the audio shoutout ('Arigathanks po').",
+        "🔔 Audio Flexibility: Automatically adopts the sound effect configured and enforced by Admins."
+      ],
+      adminFeatures: [
+        "👑 Fleet Success Sound Control: Admins can choose between Voice Shoutout ('Arigathanks') and Melodic Bell Chime directly in Settings or Web Admin Portal.",
+        "📡 Fleet Sync: Instantly enforces the chosen sound across all agent workstations upon policy sync."
+      ]
+    },
+    {
+      version: "1.4.7",
+      title: "TL Mentions Configuration",
+      date: "Previous",
+      agentFeatures: [
+        "👥 Team Leader Mentions: Notes automatically include configured Team Leader handles (e.g. @Jetro) after 'Pasuyo po TLs'."
+      ],
+      adminFeatures: [
+        "👑 Dynamic TL Mentions: Configure Team Leader handle(s) across all escalation templates in one setting."
+      ]
+    },
     {
       version: "1.4.5",
       title: "Centralized Publishing via Admin Portal",
@@ -1361,6 +1386,19 @@
           }
         }
 
+        const fleetSound = (json.systemConfig && json.systemConfig.fleetSuccessSound) || json.fleetSuccessSound;
+        if (fleetSound && fleetSound !== currentSettings.successSound) {
+          currentSettings.successSound = fleetSound;
+          const api = localStorageApi();
+          if (api) {
+            api.get(["escalationSettings"], (st) => {
+              const cur = (st && st.escalationSettings) || {};
+              cur.successSound = fleetSound;
+              api.set({ escalationSettings: cur });
+            });
+          }
+        }
+
         if (!json.ok || !Array.isArray(json.options) || json.options.length === 0) {
           if (cb) cb((json && json.error) ? json.error : null, json);
           return;
@@ -2227,7 +2265,8 @@
         soundFeedback: currentSettings.soundFeedback !== false,
         notesWordingVersion: currentSettings.notesWordingVersion || 0,
         remoteTemplatesVersion: currentSettings.remoteTemplatesVersion || 0,
-        tlMentions: currentSettings.tlMentions != null ? currentSettings.tlMentions : "@Jetro"
+        tlMentions: currentSettings.tlMentions != null ? currentSettings.tlMentions : "@Jetro",
+        successSound: currentSettings.successSound || "voice"
       },
       customTemplates: currentSettings.customTemplates || {},
       customOptions: currentSettings.customOptions
@@ -3882,6 +3921,33 @@
     }
   }
 
+  function playSuccessSound(soundType) {
+    if (currentSettings.soundFeedback === false) return;
+    const type = soundType || currentSettings.successSound || "voice";
+    if (type === "voice" || type === "custom") {
+      try {
+        const audioSrc = (typeof SUCCESS_SOUND_VOICE_BASE64 !== "undefined" && SUCCESS_SOUND_VOICE_BASE64)
+          || (typeof window !== "undefined" && window.SUCCESS_SOUND_VOICE_BASE64)
+          || (typeof globalThis !== "undefined" && globalThis.SUCCESS_SOUND_VOICE_BASE64);
+        if (audioSrc) {
+          const audio = new Audio(audioSrc);
+          audio.volume = 0.85;
+          const playPromise = audio.play();
+          if (playPromise !== undefined) {
+            playPromise.catch(err => {
+              console.warn("[hdjrzTools] Audio playback fallback to chime:", err);
+              playSuccessChime();
+            });
+          }
+          return;
+        }
+      } catch (err) {
+        console.warn("[hdjrzTools] Custom audio playback error, falling back to chime:", err);
+      }
+    }
+    playSuccessChime();
+  }
+
   function triggerSuccessRipple() {
     if (currentSettings.soundFeedback === false) return;
     try {
@@ -3898,7 +3964,7 @@
 
   function notifyEscalationSuccess(force = false) {
     if (!force && currentSettings.soundFeedback === false) return;
-    playSuccessChime();
+    playSuccessSound();
     triggerSuccessRipple();
   }
 
@@ -5646,6 +5712,32 @@
                       <input type="text" class="esc-input" id="esc-set-tl-mentions" value="${escapeHtml(currentSettings.tlMentions || "@Jetro")}" placeholder="@Jetro" style="font-weight: 600;">
                       <span class="esc-field-hint" style="display: block; margin-top: 4px; font-size: 11px; color: #94a3b8;">Handle(s) appended after "Pasuyo po TLs" in all escalation notes.</span>
                     </div>
+
+                    <div style="margin-top: 12px; padding: 12px; background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px;">
+                      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                        <span class="esc-form-label" style="margin-bottom: 0; font-size: 12px; font-weight: 700; color: #38bdf8;">👑 Success Sound Effect (Fleet)</span>
+                        <span style="font-size: 10px; background: rgba(37, 99, 235, 0.2); color: #60a5fa; border: 1px solid rgba(37, 99, 235, 0.4); padding: 1px 6px; border-radius: 4px; font-weight: 700;">Admin Only</span>
+                      </div>
+                      <p class="esc-field-hint" style="margin-top: 0; margin-bottom: 8px; font-size: 11px; color: #94a3b8;">Choose the sound played across all agent workstations upon escalation success.</p>
+
+                      <div style="display: flex; flex-direction: column; gap: 6px;">
+                        <label class="esc-radio-label" style="display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 6px; cursor: pointer;">
+                          <span style="display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: #e2e8f0;">
+                            <input type="radio" name="esc-set-success-sound" value="voice" ${(currentSettings.successSound !== 'chime') ? 'checked' : ''}>
+                            <span>🔊 Voice Shoutout ("Arigathanks")</span>
+                          </span>
+                          <button type="button" class="esc-btn-test-chime" id="esc-preview-sound-voice" style="padding: 2px 8px; font-size: 11px;">▶ Test</button>
+                        </label>
+
+                        <label class="esc-radio-label" style="display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 6px; cursor: pointer;">
+                          <span style="display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: #e2e8f0;">
+                            <input type="radio" name="esc-set-success-sound" value="chime" ${(currentSettings.successSound === 'chime') ? 'checked' : ''}>
+                            <span>🔔 Melodic Bell Chime (Standard)</span>
+                          </span>
+                          <button type="button" class="esc-btn-test-chime" id="esc-preview-sound-chime" style="padding: 2px 8px; font-size: 11px;">▶ Test</button>
+                        </label>
+                      </div>
+                    </div>
                     `}
                   </div>
                 </div>
@@ -6581,6 +6673,9 @@
       if (!staffView) {
         const tlInput = overlay.querySelector("#esc-set-tl-mentions");
         if (tlInput) tlInput.value = currentSettings.tlMentions != null ? currentSettings.tlMentions : "@Jetro";
+        const currentSound = currentSettings.successSound || "voice";
+        const soundRadio = overlay.querySelector(`input[name="esc-set-success-sound"][value="${currentSound}"]`);
+        if (soundRadio) soundRadio.checked = true;
       }
     }
     fillSettingsDefaultsForm();
@@ -6619,6 +6714,24 @@
         e.preventDefault();
         e.stopPropagation();
         notifyEscalationSuccess(true);
+      });
+    }
+
+    const previewVoiceBtn = overlay.querySelector("#esc-preview-sound-voice");
+    if (previewVoiceBtn) {
+      previewVoiceBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        playSuccessSound("voice");
+      });
+    }
+
+    const previewChimeBtn = overlay.querySelector("#esc-preview-sound-chime");
+    if (previewChimeBtn) {
+      previewChimeBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        playSuccessChime();
       });
     }
 
@@ -6716,7 +6829,8 @@
       if (isAdminLicense()) syncCardInputsToWorkingOptions();
       const agentInput = overlay.querySelector("#esc-set-agent");
       const zoomUrlInput = overlay.querySelector("#esc-set-zoom-url");
-      const tlInput = overlay.querySelector("#esc-set-tl-mentions");
+      const soundRadioChecked = overlay.querySelector('input[name="esc-set-success-sound"]:checked');
+      const chosenSound = (!staffView && soundRadioChecked) ? soundRadioChecked.value : (currentSettings.successSound || "voice");
 
       const updatedSettings = {
         agentName: (agentInput && agentInput.value.trim()) || "",
@@ -6732,11 +6846,27 @@
         autoFindAndView: false,
         barLayout: (overlay.querySelector('input[name="esc-bar-layout"]:checked') && overlay.querySelector('input[name="esc-bar-layout"]:checked').value === "vertical") ? "vertical" : "horizontal",
         barTheme: (overlay.querySelector('input[name="esc-bar-theme"]:checked') && overlay.querySelector('input[name="esc-bar-theme"]:checked').value) || currentSettings.barTheme || "minimal-glass",
-        tlMentions: (!staffView && tlInput) ? tlInput.value.trim() : (currentSettings.tlMentions || "@Jetro")
+        tlMentions: (!staffView && tlInput) ? tlInput.value.trim() : (currentSettings.tlMentions || "@Jetro"),
+        successSound: chosenSound
       };
       const optionsToSave = isAdminLicense() ? workingOptions : currentSettings.customOptions;
       saveSettings(updatedSettings, currentSettings.customTemplates || {}, optionsToSave, () => {
         applyBarTheme();
+        if (isAdminLicense()) {
+          const api = localStorageApi();
+          if (api) {
+            api.get(["hdjrzLicenseKey"], (data) => {
+              const key = (data && String(data.hdjrzLicenseKey || "").trim()) || "";
+              if (key) {
+                sendWorkerRequest({
+                  url: "https://hdjrz-license.rosechel05.workers.dev/config/system",
+                  method: "POST",
+                  data: { key, fleetSuccessSound: chosenSound }
+                }, () => {});
+              }
+            });
+          }
+        }
         showToast("Saved.");
         closeSettings();
       });

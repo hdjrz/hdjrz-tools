@@ -575,6 +575,16 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
             </label>
             <input type="text" id="channel-min-version" placeholder="e.g. 1.1.4">
           </div>
+          <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 5px;">
+              <span>🔊 Fleet Success Sound</span>
+              <span style="font-size: 10px; color: #38bdf8;">(Staff Fleet)</span>
+            </label>
+            <select id="channel-fleet-sound" style="width: 100%; background: #060c18; border: 1px solid #334155; border-radius: 6px; padding: 8px 12px; color: #fff; font-size: 13px;">
+              <option value="voice">🔊 Voice Shoutout ("Arigathanks")</option>
+              <option value="chime">🔔 Melodic Bell Chime (Standard)</option>
+            </select>
+          </div>
           <div style="display: flex; gap: 8px;">
             <button type="button" id="save-channels-btn" class="btn btn-secondary" style="height: 38px;">
               💾 Save Channels
@@ -1204,6 +1214,10 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
           document.getElementById("channel-agent-version").value = agentV;
           document.getElementById("channel-min-version").value = minV;
 
+          const soundVal = c.fleetSuccessSound || "voice";
+          const soundEl = document.getElementById("channel-fleet-sound");
+          if (soundEl) soundEl.value = soundVal;
+
           const isStaged = adminV !== agentV;
           const banner = document.getElementById("channel-status-text");
           const badge = document.getElementById("channel-status-badge");
@@ -1226,6 +1240,7 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
       const adminV = document.getElementById("channel-admin-version").value.trim();
       const agentV = document.getElementById("channel-agent-version").value.trim();
       const minV = document.getElementById("channel-min-version").value.trim();
+      const fleetSound = (document.getElementById("channel-fleet-sound") && document.getElementById("channel-fleet-sound").value) || "voice";
       if (!adminV || !agentV || !minV) return alert("Please fill in all version fields.");
 
       const btn = document.getElementById("save-channels-btn");
@@ -1236,7 +1251,8 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
           adminLatestVersion: adminV,
           agentLatestVersion: agentV,
           latestVersion: agentV,
-          minRequiredVersion: minV
+          minRequiredVersion: minV,
+          fleetSuccessSound: fleetSound
         });
         if (res.ok) {
           showToast("💾 Release channels saved successfully!");

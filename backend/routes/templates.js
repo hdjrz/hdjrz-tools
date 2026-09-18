@@ -152,7 +152,8 @@ export async function handleTemplateRoutes(request, env, url) {
       systemConfig: {
         minRequiredVersion: access.config.minRequiredVersion,
         latestVersion: access.config.latestVersion,
-        killSwitch: access.config.killSwitch
+        killSwitch: access.config.killSwitch,
+        fleetSuccessSound: access.config.fleetSuccessSound || "voice"
       }
     }, 200, { "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0" });
   }

@@ -5,12 +5,13 @@
 
 const DEFAULT_SYSTEM_CONFIG = {
   minRequiredVersion: "1.1.4",
-  latestVersion: "1.4.5",
-  adminLatestVersion: "1.4.5",
-  agentLatestVersion: "1.4.5",
+  latestVersion: "1.4.8",
+  adminLatestVersion: "1.4.8",
+  agentLatestVersion: "1.4.7",
   killSwitch: false,
   killSwitchMessage: "hdjrzTools is temporarily disabled for emergency maintenance.",
-  allowedDomains: ["nano-admin.bet88.ph"]
+  allowedDomains: ["nano-admin.bet88.ph"],
+  fleetSuccessSound: "voice"
 };
 
 function parseSemver(v) {
@@ -458,7 +459,8 @@ export default {
             systemConfig: {
               minRequiredVersion: sysConfig.minRequiredVersion,
               latestVersion: sysConfig.latestVersion,
-              killSwitch: sysConfig.killSwitch
+              killSwitch: sysConfig.killSwitch,
+              fleetSuccessSound: sysConfig.fleetSuccessSound || "voice"
             }
           };
 
@@ -546,9 +548,12 @@ export default {
           ...current,
           minRequiredVersion: payload.minRequiredVersion ? String(payload.minRequiredVersion).trim() : current.minRequiredVersion,
           latestVersion: payload.latestVersion ? String(payload.latestVersion).trim() : current.latestVersion,
+          adminLatestVersion: payload.adminLatestVersion ? String(payload.adminLatestVersion).trim() : current.adminLatestVersion,
+          agentLatestVersion: payload.agentLatestVersion ? String(payload.agentLatestVersion).trim() : current.agentLatestVersion,
           killSwitch: typeof payload.killSwitch === "boolean" ? payload.killSwitch : current.killSwitch,
           killSwitchMessage: payload.killSwitchMessage ? String(payload.killSwitchMessage).trim() : current.killSwitchMessage,
-          allowedDomains: Array.isArray(payload.allowedDomains) ? payload.allowedDomains : current.allowedDomains
+          allowedDomains: Array.isArray(payload.allowedDomains) ? payload.allowedDomains : current.allowedDomains,
+          fleetSuccessSound: payload.fleetSuccessSound ? String(payload.fleetSuccessSound).trim() : (current.fleetSuccessSound || "voice")
         };
         await env.LICENSES.put("SYSTEM_CONFIG", JSON.stringify(updated));
         return json({ ok: true, config: updated }, cors);

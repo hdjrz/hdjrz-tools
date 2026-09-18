@@ -719,7 +719,8 @@ const DEFAULT_SETTINGS = {
   customOptions: null,
   notesWordingVersion: 0,
   remoteTemplatesVersion: 0,
-  tlMentions: "@Jetro"
+  tlMentions: "@Jetro",
+  successSound: "voice"
 };
 
 function ageFromDob(dobStr) {

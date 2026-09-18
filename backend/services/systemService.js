@@ -5,12 +5,13 @@ import { AppError } from "../utils/errors.js";
 
 export const DEFAULT_SYSTEM_CONFIG = {
   minRequiredVersion: "1.1.4",
-  latestVersion: "1.4.7",
-  adminLatestVersion: "1.4.7",
-  agentLatestVersion: "1.4.5",
+  latestVersion: "1.4.8",
+  adminLatestVersion: "1.4.8",
+  agentLatestVersion: "1.4.7",
   killSwitch: false,
   killSwitchMessage: "hdjrzTools is temporarily disabled for emergency maintenance.",
-  allowedDomains: ["nano-admin.bet88.ph"]
+  allowedDomains: ["nano-admin.bet88.ph"],
+  fleetSuccessSound: "voice"
 };
 
 let cachedGhVersion = null;
@@ -121,7 +122,8 @@ export async function updateSystemConfig(env, updates = {}) {
     agentLatestVersion: updates.agentLatestVersion ? String(updates.agentLatestVersion).trim() : current.agentLatestVersion,
     killSwitch: typeof updates.killSwitch === "boolean" ? updates.killSwitch : current.killSwitch,
     killSwitchMessage: updates.killSwitchMessage ? String(updates.killSwitchMessage).trim() : current.killSwitchMessage,
-    allowedDomains: Array.isArray(updates.allowedDomains) ? updates.allowedDomains : current.allowedDomains
+    allowedDomains: Array.isArray(updates.allowedDomains) ? updates.allowedDomains : current.allowedDomains,
+    fleetSuccessSound: updates.fleetSuccessSound ? String(updates.fleetSuccessSound).trim() : (current.fleetSuccessSound || "voice")
   };
   await env.LICENSES.put("SYSTEM_CONFIG", JSON.stringify(updated));
   return updated;
