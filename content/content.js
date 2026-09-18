@@ -150,7 +150,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.4.9";
+  const HARDCODED_VERSION = "1.5.0";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -169,6 +169,19 @@
   const LICENSE_ACTIVATE_URL = "https://hdjrz-license.rosechel05.workers.dev/";
 
   const CHANGELOG_HISTORY = [
+    {
+      version: "1.5.0",
+      title: "Settings Save & Execution Behavior Fix",
+      date: "Latest",
+      agentFeatures: [
+        "⚙️ Seamless Preference Saving: Fixed execution behavior toggles and settings save handler.",
+        "🔔 Responsive Feedback: Clear instant visual confirmation upon saving preferences."
+      ],
+      adminFeatures: [
+        "👑 Reliable Configuration: Guaranteed saving of Team Leader mentions and fleet sound controls.",
+        "🛡️ Error Resilient: Try-catch protected save flow prevents any UI lockups."
+      ]
+    },
     {
       version: "1.4.8",
       title: "Success Sound Customization & Fleet Control",
@@ -6825,51 +6838,58 @@
       if (e.target === overlay) closeSettings();
     });
 
-    overlay.querySelector("#esc-settings-save").addEventListener("click", () => {
-      if (isAdminLicense()) syncCardInputsToWorkingOptions();
-      const agentInput = overlay.querySelector("#esc-set-agent");
-      const zoomUrlInput = overlay.querySelector("#esc-set-zoom-url");
-      const soundRadioChecked = overlay.querySelector('input[name="esc-set-success-sound"]:checked');
-      const chosenSound = (!staffView && soundRadioChecked) ? soundRadioChecked.value : (currentSettings.successSound || "voice");
+    overlay.querySelector("#esc-settings-save").addEventListener("click", (e) => {
+      e.preventDefault();
+      try {
+        if (isAdminLicense()) syncCardInputsToWorkingOptions();
+        const agentInput = overlay.querySelector("#esc-set-agent");
+        const zoomUrlInput = overlay.querySelector("#esc-set-zoom-url");
+        const tlInput = overlay.querySelector("#esc-set-tl-mentions");
+        const soundRadioChecked = overlay.querySelector('input[name="esc-set-success-sound"]:checked');
+        const chosenSound = (!staffView && soundRadioChecked) ? soundRadioChecked.value : (currentSettings.successSound || "voice");
 
-      const updatedSettings = {
-        agentName: (agentInput && agentInput.value.trim()) || "",
-        zoomUrl: (zoomUrlInput && zoomUrlInput.value.trim()) || "zoomus://",
-        usersListUrl: currentSettings.usersListUrl || "https://nano-admin.bet88.ph/users",
-        autoCopyClipboard: !!(overlay.querySelector("#esc-set-copy") && overlay.querySelector("#esc-set-copy").checked),
-        autoPinNote: !!(overlay.querySelector("#esc-set-pin-note") && overlay.querySelector("#esc-set-pin-note").checked),
-        autoOpenZoom: !!(overlay.querySelector("#esc-set-open-zoom") && overlay.querySelector("#esc-set-open-zoom").checked),
-        soundFeedback: !!(overlay.querySelector("#esc-set-sound") && overlay.querySelector("#esc-set-sound").checked),
-        autoReturnToUsers: isAdminLicense()
-          ? !!(overlay.querySelector("#esc-set-return") && overlay.querySelector("#esc-set-return").checked)
-          : (currentSettings.autoReturnToUsers !== false),
-        autoFindAndView: false,
-        barLayout: (overlay.querySelector('input[name="esc-bar-layout"]:checked') && overlay.querySelector('input[name="esc-bar-layout"]:checked').value === "vertical") ? "vertical" : "horizontal",
-        barTheme: (overlay.querySelector('input[name="esc-bar-theme"]:checked') && overlay.querySelector('input[name="esc-bar-theme"]:checked').value) || currentSettings.barTheme || "minimal-glass",
-        tlMentions: (!staffView && tlInput) ? tlInput.value.trim() : (currentSettings.tlMentions || "@Jetro"),
-        successSound: chosenSound
-      };
-      const optionsToSave = isAdminLicense() ? workingOptions : currentSettings.customOptions;
-      saveSettings(updatedSettings, currentSettings.customTemplates || {}, optionsToSave, () => {
-        applyBarTheme();
-        if (isAdminLicense()) {
-          const api = localStorageApi();
-          if (api) {
-            api.get(["hdjrzLicenseKey"], (data) => {
-              const key = (data && String(data.hdjrzLicenseKey || "").trim()) || "";
-              if (key) {
-                sendWorkerRequest({
-                  url: "https://hdjrz-license.rosechel05.workers.dev/config/system",
-                  method: "POST",
-                  data: { key, fleetSuccessSound: chosenSound }
-                }, () => {});
-              }
-            });
+        const updatedSettings = {
+          agentName: (agentInput && agentInput.value.trim()) || "",
+          zoomUrl: (zoomUrlInput && zoomUrlInput.value.trim()) || "zoomus://",
+          usersListUrl: currentSettings.usersListUrl || "https://nano-admin.bet88.ph/users",
+          autoCopyClipboard: !!(overlay.querySelector("#esc-set-copy") && overlay.querySelector("#esc-set-copy").checked),
+          autoPinNote: !!(overlay.querySelector("#esc-set-pin-note") && overlay.querySelector("#esc-set-pin-note").checked),
+          autoOpenZoom: !!(overlay.querySelector("#esc-set-open-zoom") && overlay.querySelector("#esc-set-open-zoom").checked),
+          soundFeedback: !!(overlay.querySelector("#esc-set-sound") && overlay.querySelector("#esc-set-sound").checked),
+          autoReturnToUsers: isAdminLicense()
+            ? !!(overlay.querySelector("#esc-set-return") && overlay.querySelector("#esc-set-return").checked)
+            : (currentSettings.autoReturnToUsers !== false),
+          autoFindAndView: false,
+          barLayout: (overlay.querySelector('input[name="esc-bar-layout"]:checked') && overlay.querySelector('input[name="esc-bar-layout"]:checked').value === "vertical") ? "vertical" : "horizontal",
+          barTheme: (overlay.querySelector('input[name="esc-bar-theme"]:checked') && overlay.querySelector('input[name="esc-bar-theme"]:checked').value) || currentSettings.barTheme || "minimal-glass",
+          tlMentions: (!staffView && tlInput) ? tlInput.value.trim() : (currentSettings.tlMentions || "@Jetro"),
+          successSound: chosenSound
+        };
+        const optionsToSave = isAdminLicense() ? workingOptions : currentSettings.customOptions;
+        saveSettings(updatedSettings, currentSettings.customTemplates || {}, optionsToSave, () => {
+          applyBarTheme();
+          if (isAdminLicense()) {
+            const api = localStorageApi();
+            if (api) {
+              api.get(["hdjrzLicenseKey"], (data) => {
+                const key = (data && String(data.hdjrzLicenseKey || "").trim()) || "";
+                if (key) {
+                  sendWorkerRequest({
+                    url: "https://hdjrz-license.rosechel05.workers.dev/config/system",
+                    method: "POST",
+                    data: { key, fleetSuccessSound: chosenSound }
+                  }, () => {});
+                }
+              });
+            }
           }
-        }
-        showToast("Saved.");
-        closeSettings();
-      });
+          showToast("Saved.");
+          closeSettings();
+        });
+      } catch (err) {
+        console.error("[hdjrzTools] Error saving settings:", err);
+        showToast("Error saving: " + err.message);
+      }
     });
   }
 
