@@ -352,7 +352,7 @@ export const FACTORY_ESCALATIONS = [
       "Pending"
     ],
     "userNotesText": "For Manual Verification | [Name] | [DOB]",
-    "zoomText": "For manual verification\n[Reason] in nano / verified in meta\n\nUser ID: [User ID]\nName: [Name]\nDate of Birth: [DOB]\n\nPasuyo po TLs",
+    "zoomText": "For manual verification\n[Reason] in nano / verified in meta\n\nUser ID: [User ID]\nName: [Name]\nDate of Birth: [DOB] ([AGE])\n\nPasuyo po TLs",
     "noteChoices": [
       {
         "label": "User Notes",
@@ -362,7 +362,7 @@ export const FACTORY_ESCALATIONS = [
     "zoomChoices": [
       {
         "label": "Zoom",
-        "zoomText": "For manual verification\n[Reason] in nano / verified in meta\n\nUser ID: [User ID]\nName: [Name]\nDate of Birth: [DOB]\n\nPasuyo po TLs"
+        "zoomText": "For manual verification\n[Reason] in nano / verified in meta\n\nUser ID: [User ID]\nName: [Name]\nDate of Birth: [DOB] ([AGE])\n\nPasuyo po TLs"
       }
     ],
     "status": "active",

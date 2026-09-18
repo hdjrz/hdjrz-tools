@@ -487,7 +487,7 @@ Pasuyo po TLs`
 
 User ID: [User ID]
 Name: [Name]
-Date of Birth: [DOB]
+Date of Birth: [DOB] ([AGE])
 
 Pasuyo po TLs`,
     noteChoices: [
@@ -504,7 +504,7 @@ Pasuyo po TLs`,
 
 User ID: [User ID]
 Name: [Name]
-Date of Birth: [DOB]
+Date of Birth: [DOB] ([AGE])
 
 Pasuyo po TLs`
       }
@@ -853,6 +853,8 @@ function renderEscalationNote(templateStr, data) {
     text = text.replace(/^CID:\s*$/m, `CID: ${cidVal}`);
     text = text.replace(/^CID:\s*$/gm, `CID: ${cidVal}`);
   }
+
+  text = text.replace(/\s*\(\s*\)/g, "");
 
   return String(text).replace(/^\s+|\s+$/g, "");
 }

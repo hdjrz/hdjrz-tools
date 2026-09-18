@@ -156,7 +156,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.5.7";
+  const HARDCODED_VERSION = "1.5.8";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -176,9 +176,21 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.5.8",
+      title: "Manual KYC Age Integration in Final Escalation Note",
+      date: "Latest",
+      agentFeatures: [
+        "🎂 Manual KYC Age Display: Automatically appends calculated player age beside Date of Birth in the Final Escalation Note (`Date of Birth: [DOB] ([AGE])`) for instant TL verification.",
+        "✨ Clean Parentheses Sanitization: Intelligently omits empty parentheses when date of birth or age is not provided."
+      ],
+      adminFeatures: [
+        "🛡️ Synchronized KYC Verification Templates: Automated cloud template migration ensures fleet-wide adoption across all agents."
+      ]
+    },
+    {
       version: "1.5.7",
       title: "Streamlined 3 Dark Palette Options",
-      date: "Latest",
+      date: "v1.5.7",
       agentFeatures: [
         "🎯 3 Streamlined Dark Options: Focused down to 3 curated dark palettes: Classic Dark (Multi-Color), Midnight Abyss (Deep Navy Blue), and Crimson Wine (Deep Burgundy Wine).",
         "⚡ Cleaner Settings Toolbar: Minimalist 3-button palette bar with instant 1-click styling."
@@ -2101,6 +2113,8 @@
       text = text.replace(/^CID:\s*$/m, `CID: ${cidVal}`);
     }
 
+    text = text.replace(/\s*\(\s*\)/g, "");
+
     return text.trim();
   }
 
@@ -2273,7 +2287,7 @@
     return list.map(normalizeEscalationOption);
   }
 
-  const BIT88_NOTES_WORDING_VERSION = 27;
+  const BIT88_NOTES_WORDING_VERSION = 28;
   let loadedWordingVersion = 0;
 
   function getPresetOptionsList() {
