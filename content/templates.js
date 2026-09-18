@@ -481,7 +481,7 @@ Pasuyo po TLs`
     chip: { text: "", color: "#dc2626" },
     defaultReason: "Review Needed",
     reasons: ["Review Needed","Rejected","Not Started","Pending"],
-    userNotesText: "For Manual Verification | [Name] | [DOB]",
+    userNotesText: "For Manual Verification | [Name] | [DOB] ([AGE])",
     zoomText: `For manual verification
 [Reason] in nano / verified in meta
 
@@ -493,7 +493,7 @@ Pasuyo po TLs`,
     noteChoices: [
       {
         "label": "User Notes",
-        "userNotesText": "For Manual Verification | [Name] | [DOB]"
+        "userNotesText": "For Manual Verification | [Name] | [DOB] ([AGE])"
       }
     ],
     zoomChoices: [

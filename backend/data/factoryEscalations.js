@@ -351,12 +351,12 @@ export const FACTORY_ESCALATIONS = [
       "Not Started",
       "Pending"
     ],
-    "userNotesText": "For Manual Verification | [Name] | [DOB]",
+    "userNotesText": "For Manual Verification | [Name] | [DOB] ([AGE])",
     "zoomText": "For manual verification\n[Reason] in nano / verified in meta\n\nUser ID: [User ID]\nName: [Name]\nDate of Birth: [DOB] ([AGE])\n\nPasuyo po TLs",
     "noteChoices": [
       {
         "label": "User Notes",
-        "userNotesText": "For Manual Verification | [Name] | [DOB]"
+        "userNotesText": "For Manual Verification | [Name] | [DOB] ([AGE])"
       }
     ],
     "zoomChoices": [

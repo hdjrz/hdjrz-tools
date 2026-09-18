@@ -156,7 +156,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.5.8";
+  const HARDCODED_VERSION = "1.5.9";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -176,9 +176,21 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.5.9",
+      title: "Manual KYC Age Integration in User Notes",
+      date: "Latest",
+      agentFeatures: [
+        "📝 Manual KYC User Notes Age: Added player age directly beside Date of Birth in User Notes (`For Manual Verification | [Name] | [DOB] ([AGE])`).",
+        "🎂 Complete Age Synchronization: Both in-page User Notes and Zoom Final Escalation Note now carry the calculated player age for seamless KYC review."
+      ],
+      adminFeatures: [
+        "🛡️ Automatic Template Sync: Promptly updates stored agent configurations across the entire team."
+      ]
+    },
+    {
       version: "1.5.8",
       title: "Manual KYC Age Integration in Final Escalation Note",
-      date: "Latest",
+      date: "v1.5.8",
       agentFeatures: [
         "🎂 Manual KYC Age Display: Automatically appends calculated player age beside Date of Birth in the Final Escalation Note (`Date of Birth: [DOB] ([AGE])`) for instant TL verification.",
         "✨ Clean Parentheses Sanitization: Intelligently omits empty parentheses when date of birth or age is not provided."
@@ -2287,7 +2299,7 @@
     return list.map(normalizeEscalationOption);
   }
 
-  const BIT88_NOTES_WORDING_VERSION = 28;
+  const BIT88_NOTES_WORDING_VERSION = 29;
   let loadedWordingVersion = 0;
 
   function getPresetOptionsList() {
