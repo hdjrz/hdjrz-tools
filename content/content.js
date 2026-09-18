@@ -150,7 +150,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.5.3";
+  const HARDCODED_VERSION = "1.5.4";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -170,9 +170,21 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.5.4",
+      title: "Admin Portal Script Syntax & Login Button Fix",
+      date: "Latest",
+      agentFeatures: [
+        "🛡️ Core API Handshake: Continuous edge connectivity without interruptions."
+      ],
+      adminFeatures: [
+        "🚀 Unlock Portal Button Restoration: Resolved JavaScript syntax error in admin portal that was preventing the login button from firing.",
+        "✨ Clean Attribute Escaping: Replaced escaped quotes with HTML entity quotes in table action handlers."
+      ]
+    },
+    {
       version: "1.5.3",
       title: "Admin Portal Dual-Auth & Login Reliability",
-      date: "Latest",
+      date: "v1.5.3",
       agentFeatures: [
         "🛡️ Enhanced Security Handshake: Smoother authentication verification against the Cloudflare Edge API.",
         "⚡ Session Stability: Prevents unexpected session expirations during long shifts."

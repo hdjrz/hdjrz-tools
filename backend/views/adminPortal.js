@@ -820,11 +820,11 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
           ? '<div style="display:flex; align-items:center; gap:6px;">' +
               (isOnline ? '<span title="Online now" style="color:#10b981; font-size:11px;">🟢</span>' : '<span title="Offline" style="color:#64748b; font-size:11px;">⚪</span>') +
               '<strong style="color:#f1f5f9;">' + escapeHtml(ownerName) + '</strong>' +
-              '<button type="button" class="btn btn-secondary btn-sm" style="padding:1px 5px; font-size:10px; margin-left:4px;" title="Edit Client Name" onclick="editOwner(\'' + escapeHtml(item.key) + '\', \'' + escapeHtml(ownerName) + '\')">✏️</button>' +
+              '<button type="button" class="btn btn-secondary btn-sm" style="padding:1px 5px; font-size:10px; margin-left:4px;" title="Edit Client Name" onclick="editOwner(&quot;' + escapeHtml(item.key) + '&quot;, &quot;' + escapeHtml(ownerName) + '&quot;)">✏️</button>' +
             '</div>'
           : '<div style="display:flex; align-items:center; gap:6px;">' +
               '<span style="color:#94a3b8; font-style:italic;">Unassigned</span>' +
-              '<button type="button" class="btn btn-secondary btn-sm" style="padding:1px 5px; font-size:10px; margin-left:4px;" title="Assign Client Name" onclick="editOwner(\'' + escapeHtml(item.key) + '\', \'\')">✏️</button>' +
+              '<button type="button" class="btn btn-secondary btn-sm" style="padding:1px 5px; font-size:10px; margin-left:4px;" title="Assign Client Name" onclick="editOwner(&quot;' + escapeHtml(item.key) + '&quot;, &quot;&quot;)">✏️</button>' +
             '</div>';
 
         return '<tr>' +
@@ -835,9 +835,9 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
           '<td>' + statusBadge + '</td>' +
           '<td>' + createdDate + '</td>' +
           '<td><div class="actions-cell">' +
-            (isBound ? '<button type="button" class="btn btn-warning btn-sm" onclick="resetDevice(\'' + escapeHtml(item.key) + '\')">🔄 Reset Device</button>' : '') +
-            '<button type="button" class="btn btn-secondary btn-sm" onclick="toggleFreeze(\'' + escapeHtml(item.key) + '\')">' + (isFrozen ? '🟢 Unfreeze' : '🚫 Freeze') + '</button>' +
-            '<button type="button" class="btn btn-danger btn-sm" onclick="deleteKey(\'' + escapeHtml(item.key) + '\')">🗑️</button>' +
+            (isBound ? '<button type="button" class="btn btn-warning btn-sm" onclick="resetDevice(&quot;' + escapeHtml(item.key) + '&quot;)">🔄 Reset Device</button>' : '') +
+            '<button type="button" class="btn btn-secondary btn-sm" onclick="toggleFreeze(&quot;' + escapeHtml(item.key) + '&quot;)">' + (isFrozen ? '🟢 Unfreeze' : '🚫 Freeze') + '</button>' +
+            '<button type="button" class="btn btn-danger btn-sm" onclick="deleteKey(&quot;' + escapeHtml(item.key) + '&quot;)">🗑️</button>' +
           '</div></td>' +
         '</tr>';
       }).join("");
