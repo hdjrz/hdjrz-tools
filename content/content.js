@@ -64,29 +64,6 @@
         "DISCONNECT": "#23376B"
       }
     },
-    dark_forest: {
-      id: "dark_forest",
-      name: "Dark Forest",
-      description: "Deep pine, shadow emerald, and dark woodland tones",
-      swatch: ["#0B1A13", "#143626", "#1B4332", "#2D6A4F"],
-      colors: {
-        "ACR": "#143626",
-        "ACR-PAGCOR": "#0B1A13",
-        "ACR - PERMA": "#7A1E1E",
-        "REACT": "#1B4332",
-        "REACT NOT": "#1A3328",
-        "NGP NON-X": "#634816",
-        "NDRP": "#244B3B",
-        "UA W/FUNDS": "#6B2222",
-        "UA WO/FUNDS": "#102B1E",
-        "MANUAL KYC": "#5C2836",
-        "KYC SWITCH": "#1D4E43",
-        "GLIFE.1": "#2D6A4F",
-        "GLIFE.2": "#16382A",
-        "ABUSER": "#1E2620",
-        "DISCONNECT": "#224838"
-      }
-    },
     crimson_wine: {
       id: "crimson_wine",
       name: "Crimson Wine",
@@ -108,75 +85,6 @@
         "GLIFE.2": "#4A1521",
         "ABUSER": "#261418",
         "DISCONNECT": "#4E1A2B"
-      }
-    },
-    dark_amethyst: {
-      id: "dark_amethyst",
-      name: "Dark Amethyst",
-      description: "Deep royal velvet, blackberry plum, and violet noir",
-      swatch: ["#1C0D2B", "#2E1047", "#4A154B", "#3C096C"],
-      colors: {
-        "ACR": "#2E1047",
-        "ACR-PAGCOR": "#1C0D2B",
-        "ACR - PERMA": "#6E1528",
-        "REACT": "#154238",
-        "REACT NOT": "#2D203D",
-        "NGP NON-X": "#5E401A",
-        "NDRP": "#3C096C",
-        "UA W/FUNDS": "#541235",
-        "UA WO/FUNDS": "#1E0C2B",
-        "MANUAL KYC": "#4A154B",
-        "KYC SWITCH": "#1C3B52",
-        "GLIFE.1": "#1A4540",
-        "GLIFE.2": "#25123A",
-        "ABUSER": "#201826",
-        "DISCONNECT": "#341952"
-      }
-    },
-    dark_espresso: {
-      id: "dark_espresso",
-      name: "Dark Espresso",
-      description: "Roasted espresso bean, smoked wood, and dark mocha",
-      swatch: ["#1F1610", "#362419", "#4A3525", "#5C4033"],
-      colors: {
-        "ACR": "#362419",
-        "ACR-PAGCOR": "#1F1610",
-        "ACR - PERMA": "#6B1D1D",
-        "REACT": "#1B3E2D",
-        "REACT NOT": "#2F2620",
-        "NGP NON-X": "#5C4033",
-        "NDRP": "#3B2D4A",
-        "UA W/FUNDS": "#57241C",
-        "UA WO/FUNDS": "#251B15",
-        "MANUAL KYC": "#52272E",
-        "KYC SWITCH": "#1E363E",
-        "GLIFE.1": "#234233",
-        "GLIFE.2": "#3A271C",
-        "ABUSER": "#221C19",
-        "DISCONNECT": "#4A3525"
-      }
-    },
-    obsidian_slate: {
-      id: "obsidian_slate",
-      name: "Obsidian Slate",
-      description: "Sleek carbon, dark gunmetal, and obsidian steel",
-      swatch: ["#0F172A", "#1E293B", "#334155", "#1E3A8A"],
-      colors: {
-        "ACR": "#1E293B",
-        "ACR-PAGCOR": "#0F172A",
-        "ACR - PERMA": "#691D24",
-        "REACT": "#134035",
-        "REACT NOT": "#263342",
-        "NGP NON-X": "#524020",
-        "NDRP": "#2C2F4D",
-        "UA W/FUNDS": "#4F1E29",
-        "UA WO/FUNDS": "#141C2B",
-        "MANUAL KYC": "#4A253A",
-        "KYC SWITCH": "#1E3A4C",
-        "GLIFE.1": "#1B443B",
-        "GLIFE.2": "#182232",
-        "ABUSER": "#171D26",
-        "DISCONNECT": "#23354E"
       }
     }
   };
@@ -248,7 +156,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.5.6";
+  const HARDCODED_VERSION = "1.5.7";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -268,9 +176,21 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.5.7",
+      title: "Streamlined 3 Dark Palette Options",
+      date: "Latest",
+      agentFeatures: [
+        "🎯 3 Streamlined Dark Options: Focused down to 3 curated dark palettes: Classic Dark (Multi-Color), Midnight Abyss (Deep Navy Blue), and Crimson Wine (Deep Burgundy Wine).",
+        "⚡ Cleaner Settings Toolbar: Minimalist 3-button palette bar with instant 1-click styling."
+      ],
+      adminFeatures: [
+        "🛡️ Simplified Fleet Theming: Exactly 3 distinct dark high-contrast themes for fast selection across all escalations."
+      ]
+    },
+    {
       version: "1.5.6",
       title: "Exclusive Dark-Tone Button Color Palettes",
-      date: "Latest",
+      date: "v1.5.6",
       agentFeatures: [
         "🌙 Exclusively Dark Color Palettes: Removed all light and pastel button options. Replaced with 7 deep, rich, high-contrast dark colorways (Midnight Abyss, Dark Forest, Crimson Wine, Dark Amethyst, Dark Espresso, Obsidian Slate, Classic Dark).",
         "👁️ High-Contrast Readability: Pure white text paired with moody dark-saturated buttons designed specifically for bet88 admin dark workflows."
@@ -5967,35 +5887,11 @@
                     </span>
                     <span>Midnight Abyss</span>
                   </button>
-                  <button type="button" class="esc-palette-pill" data-palette="dark_forest" title="Dark Forest: Deep pine, shadow emerald, and woodland tones">
-                    <span class="esc-palette-swatch">
-                      <span style="background:#0B1A13"></span><span style="background:#143626"></span><span style="background:#1B4332"></span><span style="background:#2D6A4F"></span>
-                    </span>
-                    <span>Dark Forest</span>
-                  </button>
                   <button type="button" class="esc-palette-pill" data-palette="crimson_wine" title="Crimson Wine: Deep burgundy, dark merlot, and cherry noir">
                     <span class="esc-palette-swatch">
                       <span style="background:#3D0C11"></span><span style="background:#5E131D"></span><span style="background:#800E13"></span><span style="background:#4A1521"></span>
                     </span>
                     <span>Crimson Wine</span>
-                  </button>
-                  <button type="button" class="esc-palette-pill" data-palette="dark_amethyst" title="Dark Amethyst: Deep royal velvet, blackberry plum, and violet noir">
-                    <span class="esc-palette-swatch">
-                      <span style="background:#1C0D2B"></span><span style="background:#2E1047"></span><span style="background:#4A154B"></span><span style="background:#3C096C"></span>
-                    </span>
-                    <span>Dark Amethyst</span>
-                  </button>
-                  <button type="button" class="esc-palette-pill" data-palette="dark_espresso" title="Dark Espresso: Roasted espresso bean, smoked wood, and dark mocha">
-                    <span class="esc-palette-swatch">
-                      <span style="background:#1F1610"></span><span style="background:#362419"></span><span style="background:#4A3525"></span><span style="background:#5C4033"></span>
-                    </span>
-                    <span>Dark Espresso</span>
-                  </button>
-                  <button type="button" class="esc-palette-pill" data-palette="obsidian_slate" title="Obsidian Slate: Sleek carbon, dark gunmetal, and obsidian steel">
-                    <span class="esc-palette-swatch">
-                      <span style="background:#0F172A"></span><span style="background:#1E293B"></span><span style="background:#334155"></span><span style="background:#1E3A8A"></span>
-                    </span>
-                    <span>Obsidian Slate</span>
                   </button>
                 </div>
               </div>

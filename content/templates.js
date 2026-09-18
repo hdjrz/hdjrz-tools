@@ -51,29 +51,6 @@ const BUTTON_COLOR_PALETTES = {
       "DISCONNECT": "#23376B"
     }
   },
-  dark_forest: {
-    id: "dark_forest",
-    name: "Dark Forest",
-    description: "Deep pine, shadow emerald, and dark woodland tones",
-    swatch: ["#0B1A13", "#143626", "#1B4332", "#2D6A4F"],
-    colors: {
-      "ACR": "#143626",
-      "ACR-PAGCOR": "#0B1A13",
-      "ACR - PERMA": "#7A1E1E",
-      "REACT": "#1B4332",
-      "REACT NOT": "#1A3328",
-      "NGP NON-X": "#634816",
-      "NDRP": "#244B3B",
-      "UA W/FUNDS": "#6B2222",
-      "UA WO/FUNDS": "#102B1E",
-      "MANUAL KYC": "#5C2836",
-      "KYC SWITCH": "#1D4E43",
-      "GLIFE.1": "#2D6A4F",
-      "GLIFE.2": "#16382A",
-      "ABUSER": "#1E2620",
-      "DISCONNECT": "#224838"
-    }
-  },
   crimson_wine: {
     id: "crimson_wine",
     name: "Crimson Wine",
@@ -95,75 +72,6 @@ const BUTTON_COLOR_PALETTES = {
       "GLIFE.2": "#4A1521",
       "ABUSER": "#261418",
       "DISCONNECT": "#4E1A2B"
-    }
-  },
-  dark_amethyst: {
-    id: "dark_amethyst",
-    name: "Dark Amethyst",
-    description: "Deep royal velvet, blackberry plum, and violet noir",
-    swatch: ["#1C0D2B", "#2E1047", "#4A154B", "#3C096C"],
-    colors: {
-      "ACR": "#2E1047",
-      "ACR-PAGCOR": "#1C0D2B",
-      "ACR - PERMA": "#6E1528",
-      "REACT": "#154238",
-      "REACT NOT": "#2D203D",
-      "NGP NON-X": "#5E401A",
-      "NDRP": "#3C096C",
-      "UA W/FUNDS": "#541235",
-      "UA WO/FUNDS": "#1E0C2B",
-      "MANUAL KYC": "#4A154B",
-      "KYC SWITCH": "#1C3B52",
-      "GLIFE.1": "#1A4540",
-      "GLIFE.2": "#25123A",
-      "ABUSER": "#201826",
-      "DISCONNECT": "#341952"
-    }
-  },
-  dark_espresso: {
-    id: "dark_espresso",
-    name: "Dark Espresso",
-    description: "Roasted espresso bean, smoked wood, and dark mocha",
-    swatch: ["#1F1610", "#362419", "#4A3525", "#5C4033"],
-    colors: {
-      "ACR": "#362419",
-      "ACR-PAGCOR": "#1F1610",
-      "ACR - PERMA": "#6B1D1D",
-      "REACT": "#1B3E2D",
-      "REACT NOT": "#2F2620",
-      "NGP NON-X": "#5C4033",
-      "NDRP": "#3B2D4A",
-      "UA W/FUNDS": "#57241C",
-      "UA WO/FUNDS": "#251B15",
-      "MANUAL KYC": "#52272E",
-      "KYC SWITCH": "#1E363E",
-      "GLIFE.1": "#234233",
-      "GLIFE.2": "#3A271C",
-      "ABUSER": "#221C19",
-      "DISCONNECT": "#4A3525"
-    }
-  },
-  obsidian_slate: {
-    id: "obsidian_slate",
-    name: "Obsidian Slate",
-    description: "Sleek carbon, dark gunmetal, and obsidian steel",
-    swatch: ["#0F172A", "#1E293B", "#334155", "#1E3A8A"],
-    colors: {
-      "ACR": "#1E293B",
-      "ACR-PAGCOR": "#0F172A",
-      "ACR - PERMA": "#691D24",
-      "REACT": "#134035",
-      "REACT NOT": "#263342",
-      "NGP NON-X": "#524020",
-      "NDRP": "#2C2F4D",
-      "UA W/FUNDS": "#4F1E29",
-      "UA WO/FUNDS": "#141C2B",
-      "MANUAL KYC": "#4A253A",
-      "KYC SWITCH": "#1E3A4C",
-      "GLIFE.1": "#1B443B",
-      "GLIFE.2": "#182232",
-      "ABUSER": "#171D26",
-      "DISCONNECT": "#23354E"
     }
   }
 };
