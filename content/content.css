@@ -1377,6 +1377,22 @@ body.esc-modal-scroll-lock {
   flex-shrink: 0;
 }
 
+.esc-palette-swatch {
+  width: 22px;
+  height: 12px;
+  border-radius: 3px;
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.esc-palette-swatch span {
+  flex: 1;
+  height: 100%;
+}
+
 .esc-settings-table-wrapper {
   overflow-x: auto;
   border: 1px solid var(--esc-border);

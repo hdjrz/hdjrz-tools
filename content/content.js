@@ -18,9 +18,11 @@
   } catch (e) {}
 
   const FALLBACK_BUTTON_COLOR_PALETTES = {
-    modern_pro: {
-      id: "modern_pro",
-      name: "Modern Pro",
+    classic_pro: {
+      id: "classic_pro",
+      name: "Classic Pro",
+      description: "Original high-clarity functional button colors",
+      swatch: ["#2563eb", "#dc2626", "#059669", "#7c3aed"],
       colors: {
         "ACR": "#2563eb",
         "ACR-PAGCOR": "#0284c7",
@@ -39,46 +41,142 @@
         "DISCONNECT": "#3b82f6"
       }
     },
-    pastel: {
-      id: "pastel",
-      name: "Soft Pastel",
+    ocean_coral: {
+      id: "ocean_coral",
+      name: "Ocean Coral",
+      description: "Deep slate, sky blue, and coral punch (Color Hunt #1)",
+      swatch: ["#243656", "#3A5A97", "#70B2E8", "#FF7A8A"],
       colors: {
-        "ACR": "#3b82f6",
-        "ACR-PAGCOR": "#38bdf8",
-        "ACR - PERMA": "#f43f5e",
+        "ACR": "#243656",
+        "ACR-PAGCOR": "#3A5A97",
+        "ACR - PERMA": "#FF7A8A",
         "REACT": "#10b981",
-        "REACT NOT": "#14b8a6",
-        "NGP NON-X": "#f59e0b",
-        "NDRP": "#a855f7",
-        "UA W/FUNDS": "#818cf8",
-        "UA WO/FUNDS": "#c084fc",
-        "MANUAL KYC": "#fb7185",
-        "KYC SWITCH": "#22d3ee",
-        "GLIFE.1": "#34d399",
-        "GLIFE.2": "#2dd4bf",
-        "ABUSER": "#64748b",
-        "DISCONNECT": "#60a5fa"
+        "REACT NOT": "#2c4a6f",
+        "NGP NON-X": "#f58294",
+        "NDRP": "#70B2E8",
+        "UA W/FUNDS": "#e05568",
+        "UA WO/FUNDS": "#3A5A97",
+        "MANUAL KYC": "#FF7A8A",
+        "KYC SWITCH": "#70B2E8",
+        "GLIFE.1": "#529ddb",
+        "GLIFE.2": "#243656",
+        "ABUSER": "#475569",
+        "DISCONNECT": "#38bdf8"
       }
     },
-    jewel: {
-      id: "jewel",
-      name: "Jewel Rich",
+    midnight_navy: {
+      id: "midnight_navy",
+      name: "Midnight Navy",
+      description: "Deep abyss, cobalt, and warm vanilla gold (Color Hunt #2)",
+      swatch: ["#010736", "#0D1C42", "#22396F", "#FCF1D0"],
       colors: {
-        "ACR": "#1d4ed8",
-        "ACR-PAGCOR": "#0369a1",
-        "ACR - PERMA": "#b91c1c",
-        "REACT": "#047857",
-        "REACT NOT": "#0f766e",
-        "NGP NON-X": "#b45309",
-        "NDRP": "#6d28d9",
-        "UA W/FUNDS": "#4f46e5",
-        "UA WO/FUNDS": "#7c3aed",
-        "MANUAL KYC": "#be123c",
-        "KYC SWITCH": "#0e7490",
-        "GLIFE.1": "#0f766e",
-        "GLIFE.2": "#115e59",
-        "ABUSER": "#334155",
-        "DISCONNECT": "#2563eb"
+        "ACR": "#22396F",
+        "ACR-PAGCOR": "#16284f",
+        "ACR - PERMA": "#9e2a44",
+        "REACT": "#0f766e",
+        "REACT NOT": "#1b4d5a",
+        "NGP NON-X": "#c49b3b",
+        "NDRP": "#3b60af",
+        "UA W/FUNDS": "#b33951",
+        "UA WO/FUNDS": "#22396F",
+        "MANUAL KYC": "#c44d67",
+        "KYC SWITCH": "#3874b3",
+        "GLIFE.1": "#1e6b7b",
+        "GLIFE.2": "#0D1C42",
+        "ABUSER": "#1e293b",
+        "DISCONNECT": "#2552a8"
+      }
+    },
+    retro_crimson: {
+      id: "retro_crimson",
+      name: "Retro Crimson",
+      description: "Deep wine, cherry crimson, and vintage teal (Color Hunt #3)",
+      swatch: ["#4D0F13", "#991F26", "#F9DC96", "#289697"],
+      colors: {
+        "ACR": "#991F26",
+        "ACR-PAGCOR": "#4D0F13",
+        "ACR - PERMA": "#781419",
+        "REACT": "#289697",
+        "REACT NOT": "#1c6869",
+        "NGP NON-X": "#d4a34b",
+        "NDRP": "#991F26",
+        "UA W/FUNDS": "#b82630",
+        "UA WO/FUNDS": "#4D0F13",
+        "MANUAL KYC": "#bf2e39",
+        "KYC SWITCH": "#289697",
+        "GLIFE.1": "#32a8a9",
+        "GLIFE.2": "#1c6869",
+        "ABUSER": "#381013",
+        "DISCONNECT": "#c47d2b"
+      }
+    },
+    emerald_ochre: {
+      id: "emerald_ochre",
+      name: "Emerald Gold",
+      description: "Dark pine, forest emerald, and warm ochre (Color Hunt #6)",
+      swatch: ["#183D3D", "#2D6A5D", "#C89743", "#F1E3D3"],
+      colors: {
+        "ACR": "#183D3D",
+        "ACR-PAGCOR": "#225348",
+        "ACR - PERMA": "#8c3a27",
+        "REACT": "#2D6A5D",
+        "REACT NOT": "#3d5a50",
+        "NGP NON-X": "#C89743",
+        "NDRP": "#2D6A5D",
+        "UA W/FUNDS": "#96422d",
+        "UA WO/FUNDS": "#183D3D",
+        "MANUAL KYC": "#a8442d",
+        "KYC SWITCH": "#3A7D6E",
+        "GLIFE.1": "#2D6A5D",
+        "GLIFE.2": "#183D3D",
+        "ABUSER": "#3b2c20",
+        "DISCONNECT": "#C89743"
+      }
+    },
+    sunset_terracotta: {
+      id: "sunset_terracotta",
+      name: "Sunset Terracotta",
+      description: "Burgundy, terracotta red, and golden amber (Color Hunt #7)",
+      swatch: ["#8A2525", "#D9432F", "#F37335", "#FDC830"],
+      colors: {
+        "ACR": "#8A2525",
+        "ACR-PAGCOR": "#6e1b1b",
+        "ACR - PERMA": "#a82020",
+        "REACT": "#2e7d32",
+        "REACT NOT": "#4e6b50",
+        "NGP NON-X": "#F37335",
+        "NDRP": "#FDC830",
+        "UA W/FUNDS": "#D9432F",
+        "UA WO/FUNDS": "#8A2525",
+        "MANUAL KYC": "#eb6b56",
+        "KYC SWITCH": "#F37335",
+        "GLIFE.1": "#e59a19",
+        "GLIFE.2": "#8A2525",
+        "ABUSER": "#3d2626",
+        "DISCONNECT": "#FDC830"
+      }
+    },
+    candy_pastel: {
+      id: "candy_pastel",
+      name: "Candy Pastel",
+      description: "Soft rose, blush pink, and mint cyan (Color Hunt #8)",
+      swatch: ["#E77F7F", "#F4A4A4", "#BBE6E4", "#818cf8"],
+      colors: {
+        "ACR": "#E77F7F",
+        "ACR-PAGCOR": "#d96666",
+        "ACR - PERMA": "#e05364",
+        "REACT": "#38b2ac",
+        "REACT NOT": "#4e938f",
+        "NGP NON-X": "#f59e0b",
+        "NDRP": "#818cf8",
+        "UA W/FUNDS": "#F4A4A4",
+        "UA WO/FUNDS": "#E77F7F",
+        "MANUAL KYC": "#f472b6",
+        "KYC SWITCH": "#38bdf8",
+        "GLIFE.1": "#2dd4bf",
+        "GLIFE.2": "#0d9488",
+        "ABUSER": "#64748b",
+        "DISCONNECT": "#60a5fa"
       }
     }
   };
@@ -150,7 +248,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.5.4";
+  const HARDCODED_VERSION = "1.5.5";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -170,9 +268,21 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.5.5",
+      title: "Curated Color Hunt Designer Palettes",
+      date: "Latest",
+      agentFeatures: [
+        "🎨 Color Hunt Themes: Replaced generic contrast variations with 7 authentic curated color schemes (Ocean Coral, Midnight Navy, Retro Crimson, Emerald Gold, Sunset Terracotta, Candy Pastel, Classic Pro).",
+        "✨ 4-Stripe Palette Swatches: Instant visual preview of each designer palette right in the Settings Button Palette bar."
+      ],
+      adminFeatures: [
+        "🎯 Multi-Color Palette Coordination: Harmonious color distribution across all escalation button groups with full 1-click styling."
+      ]
+    },
+    {
       version: "1.5.4",
       title: "Admin Portal Script Syntax & Login Button Fix",
-      date: "Latest",
+      date: "v1.5.4",
       agentFeatures: [
         "🛡️ Core API Handshake: Continuous edge connectivity without interruptions."
       ],
@@ -5829,21 +5939,51 @@
               <!-- Button Color Palette Bar -->
               <div class="esc-btn-palette-bar">
                 <div style="display: flex; align-items: center; gap: 8px;">
-                  <span style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">🎨 Button Palette:</span>
-                  <span style="font-size: 11px; color: #64748b;">(1-Click Style Switcher)</span>
+                  <span style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">🎨 Color Hunt Palettes:</span>
+                  <span style="font-size: 11px; color: #64748b;">(Curated Designer Themes)</span>
                 </div>
                 <div class="esc-btn-palette-selector" id="esc-btn-palette-selector">
-                  <button type="button" class="esc-palette-pill" data-palette="modern_pro" title="Modern Pro: High-clarity, aesthetic designer palette">
-                    <span class="esc-palette-dot" style="background: linear-gradient(135deg, #2563eb, #059669, #dc2626);"></span>
-                    <span>Modern Pro</span>
+                  <button type="button" class="esc-palette-pill" data-palette="classic_pro" title="Classic Pro: Original high-visibility functional colors">
+                    <span class="esc-palette-swatch">
+                      <span style="background:#2563eb"></span><span style="background:#dc2626"></span><span style="background:#059669"></span><span style="background:#7c3aed"></span>
+                    </span>
+                    <span>Classic Pro</span>
                   </button>
-                  <button type="button" class="esc-palette-pill" data-palette="pastel" title="Soft Pastel: Calm candy-tone aesthetic">
-                    <span class="esc-palette-dot" style="background: linear-gradient(135deg, #38bdf8, #34d399, #fb7185);"></span>
-                    <span>Soft Pastel</span>
+                  <button type="button" class="esc-palette-pill" data-palette="ocean_coral" title="Ocean Coral: Deep slate, sky blue, and coral punch (Color Hunt #1)">
+                    <span class="esc-palette-swatch">
+                      <span style="background:#243656"></span><span style="background:#3A5A97"></span><span style="background:#70B2E8"></span><span style="background:#FF7A8A"></span>
+                    </span>
+                    <span>Ocean Coral</span>
                   </button>
-                  <button type="button" class="esc-palette-pill" data-palette="jewel" title="Jewel Rich: Deep luxury gemstone tones">
-                    <span class="esc-palette-dot" style="background: linear-gradient(135deg, #1d4ed8, #047857, #b91c1c);"></span>
-                    <span>Jewel Rich</span>
+                  <button type="button" class="esc-palette-pill" data-palette="midnight_navy" title="Midnight Navy: Deep abyss, cobalt, and warm vanilla gold (Color Hunt #2)">
+                    <span class="esc-palette-swatch">
+                      <span style="background:#010736"></span><span style="background:#0D1C42"></span><span style="background:#22396F"></span><span style="background:#FCF1D0"></span>
+                    </span>
+                    <span>Midnight Navy</span>
+                  </button>
+                  <button type="button" class="esc-palette-pill" data-palette="retro_crimson" title="Retro Crimson: Deep wine, cherry crimson, and vintage teal (Color Hunt #3)">
+                    <span class="esc-palette-swatch">
+                      <span style="background:#4D0F13"></span><span style="background:#991F26"></span><span style="background:#F9DC96"></span><span style="background:#289697"></span>
+                    </span>
+                    <span>Retro Crimson</span>
+                  </button>
+                  <button type="button" class="esc-palette-pill" data-palette="emerald_ochre" title="Emerald Gold: Dark pine, forest emerald, and warm ochre (Color Hunt #6)">
+                    <span class="esc-palette-swatch">
+                      <span style="background:#183D3D"></span><span style="background:#2D6A5D"></span><span style="background:#C89743"></span><span style="background:#F1E3D3"></span>
+                    </span>
+                    <span>Emerald Gold</span>
+                  </button>
+                  <button type="button" class="esc-palette-pill" data-palette="sunset_terracotta" title="Sunset Terracotta: Burgundy, terracotta red, and golden amber (Color Hunt #7)">
+                    <span class="esc-palette-swatch">
+                      <span style="background:#8A2525"></span><span style="background:#D9432F"></span><span style="background:#F37335"></span><span style="background:#FDC830"></span>
+                    </span>
+                    <span>Sunset Terracotta</span>
+                  </button>
+                  <button type="button" class="esc-palette-pill" data-palette="candy_pastel" title="Candy Pastel: Soft rose, blush pink, and mint cyan (Color Hunt #8)">
+                    <span class="esc-palette-swatch">
+                      <span style="background:#E77F7F"></span><span style="background:#F4A4A4"></span><span style="background:#BBE6E4"></span><span style="background:#818cf8"></span>
+                    </span>
+                    <span>Candy Pastel</span>
                   </button>
                 </div>
               </div>
@@ -6625,12 +6765,21 @@
 
       const highlightActivePalette = () => {
         const palettes = getPalettes();
-        const acrOpt = workingOptions.find(o => o && o.code === "ACR");
-        const acrColor = (acrOpt && acrOpt.color ? acrOpt.color : "").toLowerCase();
         let matchedKey = "";
+        let bestMatchCount = 0;
         Object.keys(palettes).forEach(key => {
           const pal = palettes[key];
-          if (pal && pal.colors && pal.colors["ACR"] && pal.colors["ACR"].toLowerCase() === acrColor) {
+          if (!pal || !pal.colors) return;
+          let count = 0;
+          workingOptions.forEach(opt => {
+            if (opt && opt.code && pal.colors[opt.code]) {
+              const palCol = pal.colors[opt.code].toLowerCase();
+              const curCol = (opt.color || "").toLowerCase();
+              if (palCol === curCol) count++;
+            }
+          });
+          if (count > bestMatchCount && count >= 3) {
+            bestMatchCount = count;
             matchedKey = key;
           }
         });
@@ -6662,7 +6811,7 @@
           renderOptionsList();
           if (typeof updateHorizontalDockButtons === "function") updateHorizontalDockButtons();
           saveSettings({}, null, currentSettings.customOptions, () => {
-            showToast(`🎨 Applied ${targetPalette.name} palette to buttons!`, true);
+            showToast(`🎨 Applied ${targetPalette.name} Color Hunt palette!`, true);
           });
         });
       });
