@@ -366,6 +366,10 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
           <div class="stat-title">📚 Escalations</div>
           <div class="stat-value" style="color: #60a5fa;" id="stat-escalations-count">14 Active</div>
         </div>
+        <div class="stat-card" id="card-stat-support" style="cursor: pointer;">
+          <div class="stat-title">💬 Support Tickets</div>
+          <div class="stat-value" style="color: #f59e0b;" id="stat-support-count">0 Open</div>
+        </div>
       </div>
 
       <!-- ➕ Create New License Key -->
@@ -553,6 +557,30 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
         </div>
       </div>
 
+      <!-- 💬 Agent Support & Bug Tickets -->
+      <div class="section-card" id="section-support-tickets">
+        <div class="section-header">
+          <div class="section-title">
+            <span>💬 Agent Support &amp; Bug Tickets</span>
+            <span class="badge-status" id="support-unread-badge" style="display:none; background: rgba(245, 158, 11, 0.2); color: #fde047; border: 1px solid rgba(245, 158, 11, 0.4); margin-left: 8px;">0 New</span>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <select id="filter-support-status" style="background: #060c18; border: 1px solid #334155; border-radius: 4px; padding: 4px 10px; color: #fff; font-size: 12px;">
+              <option value="all">All Statuses</option>
+              <option value="open" selected>Open Only</option>
+              <option value="in_progress">In Progress</option>
+              <option value="resolved">Resolved</option>
+            </select>
+            <input type="text" id="search-support" placeholder="Search agent or issue..." style="background: #060c18; border: 1px solid #334155; border-radius: 4px; padding: 4px 10px; color: #fff; font-size: 12px; width: 180px;">
+            <button type="button" id="refresh-support-btn" class="btn btn-secondary btn-sm">🔄 Refresh</button>
+          </div>
+        </div>
+
+        <div id="support-tickets-list" style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="color: var(--muted); font-size: 13px; text-align: center; padding: 24px;">Loading support tickets...</div>
+        </div>
+      </div>
+
       <!-- 🚀 Release Channels & Fleet Rollout -->
       <div class="section-card">
         <div class="section-header">
@@ -646,6 +674,51 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
           Publish v1
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- Support Thread & Reply Modal -->
+  <div id="support-thread-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card" style="max-width: 680px; max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="modal-header">
+        <div>
+          <div style="font-size: 16px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px;">
+            <span id="thread-agent-name">Agent</span>
+            <span class="badge-status" id="thread-status-badge">Open</span>
+          </div>
+          <div style="font-size: 11px; color: var(--muted); margin-top: 4px;" id="thread-meta-info">Version | URL</div>
+        </div>
+        <button type="button" id="close-thread-modal-btn" class="btn btn-secondary btn-sm" style="padding: 2px 8px;">✕</button>
+      </div>
+
+      <!-- Messages Scroll Area -->
+      <div id="thread-messages-wrap" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 8px 4px; margin-bottom: 14px; max-height: 420px;">
+      </div>
+
+      <!-- Admin Reply & Status Actions -->
+      <div style="border-top: 1px solid #1e293b; padding-top: 12px;">
+        <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+          <textarea id="thread-reply-input" placeholder="Type your reply to the agent..." rows="2" style="flex: 1; background: #060c18; border: 1px solid #334155; border-radius: 6px; padding: 8px 12px; color: #fff; font-size: 13px; resize: vertical; outline: none;"></textarea>
+          <button type="button" id="thread-send-reply-btn" class="btn btn-primary" style="align-self: flex-end;">
+            Send Reply 🚀
+          </button>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+          <div style="display: flex; gap: 6px;">
+            <button type="button" id="thread-mark-resolved-btn" class="btn btn-sm" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4);">✓ Mark as Resolved</button>
+            <button type="button" id="thread-mark-progress-btn" class="btn btn-sm" style="background: rgba(59, 130, 246, 0.2); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.4);">⏳ Mark In Progress</button>
+          </div>
+          <button type="button" id="thread-delete-btn" class="btn btn-danger btn-sm">🗑️ Delete Ticket</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Full-Screen Screenshot Lightbox -->
+  <div id="support-lightbox-modal" class="modal-overlay" style="display: none; z-index: 100000; padding: 10px;">
+    <div style="position: relative; max-width: 95vw; max-height: 95vh; display: flex; flex-direction: column; align-items: center;">
+      <button type="button" id="close-lightbox-btn" style="position: absolute; top: -14px; right: -14px; background: #ef4444; color: #fff; border: none; border-radius: 50%; width: 32px; height: 32px; font-weight: 700; cursor: pointer; font-size: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">✕</button>
+      <img id="lightbox-img-el" src="" alt="Screenshot" style="max-width: 92vw; max-height: 90vh; border-radius: 8px; border: 2px solid #334155; object-fit: contain; box-shadow: 0 20px 40px rgba(0,0,0,0.8);">
     </div>
   </div>
 
@@ -758,7 +831,9 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
       loadEscalations();
       loadPipelineStatus();
       loadReleaseChannels();
+      loadSupportTickets();
       setInterval(loadActiveUsers, 15000);
+      setInterval(loadSupportTickets, 20000);
     }
 
     let currentLicenses = [];
@@ -1378,6 +1453,318 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
         document.getElementById("new-master-pass").value = "";
       } else {
         alert("Error: " + res.error);
+      }
+    });
+
+    // =========================================================================
+    // 💬 Agent Support & Bug Tickets Management
+    // =========================================================================
+    let currentActiveTicket = null;
+    let supportDebounceTimer = null;
+
+    async function loadSupportTickets() {
+      const statusFilter = document.getElementById("filter-support-status").value;
+      const searchFilter = document.getElementById("search-support").value.trim();
+      const listEl = document.getElementById("support-tickets-list");
+      const statCountEl = document.getElementById("stat-support-count");
+      const unreadBadgeEl = document.getElementById("support-unread-badge");
+
+      try {
+        const query = new URLSearchParams();
+        if (statusFilter && statusFilter !== "all") query.set("status", statusFilter);
+        if (searchFilter) query.set("search", searchFilter);
+
+        const res = await apiRequest("/admin/api/support/tickets?" + query.toString());
+        if (!res.ok) {
+          if (res.error === "unauthorized") handleUnauthorized();
+          return;
+        }
+
+        const tickets = res.tickets || [];
+        const openCount = tickets.filter(t => t.status === "open").length;
+        const unreadCount = tickets.filter(t => t.unreadAdmin).length;
+
+        if (statCountEl) {
+          statCountEl.textContent = openCount + " Open";
+          statCountEl.style.color = openCount > 0 ? "#f59e0b" : "#34d399";
+        }
+
+        if (unreadBadgeEl) {
+          if (unreadCount > 0) {
+            unreadBadgeEl.textContent = unreadCount + " New";
+            unreadBadgeEl.style.display = "inline-flex";
+          } else {
+            unreadBadgeEl.style.display = "none";
+          }
+        }
+
+        if (tickets.length === 0) {
+          listEl.innerHTML = `
+            <div style="color: var(--muted); font-size: 13px; text-align: center; padding: 36px 12px; background: #060c18; border: 1px dashed #1e293b; border-radius: 8px;">
+              ✨ No support tickets found for this filter. All clear!
+            </div>
+          `;
+          return;
+        }
+
+        let html = "";
+        for (const t of tickets) {
+          const statusColors = {
+            open: { bg: "rgba(245, 158, 11, 0.15)", text: "#fde047", border: "rgba(245, 158, 11, 0.4)", label: "🟡 Open" },
+            in_progress: { bg: "rgba(59, 130, 246, 0.15)", text: "#93c5fd", border: "rgba(59, 130, 246, 0.4)", label: "🔵 In Progress" },
+            resolved: { bg: "rgba(16, 185, 129, 0.15)", text: "#34d399", border: "rgba(16, 185, 129, 0.4)", label: "🟢 Resolved" }
+          };
+          const st = statusColors[t.status] || statusColors.open;
+          const timeStr = formatRelativeTime(t.updatedAt || t.createdAt);
+          const unreadIndicator = t.unreadAdmin ? '<span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#ef4444; margin-right:6px;" title="New message from agent"></span>' : '';
+          const imageTag = t.hasImage ? '<span style="background: rgba(147, 51, 234, 0.2); color: #c084fc; border: 1px solid rgba(147, 51, 234, 0.4); padding: 1px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">📷 Screenshot Attached</span>' : '';
+
+          html += `
+            <div style="background: #060c18; border: 1px solid ${t.unreadAdmin ? '#38bdf8' : '#1e293b'}; border-radius: 8px; padding: 14px 18px; transition: border-color 0.2s; box-shadow: ${t.unreadAdmin ? '0 0 10px rgba(56, 189, 248, 0.15)' : 'none'};">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                  ${unreadIndicator}
+                  <span style="font-weight: 700; font-size: 14px; color: #fff;">${escapeHtml(t.agentName || "Agent")}</span>
+                  <span class="key-tag" style="background: rgba(37, 99, 235, 0.2); color: #93c5fd; border: 1px solid rgba(37, 99, 235, 0.4); font-size: 11px;">v${escapeHtml(t.scriptVersion || "1.0.0")}</span>
+                  ${imageTag}
+                  <span style="font-size: 11px; color: var(--muted);">${timeStr}</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="background: ${st.bg}; color: ${st.text}; border: 1px solid ${st.border}; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">
+                    ${st.label}
+                  </span>
+                  <button type="button" class="btn btn-primary btn-sm view-thread-btn" data-id="${escapeHtml(t.id)}" style="padding: 3px 10px; font-size: 11.5px;">
+                    💬 View &amp; Reply
+                  </button>
+                  <button type="button" class="btn btn-danger btn-sm delete-ticket-btn" data-id="${escapeHtml(t.id)}" title="Delete Ticket" style="padding: 3px 8px;">
+                    🗑️
+                  </button>
+                </div>
+              </div>
+              <div style="font-size: 13px; color: #e2e8f0; margin-bottom: 8px; line-height: 1.4; word-break: break-word;">
+                ${escapeHtml(t.lastMessage || "")}
+              </div>
+              <div style="font-size: 11px; color: #64748b; font-family: var(--font-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                🌐 ${escapeHtml(t.pageUrl || "Direct tool report")}
+              </div>
+            </div>
+          `;
+        }
+
+        listEl.innerHTML = html;
+
+        // Attach buttons
+        listEl.querySelectorAll(".view-thread-btn").forEach(btn => {
+          btn.addEventListener("click", () => openTicketThread(btn.getAttribute("data-id")));
+        });
+        listEl.querySelectorAll(".delete-ticket-btn").forEach(btn => {
+          btn.addEventListener("click", () => deleteTicketAction(btn.getAttribute("data-id")));
+        });
+
+      } catch (err) {
+        listEl.innerHTML = `<div style="color: #fca5a5; font-size: 12px; padding: 14px;">Error loading tickets: ${escapeHtml(err.message)}</div>`;
+      }
+    }
+
+    async function openTicketThread(ticketId) {
+      if (!ticketId) return;
+      const modal = document.getElementById("support-thread-modal");
+      const messagesWrap = document.getElementById("thread-messages-wrap");
+      const agentNameEl = document.getElementById("thread-agent-name");
+      const statusBadgeEl = document.getElementById("thread-status-badge");
+      const metaInfoEl = document.getElementById("thread-meta-info");
+
+      messagesWrap.innerHTML = '<div style="color: var(--muted); text-align: center; padding: 24px;">Loading thread...</div>';
+      modal.style.display = "flex";
+
+      try {
+        const res = await apiRequest("/admin/api/support/ticket/" + ticketId);
+        if (!res.ok || !res.ticket) {
+          alert("Could not load ticket: " + (res.error || "Unknown error"));
+          modal.style.display = "none";
+          return;
+        }
+
+        currentActiveTicket = res.ticket;
+        const t = res.ticket;
+
+        agentNameEl.textContent = t.agentName || "Agent";
+        statusBadgeEl.textContent = t.status.toUpperCase();
+        statusBadgeEl.className = "badge-status " + (t.status === "resolved" ? "active" : (t.status === "in_progress" ? "" : "frozen"));
+        metaInfoEl.textContent = `Script: v${t.scriptVersion || "1.0.0"} | Device: ${t.deviceId || "unknown"} | URL: ${t.pageUrl || "—"}`;
+
+        renderThreadMessages(t.messages || []);
+        loadSupportTickets(); // Refresh unread count
+
+      } catch (err) {
+        messagesWrap.innerHTML = `<div style="color: #fca5a5; padding: 14px;">Failed to load thread: ${escapeHtml(err.message)}</div>`;
+      }
+    }
+
+    function renderThreadMessages(messages) {
+      const messagesWrap = document.getElementById("thread-messages-wrap");
+      if (!messages || messages.length === 0) {
+        messagesWrap.innerHTML = '<div style="color: var(--muted); text-align: center; padding: 20px;">No messages in this ticket.</div>';
+        return;
+      }
+
+      let html = "";
+      for (const m of messages) {
+        const isAdmin = m.sender === "admin";
+        const align = isAdmin ? "flex-end" : "flex-start";
+        const bubbleBg = isAdmin ? "linear-gradient(135deg, #1e3a8a, #1e40af)" : "#0c172a";
+        const bubbleBorder = isAdmin ? "#3b82f6" : "#334155";
+        const timeStr = new Date(m.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true });
+
+        let imgHtml = "";
+        if (m.image) {
+          imgHtml = `
+            <div style="margin-top: 8px;">
+              <img class="thread-screenshot-thumb" src="${m.image}" alt="Screenshot" style="max-width: 280px; max-height: 180px; border-radius: 6px; border: 1px solid #475569; cursor: pointer; display: block; box-shadow: 0 4px 8px rgba(0,0,0,0.4);" title="Click to view full size">
+              <span style="font-size: 10px; color: #93c5fd; cursor: pointer; margin-top: 3px; display: inline-block;">🔍 Click to enlarge screenshot</span>
+            </div>
+          `;
+        }
+
+        html += `
+          <div style="display: flex; flex-direction: column; align-items: ${align};">
+            <div style="font-size: 11px; color: #94a3b8; margin-bottom: 3px; padding: 0 4px;">
+              ${isAdmin ? '👑 ' : '👤 '}<strong>${escapeHtml(m.senderName || (isAdmin ? "Admin" : "Agent"))}</strong> • ${timeStr}
+            </div>
+            <div style="background: ${bubbleBg}; border: 1px solid ${bubbleBorder}; border-radius: 8px; padding: 10px 14px; max-width: 85%; color: #fff; font-size: 13px; line-height: 1.45; word-break: break-word;">
+              ${m.text ? escapeHtml(m.text) : ''}
+              ${imgHtml}
+            </div>
+          </div>
+        `;
+      }
+
+      messagesWrap.innerHTML = html;
+
+      // Click to enlarge screenshot
+      messagesWrap.querySelectorAll(".thread-screenshot-thumb").forEach(img => {
+        img.addEventListener("click", () => openScreenshotLightbox(img.src));
+      });
+
+      // Auto scroll to bottom
+      messagesWrap.scrollTop = messagesWrap.scrollHeight;
+    }
+
+    async function sendAdminReply() {
+      if (!currentActiveTicket) return;
+      const input = document.getElementById("thread-reply-input");
+      const text = input.value.trim();
+      if (!text) return alert("Please type a reply message.");
+
+      const btn = document.getElementById("thread-send-reply-btn");
+      btn.disabled = true;
+      btn.textContent = "Sending...";
+
+      try {
+        const res = await apiRequest(`/admin/api/support/ticket/${currentActiveTicket.id}/reply`, "POST", {
+          text,
+          senderName: "Jetro (Admin)"
+        });
+
+        if (res.ok && res.ticket) {
+          currentActiveTicket = res.ticket;
+          renderThreadMessages(res.ticket.messages || []);
+          input.value = "";
+          showToast("🚀 Reply sent to agent!");
+          loadSupportTickets();
+        } else {
+          alert("Error: " + (res.error || "Failed to send reply"));
+        }
+      } catch (err) {
+        alert("Error sending reply: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Send Reply 🚀";
+      }
+    }
+
+    async function updateTicketStatusAction(status) {
+      if (!currentActiveTicket) return;
+      try {
+        const res = await apiRequest(`/admin/api/support/ticket/${currentActiveTicket.id}/status`, "POST", { status });
+        if (res.ok && res.ticket) {
+          currentActiveTicket = res.ticket;
+          const badge = document.getElementById("thread-status-badge");
+          badge.textContent = status.toUpperCase();
+          badge.className = "badge-status " + (status === "resolved" ? "active" : (status === "in_progress" ? "" : "frozen"));
+          showToast(`✓ Ticket status updated to ${status}`);
+          loadSupportTickets();
+        } else {
+          alert("Error: " + (res.error || "Failed to update status"));
+        }
+      } catch (err) {
+        alert("Error: " + err.message);
+      }
+    }
+
+    async function deleteTicketAction(ticketId) {
+      const id = ticketId || (currentActiveTicket && currentActiveTicket.id);
+      if (!id) return;
+      if (!confirm("Are you sure you want to permanently delete this ticket?")) return;
+
+      try {
+        const res = await apiRequest(`/admin/api/support/ticket/${id}`, "DELETE");
+        if (res.ok) {
+          showToast("🗑️ Ticket deleted.");
+          const modal = document.getElementById("support-thread-modal");
+          if (modal) modal.style.display = "none";
+          currentActiveTicket = null;
+          loadSupportTickets();
+        } else {
+          alert("Error: " + (res.error || "Failed to delete ticket"));
+        }
+      } catch (err) {
+        alert("Error: " + err.message);
+      }
+    }
+
+    function openScreenshotLightbox(src) {
+      const modal = document.getElementById("support-lightbox-modal");
+      const img = document.getElementById("lightbox-img-el");
+      if (!modal || !img) return;
+      img.src = src;
+      modal.style.display = "flex";
+    }
+
+    function formatRelativeTime(timestamp) {
+      if (!timestamp) return "—";
+      const diff = Math.floor((Date.now() - timestamp) / 1000);
+      if (diff < 60) return "Just now";
+      if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+      if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+      return new Date(timestamp).toLocaleDateString([], { month: "short", day: "numeric" });
+    }
+
+    // Support Event Listeners
+    document.getElementById("filter-support-status").addEventListener("change", loadSupportTickets);
+    document.getElementById("search-support").addEventListener("input", () => {
+      if (supportDebounceTimer) clearTimeout(supportDebounceTimer);
+      supportDebounceTimer = setTimeout(loadSupportTickets, 300);
+    });
+    document.getElementById("refresh-support-btn").addEventListener("click", loadSupportTickets);
+    document.getElementById("card-stat-support").addEventListener("click", () => {
+      const sec = document.getElementById("section-support-tickets");
+      if (sec) sec.scrollIntoView({ behavior: "smooth" });
+    });
+    document.getElementById("close-thread-modal-btn").addEventListener("click", () => {
+      document.getElementById("support-thread-modal").style.display = "none";
+      currentActiveTicket = null;
+    });
+    document.getElementById("thread-send-reply-btn").addEventListener("click", sendAdminReply);
+    document.getElementById("thread-mark-resolved-btn").addEventListener("click", () => updateTicketStatusAction("resolved"));
+    document.getElementById("thread-mark-progress-btn").addEventListener("click", () => updateTicketStatusAction("in_progress"));
+    document.getElementById("thread-delete-btn").addEventListener("click", () => deleteTicketAction());
+    document.getElementById("close-lightbox-btn").addEventListener("click", () => {
+      document.getElementById("support-lightbox-modal").style.display = "none";
+    });
+    document.getElementById("support-lightbox-modal").addEventListener("click", (e) => {
+      if (e.target.id === "support-lightbox-modal") {
+        document.getElementById("support-lightbox-modal").style.display = "none";
       }
     });
 

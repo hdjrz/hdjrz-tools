@@ -13,6 +13,7 @@ import { handleTemplateRoutes } from "./routes/templates.js";
 import { handleEscalationRoutes } from "./routes/escalations.js";
 import { handleAuditRoutes } from "./routes/audits.js";
 import { handleSystemRoutes } from "./routes/system.js";
+import { handleSupportRoutes } from "./routes/support.js";
 import { getSystemConfig } from "./services/systemService.js";
 
 export default {
@@ -153,6 +154,10 @@ export default {
 
       // /api/system/* and /config/system
       response = await handleSystemRoutes(request, env, url);
+      if (response) return response;
+
+      // /api/support/* and /admin/api/support/*
+      response = await handleSupportRoutes(request, env, url);
       if (response) return response;
 
       // 5. Unmatched route

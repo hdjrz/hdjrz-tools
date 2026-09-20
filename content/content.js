@@ -156,7 +156,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.6.2";
+  const HARDCODED_VERSION = "1.7.0";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -176,9 +176,23 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.7.0",
+      title: "Real-Time Support Chat & Screenshot Bug Reporter",
+      date: "Latest",
+      agentFeatures: [
+        "💬 Direct Admin Support Chat: Open Support directly from the floating dock to ask questions, report bugs, and chat with admin in real-time.",
+        "📸 Clipboard Screenshot Dropzone (Ctrl+V): Easily paste screenshots directly from your clipboard with automatic offscreen compression.",
+        "🔴 Live Unread Badge & Toasts: Instant visual indicators on your floating dock when admin responds to your open tickets."
+      ],
+      adminFeatures: [
+        "👑 Centralized Web Support Inbox: View agent tickets, inspect high-res screenshots with lightbox zoom, and reply instantly from /admin.",
+        "⚡ Integrated Diagnostics: Each agent ticket automatically attaches agent name, device ID, script version, and page URL."
+      ]
+    },
+    {
       version: "1.6.2",
       title: "KYC Switch Auto-Scan & Readonly Verified UID Field",
-      date: "Latest",
+      date: "v1.6.2",
       agentFeatures: [
         "🔒 Readonly Verified-to-Rejected Field: The 'Verified to rejected' text field is now locked and protected from accidental manual typing or pasting.",
         "⚡ Automatic Cross-Tab Scanner: Instant automatic scanning pulls the duplicate/old account ID from your other open player tab with zero manual effort.",
@@ -1875,7 +1889,8 @@
       overlay.id === "esc-audit-overlay" ||
       overlay.id === "esc-edit-option-overlay" ||
       overlay.id === "esc-add-option-overlay" ||
-      overlay.id === "esc-license-overlay"
+      overlay.id === "esc-license-overlay" ||
+      overlay.id === "esc-support-overlay"
     ));
   }
 
@@ -1949,7 +1964,7 @@
 
   function onEscLockedWheel(e) {
     if (!document.documentElement.classList.contains("esc-modal-scroll-lock")) return;
-    if (e.target && e.target.closest && e.target.closest(".esc-modal-body, .esc-settings-body, .esc-reason-pick-card, .esc-modal, .esc-audit-list, .esc-edit-option-modal, .esc-license-card")) return;
+    if (e.target && e.target.closest && e.target.closest(".esc-modal-body, .esc-settings-body, .esc-reason-pick-card, .esc-modal, .esc-audit-list, .esc-edit-option-modal, .esc-license-card, .esc-support-modal, .esc-support-body, .esc-support-thread-msgs")) return;
     e.preventDefault();
   }
   document.addEventListener("wheel", onEscLockedWheel, { passive: false });
@@ -2582,6 +2597,50 @@
     }, 400);
   }
 
+  let lastSeenSupportUnread = 0;
+  let supportPollCounter = 0;
+  function checkAgentSupportUnread(cb) {
+    if (isLockedOut || !isLicensed()) {
+      if (cb) cb();
+      return;
+    }
+    const api = localStorageApi();
+    if (!api) {
+      if (cb) cb();
+      return;
+    }
+    api.get(["hdjrzLicenseDeviceId", "hdjrzLicenseKey"], (d) => {
+      const devId = (d && d.hdjrzLicenseDeviceId) || "";
+      const agentName = currentSettings.agentName || "";
+      if (!devId && !agentName) {
+        if (cb) cb();
+        return;
+      }
+      const url = `https://hdjrz-license.rosechel05.workers.dev/api/support/my-tickets?dev=${encodeURIComponent(devId)}&agent=${encodeURIComponent(agentName)}&_t=${Date.now()}`;
+      sendWorkerRequest({ url, method: "GET" }, (err, json) => {
+        if (!err && json && json.ok) {
+          const unreadCount = Number(json.unreadCount) || 0;
+          const badge = document.getElementById("esc-dock-support-badge");
+          if (badge) {
+            badge.style.display = unreadCount > 0 ? "block" : "none";
+          }
+          const tabBadge = document.getElementById("esc-support-tab-unread");
+          if (tabBadge) {
+            tabBadge.textContent = String(unreadCount);
+            tabBadge.style.display = unreadCount > 0 ? "inline-block" : "none";
+          }
+          if (unreadCount > 0 && lastSeenSupportUnread === 0) {
+            showToast(`💬 Admin replied to your support ticket (${unreadCount} unread)!`, false);
+          }
+          lastSeenSupportUnread = unreadCount;
+          if (cb) cb(null, json);
+        } else {
+          if (cb) cb(err || "Failed to check tickets");
+        }
+      });
+    });
+  }
+
   // Fast background polling every 7 seconds for immediate live enforcement & sync
   setInterval(() => {
     fetchRemoteTemplates((err, res) => {
@@ -2589,6 +2648,10 @@
         showToast(`✨ Templates updated from cloud (v${res.version})`);
       }
     });
+    supportPollCounter++;
+    if (supportPollCounter % 3 === 0) {
+      checkAgentSupportUnread();
+    }
   }, 7000);
 
   // Check immediately when agent switches back to the tab or visibility changes
@@ -2610,6 +2673,7 @@
             showToast(`✨ Templates updated from cloud (v${res.version})`);
           }
         });
+        checkAgentSupportUnread();
       }
     });
   }
@@ -2631,6 +2695,7 @@
           showToast(`✨ Templates updated from cloud (v${res.version})`);
         }
       });
+      checkAgentSupportUnread();
     });
 
     // Throttled heartbeat check on user activity (mouse move, click, keystroke, touch)
@@ -4445,6 +4510,12 @@
               <path d="M23 4v6h-6"></path><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
             </svg>
           </button>
+          <button type="button" class="esc-icon-btn" id="esc-btn-support" title="Contact Admin / Report Bug with Screenshot" style="position: relative;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <span class="esc-support-badge-dot" id="esc-dock-support-badge" style="display: none; position: absolute; top: -2px; right: -2px; width: 7px; height: 7px; background: #ef4444; border-radius: 50%; box-shadow: 0 0 6px #ef4444;"></span>
+          </button>
           <button type="button" class="esc-icon-btn" id="esc-btn-settings" title="Extension Settings, Options & Meanings">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="3"></circle>
@@ -4543,6 +4614,15 @@
       closeBtn.addEventListener("click", () => {
         dock.classList.add("hidden-bar");
         showToast("Floating bar hidden. Re-open anytime via the extension icon in Chrome toolbar.");
+      });
+    }
+
+    // Support modal button
+    const supportBtn = dock.querySelector("#esc-btn-support");
+    if (supportBtn) {
+      supportBtn.addEventListener("click", () => {
+        rememberModalOrigin(supportBtn);
+        openSupportModal();
       });
     }
 
@@ -7144,6 +7224,574 @@
     });
   }
 
+  /* =========================================================
+   * Support & Screenshot Bug Reporter Module (v1.7.0)
+   * ========================================================= */
+  function compressImageFile(fileOrBlob, maxDim, quality, cb) {
+    if (!fileOrBlob) return cb("No file provided");
+    const dim = maxDim || 1600;
+    const qual = quality || 0.82;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.naturalWidth || img.width;
+        let height = img.naturalHeight || img.height;
+        if (width > dim || height > dim) {
+          if (width > height) {
+            height = Math.round((height * dim) / width);
+            width = dim;
+          } else {
+            width = Math.round((width * dim) / height);
+            height = dim;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        try {
+          const base64 = canvas.toDataURL("image/jpeg", qual);
+          cb(null, base64, { width, height });
+        } catch (err) {
+          cb((err && err.message) || "Failed to encode image");
+        }
+      };
+      img.onerror = () => cb("Invalid image format");
+      img.src = e.target.result;
+    };
+    reader.onerror = () => cb("Could not read file");
+    reader.readAsDataURL(fileOrBlob);
+  }
+
+  function openScreenshotLightbox(src) {
+    if (!src) return;
+    const existing = document.getElementById("esc-support-lightbox");
+    if (existing) existing.remove();
+
+    const box = document.createElement("div");
+    box.id = "esc-support-lightbox";
+    box.innerHTML = `
+      <img src="${safeEsc(src)}" alt="Screenshot Zoom">
+      <button type="button" style="position:absolute;top:20px;right:20px;background:rgba(15,23,42,0.85);border:1px solid #334155;color:#fff;border-radius:50%;width:36px;height:36px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+    `;
+    box.addEventListener("click", () => box.remove());
+    document.body.appendChild(box);
+  }
+
+  function openSupportModal() {
+    if (isLockedOut) return;
+    requireLicense(() => runOpenSupportModal());
+  }
+
+  function runOpenSupportModal() {
+    if (activeModal) activeModal.remove();
+
+    let currentView = "new"; // "new", "list", "thread"
+    let newTicketImage = null;
+    let threadReplyImage = null;
+    let activeTicketId = null;
+
+    const overlay = document.createElement("div");
+    overlay.className = "esc-modal-overlay";
+    overlay.id = "esc-support-overlay";
+
+    overlay.innerHTML = `
+      <div class="esc-popover-backdrop"></div>
+      <div class="esc-modal esc-support-modal" role="dialog" aria-modal="true" aria-label="Support & Bug Reporter">
+        <div class="esc-modal-header">
+          <div class="esc-modal-title">
+            <span>💬 Support &amp; Bug Report</span>
+            <span style="font-size: 11px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); padding: 1px 6px; border-radius: 4px; margin-left: 6px; font-weight: 700;">v${safeEsc(SCRIPT_VERSION)}</span>
+          </div>
+          <button type="button" class="esc-icon-btn" id="esc-support-close" title="Close (Esc)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <div class="esc-support-tabs">
+          <button type="button" class="esc-support-tab-btn is-active" id="esc-support-tab-new">
+            <span>➕ New Ticket</span>
+          </button>
+          <button type="button" class="esc-support-tab-btn" id="esc-support-tab-list">
+            <span>📋 My Conversations</span>
+            <span class="esc-support-badge-pill" id="esc-support-tab-unread" style="display:none;">0</span>
+          </button>
+        </div>
+
+        <div class="esc-support-body">
+          <!-- View 1: New Ticket -->
+          <div id="esc-support-view-new" style="display: flex; flex-direction: column; gap: 12px;">
+            <div style="font-size: 12px; color: #94a3b8; line-height: 1.4;">
+              Encountered an issue or have feedback for the developer/admin? Describe it below and paste a screenshot directly.
+            </div>
+
+            <textarea class="esc-support-textarea" id="esc-support-text" placeholder="Explain the problem, what happened, or your question..."></textarea>
+
+            <!-- Dropzone / Paste Screenshot -->
+            <div class="esc-support-dropzone" id="esc-support-dropzone" title="Click to browse image or press Ctrl+V anywhere">
+              <div class="esc-support-dropzone-icon">📸</div>
+              <div class="esc-support-dropzone-text">
+                <strong>Click to browse image</strong> or paste directly (<strong>Ctrl + V</strong>)
+              </div>
+              <input type="file" id="esc-support-file-input" accept="image/*" style="display: none;">
+            </div>
+
+            <!-- Image Preview Box -->
+            <div class="esc-support-preview-box" id="esc-support-preview-wrap" style="display: none;">
+              <img src="" class="esc-support-thumb" id="esc-support-preview-img" title="Click to zoom screenshot">
+              <div class="esc-support-preview-info" id="esc-support-preview-info">Screenshot attached</div>
+              <button type="button" class="esc-support-btn-remove" id="esc-support-preview-remove">✕ Remove</button>
+            </div>
+
+            <!-- Diagnostics Pill Info -->
+            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+              <span class="esc-support-diag-pill">👤 Agent: ${safeEsc(currentSettings.agentName || "Staff")}</span>
+              <span class="esc-support-diag-pill">🌐 ${safeEsc(window.location.pathname.slice(0, 26))}</span>
+              <span class="esc-support-diag-pill">🎯 ${detectedPlayer && detectedPlayer.userId ? "UID: " + safeEsc(detectedPlayer.userId) : "No Player Scraped"}</span>
+            </div>
+
+            <!-- Submit Action -->
+            <button type="button" class="esc-support-submit-btn" id="esc-support-submit">
+              <span>🚀 Send to Admin</span>
+            </button>
+          </div>
+
+          <!-- View 2: My Tickets List -->
+          <div id="esc-support-view-list" style="display: none; flex-direction: column; gap: 10px;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <span style="font-size: 12px; color: #94a3b8;">Your past tickets and responses:</span>
+              <button type="button" class="esc-btn-small" id="esc-support-list-refresh" style="background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.25); color: #38bdf8; border-radius: 4px; padding: 3px 8px; font-size: 11px; cursor: pointer;">
+                🔄 Refresh
+              </button>
+            </div>
+            <div class="esc-support-ticket-list" id="esc-support-tickets-container">
+              <div style="text-align: center; padding: 20px; color: #64748b; font-size: 12px;">Loading tickets...</div>
+            </div>
+          </div>
+
+          <!-- View 3: Conversation Thread -->
+          <div id="esc-support-view-thread" style="display: none; flex-direction: column; gap: 10px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #1e293b; padding-bottom: 8px;">
+              <button type="button" class="esc-btn-small" id="esc-support-thread-back" style="background: #1e293b; border: 1px solid #334155; color: #cbd5e1; border-radius: 4px; padding: 4px 10px; font-size: 11px; cursor: pointer;">
+                ← Back to Tickets
+              </button>
+              <div id="esc-support-thread-meta" style="font-size: 11px; color: #94a3b8; display: flex; align-items: center; gap: 6px;"></div>
+            </div>
+
+            <div class="esc-support-thread-msgs" id="esc-support-thread-messages"></div>
+
+            <div class="esc-support-reply-box">
+              <textarea class="esc-support-textarea" id="esc-support-reply-text" placeholder="Type a reply to admin (or paste screenshot Ctrl+V)..." style="min-height: 60px;"></textarea>
+
+              <div class="esc-support-preview-box" id="esc-support-reply-preview-wrap" style="display: none;">
+                <img src="" class="esc-support-thumb" id="esc-support-reply-preview-img" title="Click to zoom screenshot">
+                <div class="esc-support-preview-info" id="esc-support-reply-preview-info">Screenshot attached</div>
+                <button type="button" class="esc-support-btn-remove" id="esc-support-reply-preview-remove">✕ Remove</button>
+              </div>
+
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                <button type="button" class="esc-btn-small" id="esc-support-reply-attach-btn" style="background: rgba(148, 163, 184, 0.1); border: 1px solid #334155; color: #cbd5e1; border-radius: 4px; padding: 6px 12px; font-size: 11px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                  📸 Attach Image
+                </button>
+                <input type="file" id="esc-support-reply-file-input" accept="image/*" style="display: none;">
+
+                <button type="button" class="esc-support-submit-btn" id="esc-support-reply-submit" style="padding: 6px 18px; font-size: 12px;">
+                  💬 Send Reply
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+    activeModal = overlay;
+    playModalOpen(overlay);
+
+    const closeBtn = overlay.querySelector("#esc-support-close");
+    const closeSupport = () => {
+      closeOverlayZoom(overlay, () => {
+        overlay.remove();
+        if (activeModal === overlay) activeModal = null;
+      });
+    };
+    closeBtn.addEventListener("click", closeSupport);
+
+    // Tab buttons & Views
+    const tabNew = overlay.querySelector("#esc-support-tab-new");
+    const tabList = overlay.querySelector("#esc-support-tab-list");
+    const tabUnreadBadge = overlay.querySelector("#esc-support-tab-unread");
+    const viewNew = overlay.querySelector("#esc-support-view-new");
+    const viewList = overlay.querySelector("#esc-support-view-list");
+    const viewThread = overlay.querySelector("#esc-support-view-thread");
+
+    function switchView(viewName) {
+      currentView = viewName;
+      tabNew.classList.toggle("is-active", viewName === "new");
+      tabList.classList.toggle("is-active", viewName === "list" || viewName === "thread");
+
+      viewNew.style.display = viewName === "new" ? "flex" : "none";
+      viewList.style.display = viewName === "list" ? "flex" : "none";
+      viewThread.style.display = viewName === "thread" ? "flex" : "none";
+
+      if (viewName === "list") {
+        loadAgentTicketsList();
+      }
+    }
+
+    tabNew.addEventListener("click", () => switchView("new"));
+    tabList.addEventListener("click", () => switchView("list"));
+
+    const threadBackBtn = overlay.querySelector("#esc-support-thread-back");
+    threadBackBtn.addEventListener("click", () => switchView("list"));
+
+    // Clipboard paste handler
+    function handlePaste(e) {
+      const clipboardData = e.clipboardData || window.clipboardData;
+      if (!clipboardData || !clipboardData.items) return;
+      for (let i = 0; i < clipboardData.items.length; i++) {
+        const item = clipboardData.items[i];
+        if (item.type && item.type.indexOf("image") !== -1) {
+          const file = item.getAsFile();
+          if (file) {
+            e.preventDefault();
+            if (currentView === "thread") {
+              attachReplyScreenshot(file);
+            } else {
+              attachNewScreenshot(file);
+            }
+            break;
+          }
+        }
+      }
+    }
+    overlay.addEventListener("paste", handlePaste);
+
+    // View 1 (New Ticket) Image Handling
+    const dropzone = overlay.querySelector("#esc-support-dropzone");
+    const fileInput = overlay.querySelector("#esc-support-file-input");
+    const previewWrap = overlay.querySelector("#esc-support-preview-wrap");
+    const previewImg = overlay.querySelector("#esc-support-preview-img");
+    const previewInfo = overlay.querySelector("#esc-support-preview-info");
+    const previewRemove = overlay.querySelector("#esc-support-preview-remove");
+
+    dropzone.addEventListener("click", () => fileInput.click());
+    fileInput.addEventListener("change", () => {
+      if (fileInput.files && fileInput.files[0]) {
+        attachNewScreenshot(fileInput.files[0]);
+      }
+    });
+
+    dropzone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropzone.classList.add("is-dragover");
+    });
+    dropzone.addEventListener("dragleave", () => dropzone.classList.remove("is-dragover"));
+    dropzone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropzone.classList.remove("is-dragover");
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+        attachNewScreenshot(e.dataTransfer.files[0]);
+      }
+    });
+
+    previewImg.addEventListener("click", () => {
+      if (newTicketImage) openScreenshotLightbox(newTicketImage);
+    });
+
+    previewRemove.addEventListener("click", () => {
+      newTicketImage = null;
+      fileInput.value = "";
+      previewWrap.style.display = "none";
+      dropzone.style.display = "flex";
+    });
+
+    function attachNewScreenshot(file) {
+      showToast("Compressing screenshot...", false);
+      compressImageFile(file, 1600, 0.82, (err, base64, info) => {
+        if (err || !base64) {
+          showToast("Failed to process image: " + err, false);
+          return;
+        }
+        newTicketImage = base64;
+        previewImg.src = base64;
+        previewInfo.textContent = `Screenshot (${info.width}x${info.height}, ~${Math.round(base64.length / 1024)} KB)`;
+        previewWrap.style.display = "flex";
+        dropzone.style.display = "none";
+        showToast("📸 Screenshot attached!");
+      });
+    }
+
+    // Submit New Ticket
+    const submitBtn = overlay.querySelector("#esc-support-submit");
+    const textArea = overlay.querySelector("#esc-support-text");
+
+    submitBtn.addEventListener("click", () => {
+      const text = textArea.value.trim();
+      if (!text && !newTicketImage) {
+        showToast("Please enter a description or attach a screenshot.", false);
+        return;
+      }
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<span>⏳ Submitting...</span>`;
+
+      ensureLicenseDeviceId((devId) => {
+        const payload = {
+          agentName: currentSettings.agentName || "Staff",
+          deviceId: devId,
+          scriptVersion: SCRIPT_VERSION,
+          pageUrl: window.location.href,
+          text: text,
+          imageBase64: newTicketImage,
+          role: isAdminLicense() ? "admin" : "staff"
+        };
+
+        sendWorkerRequest({
+          url: "https://hdjrz-license.rosechel05.workers.dev/api/support/ticket",
+          method: "POST",
+          data: payload
+        }, (err, res) => {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = `<span>🚀 Send to Admin</span>`;
+          if (err || !res || !res.ok) {
+            showToast("Submission failed: " + (err || (res && res.error) || "Error"), false);
+            return;
+          }
+          showToast("🎉 Support ticket submitted!");
+          textArea.value = "";
+          previewRemove.click();
+          if (res.ticket && res.ticket.id) {
+            openThread(res.ticket.id);
+          } else {
+            switchView("list");
+          }
+        });
+      });
+    });
+
+    // View 2 (List Tickets)
+    const ticketsContainer = overlay.querySelector("#esc-support-tickets-container");
+    const listRefreshBtn = overlay.querySelector("#esc-support-list-refresh");
+    listRefreshBtn.addEventListener("click", loadAgentTicketsList);
+
+    function loadAgentTicketsList() {
+      ticketsContainer.innerHTML = `<div style="text-align: center; padding: 20px; color: #64748b; font-size: 12px;">Loading tickets...</div>`;
+      ensureLicenseDeviceId((devId) => {
+        const agent = currentSettings.agentName || "";
+        const url = `https://hdjrz-license.rosechel05.workers.dev/api/support/my-tickets?dev=${encodeURIComponent(devId)}&agent=${encodeURIComponent(agent)}&_t=${Date.now()}`;
+        sendWorkerRequest({ url, method: "GET" }, (err, res) => {
+          if (err || !res || !res.ok) {
+            ticketsContainer.innerHTML = `<div style="text-align: center; padding: 20px; color: #f87171; font-size: 12px;">Failed to load tickets: ${safeEsc(err || "Error")}</div>`;
+            return;
+          }
+          const unreadCount = Number(res.unreadCount) || 0;
+          tabUnreadBadge.textContent = String(unreadCount);
+          tabUnreadBadge.style.display = unreadCount > 0 ? "inline-block" : "none";
+          const dockBadge = document.getElementById("esc-dock-support-badge");
+          if (dockBadge) dockBadge.style.display = unreadCount > 0 ? "block" : "none";
+
+          const tickets = res.tickets || [];
+          if (tickets.length === 0) {
+            ticketsContainer.innerHTML = `
+              <div style="text-align: center; padding: 30px 10px; color: #64748b; font-size: 12px;">
+                No conversations yet.<br>Click <strong>"➕ New Ticket"</strong> above to send a report to admin.
+              </div>
+            `;
+            return;
+          }
+
+          ticketsContainer.innerHTML = "";
+          tickets.forEach((t) => {
+            const item = document.createElement("div");
+            item.className = "esc-support-ticket-item";
+            const dateStr = t.updatedAt ? new Date(t.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric' }) : "";
+            const statusClass = t.status === "resolved" ? "esc-support-status-resolved" : (t.status === "in_progress" ? "esc-support-status-in_progress" : "esc-support-status-open");
+            const statusLabel = t.status === "resolved" ? "Resolved" : (t.status === "in_progress" ? "In Progress" : "Open");
+
+            item.innerHTML = `
+              <div class="esc-support-ticket-header">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <strong style="color: #38bdf8;">#${safeEsc(t.id ? t.id.slice(-6) : "")}</strong>
+                  <span class="esc-support-status-badge ${statusClass}">${statusLabel}</span>
+                  ${t.unread ? `<span style="width: 7px; height: 7px; background: #ef4444; border-radius: 50%; display: inline-block;"></span>` : ""}
+                </div>
+                <span style="font-size: 11px; color: #64748b;">${safeEsc(dateStr)}</span>
+              </div>
+              <div class="esc-support-ticket-snippet">${safeEsc(t.snippet || "(No text, screenshot attached)")}</div>
+            `;
+            item.addEventListener("click", () => openThread(t.id));
+            ticketsContainer.appendChild(item);
+          });
+        });
+      });
+    }
+
+    // View 3 (Thread View)
+    const threadMeta = overlay.querySelector("#esc-support-thread-meta");
+    const threadMsgs = overlay.querySelector("#esc-support-thread-messages");
+    const replyText = overlay.querySelector("#esc-support-reply-text");
+    const replyAttachBtn = overlay.querySelector("#esc-support-reply-attach-btn");
+    const replyFileInput = overlay.querySelector("#esc-support-reply-file-input");
+    const replyPreviewWrap = overlay.querySelector("#esc-support-reply-preview-wrap");
+    const replyPreviewImg = overlay.querySelector("#esc-support-reply-preview-img");
+    const replyPreviewInfo = overlay.querySelector("#esc-support-reply-preview-info");
+    const replyPreviewRemove = overlay.querySelector("#esc-support-reply-preview-remove");
+    const replySubmitBtn = overlay.querySelector("#esc-support-reply-submit");
+
+    replyAttachBtn.addEventListener("click", () => replyFileInput.click());
+    replyFileInput.addEventListener("change", () => {
+      if (replyFileInput.files && replyFileInput.files[0]) {
+        attachReplyScreenshot(replyFileInput.files[0]);
+      }
+    });
+
+    replyPreviewImg.addEventListener("click", () => {
+      if (threadReplyImage) openScreenshotLightbox(threadReplyImage);
+    });
+
+    replyPreviewRemove.addEventListener("click", () => {
+      threadReplyImage = null;
+      replyFileInput.value = "";
+      replyPreviewWrap.style.display = "none";
+    });
+
+    function attachReplyScreenshot(file) {
+      showToast("Compressing screenshot...", false);
+      compressImageFile(file, 1600, 0.82, (err, base64, info) => {
+        if (err || !base64) {
+          showToast("Failed to process image: " + err, false);
+          return;
+        }
+        threadReplyImage = base64;
+        replyPreviewImg.src = base64;
+        replyPreviewInfo.textContent = `Screenshot (${info.width}x${info.height})`;
+        replyPreviewWrap.style.display = "flex";
+        showToast("📸 Screenshot attached to reply!");
+      });
+    }
+
+    function openThread(ticketId) {
+      activeTicketId = ticketId;
+      switchView("thread");
+      threadMeta.innerHTML = `<span>Loading thread...</span>`;
+      threadMsgs.innerHTML = `<div style="text-align:center;padding:20px;color:#64748b;font-size:12px;">Loading messages...</div>`;
+
+      ensureLicenseDeviceId((devId) => {
+        const agent = currentSettings.agentName || "";
+        const url = `https://hdjrz-license.rosechel05.workers.dev/api/support/ticket/${encodeURIComponent(ticketId)}?dev=${encodeURIComponent(devId)}&agent=${encodeURIComponent(agent)}&_t=${Date.now()}`;
+        sendWorkerRequest({ url, method: "GET" }, (err, res) => {
+          if (err || !res || !res.ok || !res.ticket) {
+            threadMsgs.innerHTML = `<div style="text-align:center;padding:20px;color:#f87171;font-size:12px;">Failed to load thread: ${safeEsc(err || "Error")}</div>`;
+            return;
+          }
+          const ticket = res.ticket;
+          const statusClass = ticket.status === "resolved" ? "esc-support-status-resolved" : (ticket.status === "in_progress" ? "esc-support-status-in_progress" : "esc-support-status-open");
+          const statusLabel = ticket.status === "resolved" ? "Resolved" : (ticket.status === "in_progress" ? "In Progress" : "Open");
+          threadMeta.innerHTML = `
+            <strong>#${safeEsc(ticket.id ? ticket.id.slice(-6) : "")}</strong>
+            <span class="esc-support-status-badge ${statusClass}">${statusLabel}</span>
+          `;
+
+          // Mark read locally
+          const dockBadge = document.getElementById("esc-dock-support-badge");
+          if (dockBadge) dockBadge.style.display = "none";
+          tabUnreadBadge.style.display = "none";
+
+          renderThreadMessages(ticket.messages || []);
+        });
+      });
+    }
+
+    function renderThreadMessages(messages) {
+      threadMsgs.innerHTML = "";
+      if (messages.length === 0) {
+        threadMsgs.innerHTML = `<div style="text-align:center;padding:20px;color:#64748b;font-size:12px;">No messages yet.</div>`;
+        return;
+      }
+      messages.forEach((m) => {
+        const isAgent = m.senderRole !== "admin";
+        const bubble = document.createElement("div");
+        bubble.className = `esc-support-msg ${isAgent ? "esc-support-msg-agent" : "esc-support-msg-admin"}`;
+
+        const senderLabel = isAgent ? (m.senderName || "You") : "👑 Admin Support";
+        const timeStr = m.createdAt ? new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "";
+
+        let imgHtml = "";
+        if (m.imageBase64) {
+          imgHtml = `<img src="${safeEsc(m.imageBase64)}" class="esc-support-msg-img" title="Click to zoom screenshot">`;
+        }
+
+        bubble.innerHTML = `
+          <div class="esc-support-msg-sender">
+            <span>${safeEsc(senderLabel)}</span>
+            <span style="opacity: 0.6; font-size: 9px; margin-left: auto;">${safeEsc(timeStr)}</span>
+          </div>
+          ${m.text ? `<div style="white-space: pre-wrap; word-break: break-word;">${safeEsc(m.text)}</div>` : ""}
+          ${imgHtml}
+        `;
+
+        const imgEl = bubble.querySelector(".esc-support-msg-img");
+        if (imgEl && m.imageBase64) {
+          imgEl.addEventListener("click", () => openScreenshotLightbox(m.imageBase64));
+        }
+
+        threadMsgs.appendChild(bubble);
+      });
+      threadMsgs.scrollTop = threadMsgs.scrollHeight;
+    }
+
+    // Submit Reply
+    replySubmitBtn.addEventListener("click", () => {
+      const text = replyText.value.trim();
+      if (!text && !threadReplyImage) {
+        showToast("Please write a message or attach a screenshot.", false);
+        return;
+      }
+      if (!activeTicketId) return;
+
+      replySubmitBtn.disabled = true;
+      replySubmitBtn.innerHTML = `⏳ Sending...`;
+
+      ensureLicenseDeviceId((devId) => {
+        const payload = {
+          agentName: currentSettings.agentName || "Staff",
+          deviceId: devId,
+          text: text,
+          imageBase64: threadReplyImage
+        };
+
+        sendWorkerRequest({
+          url: `https://hdjrz-license.rosechel05.workers.dev/api/support/ticket/${encodeURIComponent(activeTicketId)}/reply`,
+          method: "POST",
+          data: payload
+        }, (err, res) => {
+          replySubmitBtn.disabled = false;
+          replySubmitBtn.innerHTML = `💬 Send Reply`;
+          if (err || !res || !res.ok) {
+            showToast("Reply failed: " + (err || (res && res.error) || "Error"), false);
+            return;
+          }
+          replyText.value = "";
+          replyPreviewRemove.click();
+          if (res.ticket && res.ticket.messages) {
+            renderThreadMessages(res.ticket.messages);
+          } else {
+            openThread(activeTicketId);
+          }
+          showToast("Reply sent!");
+        });
+      });
+    });
+
+    // Initial check for unread count in tab
+    checkAgentSupportUnread();
+  }
+
   /**
    * Listen for messages from popup or background worker
    */
@@ -7154,6 +7802,9 @@
         sendResponse({ success: true });
       } else if (request.action === "OPEN_SETTINGS") {
         openSettingsModal();
+        sendResponse({ success: true });
+      } else if (request.action === "OPEN_SUPPORT") {
+        openSupportModal();
         sendResponse({ success: true });
       } else if (request.action === "TOGGLE_BAR") {
         if (!isLicensed()) {
@@ -7616,6 +8267,7 @@
             localStorage.setItem("hdjrz_last_seen_ver", SCRIPT_VERSION);
           }
         } catch (e) {}
+        checkAgentSupportUnread();
       }
     });
   });
