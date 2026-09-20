@@ -156,7 +156,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.6.0";
+  const HARDCODED_VERSION = "1.6.1";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -176,9 +176,21 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.6.1",
+      title: "Legal Age Badge Display & 21+ Classification Fix",
+      date: "Latest",
+      agentFeatures: [
+        "🟢 Legal Age Badge (21+): Replaced glitchy 'undefined (age)' label on the dock toolbar with a clean, professional 'Legal Age (age)' badge.",
+        "👁️ Instant Age Verification: Dock instantly shows glowing green 'Legal Age (38)' alongside player ID for clear compliance checks."
+      ],
+      adminFeatures: [
+        "🛡️ Synchronized Age Bracket Metadata: Standardized bracket labels across templates and UI renderers with zero undefined fallback."
+      ]
+    },
+    {
       version: "1.6.0",
       title: "KYC Switch Verified-to-Rejected UID & Scraper Fix",
-      date: "Latest",
+      date: "v1.6.0",
       agentFeatures: [
         "🛡️ KYC Switch Zoom Accuracy: Fixed bug where 'Verified to rejected' displayed 'input (2)' instead of the real player ID. Now guarantees the entered Verified UID is reliably output.",
         "🧹 Scraper Counter Sanitization: Stripped form and tab counters (e.g. 'input (2)', 'notes (3)') from ID parsers, preventing phantom values across multiple tabs."
@@ -2048,12 +2060,12 @@
       return {
         age,
         status: "Legal (21+)",
-        bracketLabel: "Legal",
+        bracketLabel: "Legal Age",
         badgeClass: "is-legal",
         badgeIcon: "🟢",
-        badgeText: `Legal (${age})`,
+        badgeText: `Legal Age (${age})`,
         bracket: "Legal (21+)",
-        noteText: `${age} (Legal 21+)`
+        noteText: `${age} (Legal Age)`
       };
     }
   }
@@ -4549,7 +4561,8 @@
         const ageInfo = dob ? getPagcorAgeInfo(dob) : null;
         if (ageInfo) {
           ageBadge.className = `esc-pagcor-badge ${ageInfo.badgeClass}`;
-          const displayStatus = ageInfo.age ? `${ageInfo.bracketLabel} (${ageInfo.age})` : ageInfo.status;
+          const label = ageInfo.bracketLabel || (ageInfo.age >= 21 ? "Legal Age" : (ageInfo.age < 18 ? "Minor" : "Restricted"));
+          const displayStatus = ageInfo.age ? `${label} (${ageInfo.age})` : (ageInfo.status || label);
           ageBadge.innerHTML = compact 
             ? `<span class="esc-age-dot"></span><span>${ageInfo.age || "—"}</span>` 
             : `<span class="esc-age-dot"></span><span>${escapeHtml(displayStatus)}</span>`;

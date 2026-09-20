@@ -756,6 +756,7 @@ function getPagcorAgeInfo(dobStr) {
     return {
       age,
       status: "Minor (< 18)",
+      bracketLabel: "Minor",
       badgeClass: "is-minor",
       badgeIcon: "🔴",
       badgeText: `🔴 Minor (${age})`,
@@ -766,6 +767,7 @@ function getPagcorAgeInfo(dobStr) {
     return {
       age,
       status: "PAGCOR Restricted (18 to 20)",
+      bracketLabel: "Restricted",
       badgeClass: "is-pagcor-restricted",
       badgeIcon: "🟠",
       badgeText: `🟠 PAGCOR Restricted (${age})`,
@@ -776,11 +778,12 @@ function getPagcorAgeInfo(dobStr) {
     return {
       age,
       status: "Legal (21+)",
+      bracketLabel: "Legal Age",
       badgeClass: "is-legal",
       badgeIcon: "🟢",
-      badgeText: `🟢 Legal (${age})`,
+      badgeText: `🟢 Legal Age (${age})`,
       bracket: "Legal (21+)",
-      noteText: `${age} (Legal 21+)`
+      noteText: `${age} (Legal Age)`
     };
   }
 }
