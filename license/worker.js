@@ -5,9 +5,9 @@
 
 const DEFAULT_SYSTEM_CONFIG = {
   minRequiredVersion: "1.1.4",
-  latestVersion: "1.5.1",
-  adminLatestVersion: "1.5.1",
-  agentLatestVersion: "1.4.7",
+  latestVersion: "1.6.2",
+  adminLatestVersion: "1.6.2",
+  agentLatestVersion: "1.5.9",
   killSwitch: false,
   killSwitchMessage: "hdjrzTools is temporarily disabled for emergency maintenance.",
   allowedDomains: ["nano-admin.bet88.ph"],
@@ -440,6 +440,12 @@ export default {
           });
         }
         try {
+          const sysConfig = await getSystemConfig(env);
+          const channel = (url.searchParams.get("channel") || url.searchParams.get("role") || "").toLowerCase();
+          const targetVer = (channel === "admin")
+            ? (sysConfig.adminLatestVersion || sysConfig.latestVersion || "1.6.2")
+            : (sysConfig.agentLatestVersion || sysConfig.latestVersion || "1.5.9");
+
           const headers = { "User-Agent": "Tampermonkey-Updater" };
           if (env.GITHUB_TOKEN) {
             headers["Authorization"] = `token ${env.GITHUB_TOKEN}`;
@@ -450,15 +456,41 @@ export default {
           } else if (url.pathname === "/loader.user.js") {
             targetFile = "hdjrzTools.loader.user.js";
           }
-          const ghUrl = `https://raw.githubusercontent.com/hdjrz/hdjrz-tools/main/${targetFile}?ts=${Date.now()}`;
-          const resp = await fetch(ghUrl, { headers });
-          if (resp.ok) {
-            const scriptText = await resp.text();
+
+          let scriptText = null;
+          if (targetVer && targetVer !== sysConfig.latestVersion) {
+            try {
+              const tagUrl = `https://raw.githubusercontent.com/hdjrz/hdjrz-tools/v${targetVer}/${targetFile}?ts=${Date.now()}`;
+              const tagResp = await fetch(tagUrl, { headers });
+              if (tagResp.ok) {
+                scriptText = await tagResp.text();
+              }
+            } catch (e) {}
+          }
+
+          if (!scriptText) {
+            const ghUrl = `https://raw.githubusercontent.com/hdjrz/hdjrz-tools/main/${targetFile}?ts=${Date.now()}`;
+            const resp = await fetch(ghUrl, { headers });
+            if (resp.ok) {
+              scriptText = await resp.text();
+            }
+          }
+
+          if (scriptText) {
             let responseBody = scriptText;
 
             if (url.pathname.endsWith(".meta.js")) {
               const metaMatch = scriptText.match(/\/\/\s*==UserScript==[\s\S]*?\/\/\s*==\/UserScript==/);
               if (metaMatch) responseBody = metaMatch[0] + "\n";
+            }
+
+            if (targetVer && (url.pathname.endsWith(".meta.js") || url.pathname.endsWith(".user.js"))) {
+              responseBody = responseBody.replace(/\/\/\s*@version\s+[^\r\n]+/i, `// @version      ${targetVer}`);
+              if (channel === "admin") {
+                responseBody = responseBody.replace(/(\/\/\s*@(updateURL|downloadURL)\s+https?:\/\/[^\r\n?]+)/g, "$1?channel=admin");
+              } else {
+                responseBody = responseBody.replace(/\?channel=admin/g, "");
+              }
             }
 
             return new Response(responseBody, {
@@ -583,6 +615,24 @@ export default {
             }
           }
 
+          let isCallerAdmin = (url.searchParams.get("role") || "").toLowerCase() === "admin";
+          if (!isCallerAdmin && licenseKey) {
+            try {
+              const rawLic = await env.LICENSES.get(licenseKey);
+              if (rawLic) {
+                const licRow = JSON.parse(rawLic);
+                if (licRow && licRow.role === "admin") isCallerAdmin = true;
+              }
+            } catch (e) {}
+          }
+
+          const effectiveTargetVer = isCallerAdmin
+            ? (sysConfig.adminLatestVersion || sysConfig.latestVersion)
+            : (sysConfig.agentLatestVersion || sysConfig.latestVersion);
+          const updateUrl = isCallerAdmin
+            ? "https://hdjrz-license.rosechel05.workers.dev/script.user.js?channel=admin"
+            : "https://hdjrz-license.rosechel05.workers.dev/script.user.js";
+
           const activeList = Object.values(activeMap);
           const syncedAgents = activeList
             .filter(a => a.version === tmplData.version || a.version === String(tmplData.version))
@@ -599,10 +649,14 @@ export default {
             activeUsers: activeList.map(a => ({ agent: a.agent, version: a.version, lastSeen: a.lastSeen })),
             systemConfig: {
               minRequiredVersion: sysConfig.minRequiredVersion,
-              latestVersion: sysConfig.latestVersion,
+              latestVersion: effectiveTargetVer,
+              adminLatestVersion: sysConfig.adminLatestVersion,
+              agentLatestVersion: sysConfig.agentLatestVersion,
+              releaseChannel: isCallerAdmin ? "admin" : "fleet",
               killSwitch: sysConfig.killSwitch,
               fleetSuccessSound: sysConfig.fleetSuccessSound || "voice"
-            }
+            },
+            updateUrl
           };
 
           return new Response(JSON.stringify(responsePayload), {

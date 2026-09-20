@@ -21,13 +21,18 @@ export async function handleSystemRoutes(request, env, url) {
   // GET /api/system/version
   if (method === "GET" && path === "/api/system/version") {
     const config = await getSystemConfig(env);
-    const roleParam = (url.searchParams.get("role") || "guest").toLowerCase();
+    const roleParam = (url.searchParams.get("role") || url.searchParams.get("channel") || "guest").toLowerCase();
     const effectiveLatest = getEffectiveVersionForRole(config, roleParam);
+    const updateUrl = roleParam === "admin"
+      ? "https://hdjrz-license.rosechel05.workers.dev/script.user.js?channel=admin"
+      : "https://hdjrz-license.rosechel05.workers.dev/script.user.js";
     return jsonSuccess({
       latestVersion: effectiveLatest,
       adminLatestVersion: config.adminLatestVersion || config.latestVersion,
       agentLatestVersion: config.agentLatestVersion || config.latestVersion,
-      minRequiredVersion: config.minRequiredVersion
+      minRequiredVersion: config.minRequiredVersion,
+      releaseChannel: roleParam === "admin" ? "admin" : "fleet",
+      updateUrl
     });
   }
 

@@ -7,7 +7,7 @@ export const DEFAULT_SYSTEM_CONFIG = {
   minRequiredVersion: "1.1.4",
   latestVersion: "1.6.2",
   adminLatestVersion: "1.6.2",
-  agentLatestVersion: "1.4.7",
+  agentLatestVersion: "1.5.9",
   killSwitch: false,
   killSwitchMessage: "hdjrzTools is temporarily disabled for emergency maintenance.",
   allowedDomains: ["nano-admin.bet88.ph"],

@@ -126,6 +126,25 @@ export async function handleTemplateRoutes(request, env, url) {
     const agentName = String(url.searchParams.get("agent") || "").trim();
     const devId = String(url.searchParams.get("dev") || "").trim();
     const key = String(url.searchParams.get("key") || "").trim();
+    const roleParam = String(url.searchParams.get("role") || "").trim().toLowerCase();
+
+    let isCallerAdmin = roleParam === "admin";
+    if (!isCallerAdmin && key) {
+      try {
+        const rawLic = await env.LICENSES.get(key);
+        if (rawLic) {
+          const lic = JSON.parse(rawLic);
+          if (lic && lic.role === "admin") isCallerAdmin = true;
+        }
+      } catch (e) {}
+    }
+
+    const effectiveTargetVer = isCallerAdmin
+      ? (access.config.adminLatestVersion || access.config.latestVersion)
+      : (access.config.agentLatestVersion || access.config.latestVersion);
+    const updateUrl = isCallerAdmin
+      ? "https://hdjrz-license.rosechel05.workers.dev/script.user.js?channel=admin"
+      : "https://hdjrz-license.rosechel05.workers.dev/script.user.js";
 
     if (devId || agentName || key) {
       await recordAgentHeartbeat(env, {
@@ -153,10 +172,14 @@ export async function handleTemplateRoutes(request, env, url) {
       activeUsers: activeList,
       systemConfig: {
         minRequiredVersion: access.config.minRequiredVersion,
-        latestVersion: access.config.latestVersion,
+        latestVersion: effectiveTargetVer,
+        adminLatestVersion: access.config.adminLatestVersion,
+        agentLatestVersion: access.config.agentLatestVersion,
+        releaseChannel: isCallerAdmin ? "admin" : "fleet",
         killSwitch: access.config.killSwitch,
         fleetSuccessSound: access.config.fleetSuccessSound || "voice"
-      }
+      },
+      updateUrl
     }, 200, { "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0" });
   }
 

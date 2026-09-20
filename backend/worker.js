@@ -13,6 +13,7 @@ import { handleTemplateRoutes } from "./routes/templates.js";
 import { handleEscalationRoutes } from "./routes/escalations.js";
 import { handleAuditRoutes } from "./routes/audits.js";
 import { handleSystemRoutes } from "./routes/system.js";
+import { getSystemConfig } from "./services/systemService.js";
 
 export default {
   async fetch(request, env, ctx) {
@@ -34,7 +35,7 @@ export default {
         });
       }
 
-      // 3. GitHub CDN Proxy Endpoints for Zero-Cache Updates
+      // 3. GitHub CDN Proxy Endpoints for Zero-Cache Updates (Channel-Aware)
       if ((request.method === "GET" || request.method === "HEAD") && (
         url.pathname === "/bundle.js" ||
         url.pathname === "/loader.user.js" ||
@@ -54,6 +55,12 @@ export default {
           });
         }
         try {
+          const sysConfig = await getSystemConfig(env);
+          const channel = (url.searchParams.get("channel") || url.searchParams.get("role") || "").toLowerCase();
+          const targetVer = (channel === "admin")
+            ? (sysConfig.adminLatestVersion || sysConfig.latestVersion || "1.6.2")
+            : (sysConfig.agentLatestVersion || sysConfig.latestVersion || "1.5.9");
+
           const headers = { "User-Agent": "Tampermonkey-Updater" };
           if (env.GITHUB_TOKEN) {
             headers["Authorization"] = `token ${env.GITHUB_TOKEN}`;
@@ -64,15 +71,43 @@ export default {
           } else if (url.pathname === "/loader.user.js") {
             targetFile = "hdjrzTools.loader.user.js";
           }
-          const ghUrl = `https://raw.githubusercontent.com/hdjrz/hdjrz-tools/main/${targetFile}?ts=${Date.now()}`;
-          const resp = await fetch(ghUrl, { headers });
-          if (resp.ok) {
-            const scriptText = await resp.text();
+
+          let scriptText = null;
+          // When fleet is held on an earlier staged version, attempt to fetch from Git release tag v<targetVer>
+          if (targetVer && targetVer !== sysConfig.latestVersion) {
+            try {
+              const tagUrl = `https://raw.githubusercontent.com/hdjrz/hdjrz-tools/v${targetVer}/${targetFile}?ts=${Date.now()}`;
+              const tagResp = await fetch(tagUrl, { headers });
+              if (tagResp.ok) {
+                scriptText = await tagResp.text();
+              }
+            } catch (e) {}
+          }
+
+          if (!scriptText) {
+            const ghUrl = `https://raw.githubusercontent.com/hdjrz/hdjrz-tools/main/${targetFile}?ts=${Date.now()}`;
+            const resp = await fetch(ghUrl, { headers });
+            if (resp.ok) {
+              scriptText = await resp.text();
+            }
+          }
+
+          if (scriptText) {
             let responseBody = scriptText;
 
             if (url.pathname.endsWith(".meta.js")) {
               const metaMatch = scriptText.match(/\/\/\s*==UserScript==[\s\S]*?\/\/\s*==\/UserScript==/);
               if (metaMatch) responseBody = metaMatch[0] + "\n";
+            }
+
+            // Enforce target version in userscript header so Tampermonkey respects release channels
+            if (targetVer && (url.pathname.endsWith(".meta.js") || url.pathname.endsWith(".user.js"))) {
+              responseBody = responseBody.replace(/\/\/\s*@version\s+[^\r\n]+/i, `// @version      ${targetVer}`);
+              if (channel === "admin") {
+                responseBody = responseBody.replace(/(\/\/\s*@(updateURL|downloadURL)\s+https?:\/\/[^\r\n?]+)/g, "$1?channel=admin");
+              } else {
+                responseBody = responseBody.replace(/\?channel=admin/g, "");
+              }
             }
 
             return new Response(responseBody, {

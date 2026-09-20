@@ -1052,16 +1052,25 @@
 
   function setLatestServerVersion(data) {
     if (!data) return;
-    const v = data.latestVersion || (data.systemConfig && data.systemConfig.latestVersion);
+    let v = null;
+    const isAdmin = isAdminLicense();
+    if (isAdmin) {
+      v = (data.systemConfig && data.systemConfig.adminLatestVersion) || data.adminLatestVersion || (data.systemConfig && data.systemConfig.latestVersion) || data.latestVersion;
+    } else {
+      v = (data.systemConfig && data.systemConfig.agentLatestVersion) || data.agentLatestVersion || (data.systemConfig && data.systemConfig.latestVersion) || data.latestVersion;
+    }
     if (!v) return;
     latestKnownServerVersion = v;
+    const defaultUpdateUrl = isAdmin
+      ? "https://hdjrz-license.rosechel05.workers.dev/script.user.js?channel=admin"
+      : "https://hdjrz-license.rosechel05.workers.dev/script.user.js";
     latestUpdateData = {
       latestVersion: v,
-      adminLatestVersion: data.adminLatestVersion,
-      agentLatestVersion: data.agentLatestVersion,
-      releaseChannel: data.releaseChannel || (isAdminLicense() ? "admin" : "fleet"),
+      adminLatestVersion: data.adminLatestVersion || (data.systemConfig && data.systemConfig.adminLatestVersion),
+      agentLatestVersion: data.agentLatestVersion || (data.systemConfig && data.systemConfig.agentLatestVersion),
+      releaseChannel: data.releaseChannel || (data.systemConfig && data.systemConfig.releaseChannel) || (isAdmin ? "admin" : "fleet"),
       minRequiredVersion: (data.systemConfig && data.systemConfig.minRequiredVersion) || data.minRequiredVersion || "1.1.4",
-      updateUrl: data.updateUrl || "https://hdjrz-license.rosechel05.workers.dev/script.user.js"
+      updateUrl: data.updateUrl || defaultUpdateUrl
     };
     if (isVersionBelow(SCRIPT_VERSION, v)) {
       attachDockUpdatePill(latestUpdateData);
@@ -1100,35 +1109,46 @@
         pill.style.boxShadow = "0 0 10px rgba(239, 68, 68, 0.6)";
         pill.title = `CRITICAL: Required update to v${safeEsc(latestVer)} is mandatory`;
       } else {
-        pill.innerHTML = `🚀 Update v${safeEsc(latestVer)}`;
-        pill.style.background = "linear-gradient(135deg, #0284c7, #2563eb)";
-        pill.style.borderColor = "#38bdf8";
-        pill.style.boxShadow = "0 0 8px rgba(56, 189, 248, 0.4)";
-        pill.title = `Optional update to v${safeEsc(latestVer)} available`;
+        const isAdmin = isAdminLicense();
+        pill.innerHTML = isAdmin ? `👑 Early Access v${safeEsc(latestVer)}` : `🚀 Update v${safeEsc(latestVer)}`;
+        pill.style.background = isAdmin
+          ? "linear-gradient(135deg, #d97706, #b45309)"
+          : "linear-gradient(135deg, #0284c7, #2563eb)";
+        pill.style.borderColor = isAdmin ? "#fbbf24" : "#38bdf8";
+        pill.style.boxShadow = isAdmin ? "0 0 8px rgba(251, 191, 36, 0.4)" : "0 0 8px rgba(56, 189, 248, 0.4)";
+        pill.title = `${isAdmin ? "Admin Early Access" : "Optional update"} to v${safeEsc(latestVer)} available`;
       }
     }
   }
 
   function checkScriptMetaVersion(cb) {
+    const roleParam = isAdminLicense() ? "admin" : "guest";
+    const channelParam = isAdminLicense() ? "&channel=admin" : "";
     sendWorkerRequest({
-      url: "https://hdjrz-license.rosechel05.workers.dev/api/system/version?ts=" + Date.now(),
+      url: `https://hdjrz-license.rosechel05.workers.dev/api/system/version?role=${roleParam}${channelParam}&ts=` + Date.now(),
       method: "GET"
     }, (err, res) => {
       let latestVer = null;
       let minReq = "1.1.4";
+      let updateUrl = isAdminLicense()
+        ? "https://hdjrz-license.rosechel05.workers.dev/script.user.js?channel=admin"
+        : "https://hdjrz-license.rosechel05.workers.dev/script.user.js";
       if (!err && res && (res.latestVersion || (res.data && res.data.latestVersion))) {
         latestVer = res.latestVersion || res.data.latestVersion;
         minReq = res.minRequiredVersion || (res.data && res.data.minRequiredVersion) || "1.1.4";
+        updateUrl = res.updateUrl || (res.data && res.data.updateUrl) || updateUrl;
         setLatestServerVersion({
           latestVersion: latestVer,
+          adminLatestVersion: res.adminLatestVersion || (res.data && res.data.adminLatestVersion),
+          agentLatestVersion: res.agentLatestVersion || (res.data && res.data.agentLatestVersion),
           minRequiredVersion: minReq,
-          updateUrl: "https://hdjrz-license.rosechel05.workers.dev/script.user.js"
+          updateUrl: updateUrl
         });
         if (cb) cb(null, latestVer, minReq);
         return;
       }
       sendWorkerRequest({
-        url: "https://hdjrz-license.rosechel05.workers.dev/script.meta.js?ts=" + Date.now(),
+        url: `https://hdjrz-license.rosechel05.workers.dev/script.meta.js?channel=${roleParam}&ts=` + Date.now(),
         method: "GET"
       }, (metaErr, text) => {
         if (metaErr || !text) {
@@ -1141,7 +1161,7 @@
           setLatestServerVersion({
             latestVersion: metaVer,
             minRequiredVersion: minReq,
-            updateUrl: "https://hdjrz-license.rosechel05.workers.dev/script.user.js"
+            updateUrl: updateUrl
           });
           if (cb) cb(null, metaVer, minReq);
           return;
@@ -1155,7 +1175,10 @@
     if (typeof onStatusUpdate === "function") {
       onStatusUpdate(`🚀 Opening Tampermonkey update tab...`, true, false);
     }
-    const url = updateUrl || "https://hdjrz-license.rosechel05.workers.dev/script.user.js";
+    const defaultUrl = isAdminLicense()
+      ? "https://hdjrz-license.rosechel05.workers.dev/script.user.js?channel=admin"
+      : "https://hdjrz-license.rosechel05.workers.dev/script.user.js";
+    const url = updateUrl || defaultUrl;
     try {
       if (typeof sessionStorage !== "undefined") {
         sessionStorage.setItem("esc_update_initiated", "true");
@@ -1514,7 +1537,8 @@
       const tmplVer = currentSettings.remoteTemplatesVersion || 0;
       const domain = encodeURIComponent((typeof window !== "undefined" && window.location && window.location.hostname) || "");
       const k = encodeURIComponent(key || "");
-      const url = `${REMOTE_CONFIG_URL}?agent=${agent}&v=${v}&tmpl_v=${tmplVer}&dev=${encodeURIComponent(devId)}&key=${k}&domain=${domain}&_t=${Date.now()}`;
+      const roleParam = isAdminLicense() ? "admin" : "guest";
+      const url = `${REMOTE_CONFIG_URL}?agent=${agent}&v=${v}&tmpl_v=${tmplVer}&dev=${encodeURIComponent(devId)}&key=${k}&role=${roleParam}&domain=${domain}&_t=${Date.now()}`;
 
       sendWorkerRequest({ url, method: "GET" }, (err, json) => {
         if (err || !json) {
@@ -1544,16 +1568,14 @@
           return;
         }
 
-        const latestVer = (json.systemConfig && json.systemConfig.latestVersion) || json.latestVersion;
-        if (latestVer) {
-          setLatestServerVersion(json);
-          if (isVersionBelow(SCRIPT_VERSION, latestVer)) {
-            showNonBlockingUpdateNotification({
-              latestVersion: latestVer,
-              minRequiredVersion: (json.systemConfig && json.systemConfig.minRequiredVersion) || json.minRequiredVersion || "1.1.4",
-              updateUrl: json.updateUrl || "https://hdjrz-license.rosechel05.workers.dev/script.user.js"
-            });
-          }
+        setLatestServerVersion(json);
+        const latestVer = latestKnownServerVersion;
+        if (latestVer && isVersionBelow(SCRIPT_VERSION, latestVer)) {
+          showNonBlockingUpdateNotification({
+            latestVersion: latestVer,
+            minRequiredVersion: (json.systemConfig && json.systemConfig.minRequiredVersion) || json.minRequiredVersion || "1.1.4",
+            updateUrl: (latestUpdateData && latestUpdateData.updateUrl) || json.updateUrl || "https://hdjrz-license.rosechel05.workers.dev/script.user.js"
+          });
         }
 
         const fleetSound = (json.systemConfig && json.systemConfig.fleetSuccessSound) || json.fleetSuccessSound;
