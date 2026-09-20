@@ -156,7 +156,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.5.9";
+  const HARDCODED_VERSION = "1.6.0";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -176,9 +176,21 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.6.0",
+      title: "KYC Switch Verified-to-Rejected UID & Scraper Fix",
+      date: "Latest",
+      agentFeatures: [
+        "🛡️ KYC Switch Zoom Accuracy: Fixed bug where 'Verified to rejected' displayed 'input (2)' instead of the real player ID. Now guarantees the entered Verified UID is reliably output.",
+        "🧹 Scraper Counter Sanitization: Stripped form and tab counters (e.g. 'input (2)', 'notes (3)') from ID parsers, preventing phantom values across multiple tabs."
+      ],
+      adminFeatures: [
+        "⚡ Cross-Tab KYC Synchronization: Background player sync now validates active player overview pages before broadcasting credentials."
+      ]
+    },
+    {
       version: "1.5.9",
       title: "Manual KYC Age Integration in User Notes",
-      date: "Latest",
+      date: "v1.5.9",
       agentFeatures: [
         "📝 Manual KYC User Notes Age: Added player age directly beside Date of Birth in User Notes (`For Manual Verification | [Name] | [DOB] ([AGE])`).",
         "🎂 Complete Age Synchronization: Both in-page User Notes and Zoom Final Escalation Note now carry the calculated player age for seamless KYC review."
@@ -2679,44 +2691,56 @@
     // Strip leading labels if present
     str = str.replace(/^(?:User|Player|Client|Account)\s*ID\s*[:\s-]*/i, "").trim();
 
-    // 1. Number + (Parentheses ID) e.g. "15511274 (4LG14LGG)"
+    // Reject UI labels, counters, and navigation tabs like "input (2)", "notes (3)", "duplicates (2)"
+    if (/^(?:input|inputs|tab|tabs|item|items|page|pages|note|notes|duplicate|duplicates|attachment|attachments|doc|docs|file|files|field|fields|select|button)\s*(?:\(\d+\))?$/i.test(str)) {
+      return null;
+    }
+
+    // 1. Number + (Parentheses ID) e.g. "15511274 (4LG14LGG)" or "442954 (LM433PX)"
     const numParen = str.match(/([0-9a-zA-Z_-]+)\s*\(([^)]+)\)/);
     if (numParen) {
       const num = numParen[1].trim();
       const parenthetical = numParen[2].trim();
-      return {
-        userId: parenthetical,
-        targetId: parenthetical,
-        publicId: parenthetical,
-        numericId: num,
-        userCombined: `${num} (${parenthetical})`
-      };
+      const isUiCounter = /^(?:input|inputs|tab|tabs|item|items|page|pages|note|notes|duplicate|duplicates|attachment|attachments|doc|docs|file|files|field|fields|select|button)$/i.test(num) && /^\d{1,2}$/.test(parenthetical);
+      if (!isUiCounter && (/\d/.test(num) || parenthetical.length >= 4)) {
+        return {
+          userId: parenthetical,
+          targetId: parenthetical,
+          publicId: parenthetical,
+          numericId: num,
+          userCombined: `${num} (${parenthetical})`
+        };
+      }
     }
 
-    // 2. Standalone parentheses e.g. "(4LG14LGG)"
+    // 2. Standalone parentheses e.g. "(4LG14LGG)" or "(LM433PX)"
     const onlyParen = str.match(/\(([^)]+)\)/);
     if (onlyParen) {
       const parenthetical = onlyParen[1].trim();
-      return {
-        userId: parenthetical,
-        targetId: parenthetical,
-        publicId: parenthetical,
-        numericId: parenthetical,
-        userCombined: `(${parenthetical})`
-      };
+      if (!/^\d{1,2}$/.test(parenthetical) && parenthetical.length >= 3) {
+        return {
+          userId: parenthetical,
+          targetId: parenthetical,
+          publicId: parenthetical,
+          numericId: parenthetical,
+          userCombined: `(${parenthetical})`
+        };
+      }
     }
 
     // 3. Plain ID without parentheses e.g. "1172031960185783" or "15511274"
     const single = str.match(/[0-9a-zA-Z_-]+/);
-    if (single && single[0].length >= 2) {
+    if (single && single[0].length >= 3) {
       const val = single[0].trim();
-      return {
-        userId: val,
-        targetId: val,
-        publicId: "",
-        numericId: val,
-        userCombined: val
-      };
+      if (!/^(?:input|inputs|select|button|textarea|undefined|null|none|true|false)$/i.test(val)) {
+        return {
+          userId: val,
+          targetId: val,
+          publicId: "",
+          numericId: val,
+          userCombined: val
+        };
+      }
     }
 
     return null;
@@ -3532,7 +3556,11 @@
   }
 
   function kycZoomDisplayId(row) {
-    return String((row && (row.userCombined || row.publicId || row.userId)) || "").trim();
+    const raw = String((row && (row.userCombined || row.publicId || row.userId)) || "").trim();
+    if (/^(?:input|inputs|tab|tabs|item|items|page|pages|note|notes|duplicate|duplicates|attachment|attachments|doc|docs|file|files|field|fields|select|button)\s*(?:\(\d+\))?$/i.test(raw)) {
+      return "";
+    }
+    return raw;
   }
 
   function kycSamePlayerId(a, b) {
@@ -3552,26 +3580,54 @@
     const lines = [];
     const thisId = String(thisDisplayId || "").trim();
     if (thisId) lines.push(`User ID: ${thisId} Rejected wants to verify.`);
+
+    const cleanHint = String(verifiedUidHint || "").trim();
     const rows = (others || []).filter((row) => {
       const display = kycZoomDisplayId(row);
       if (!display) return false;
       if (thisId && kycSamePlayerId(display, thisId)) return false;
       return true;
     });
-    let verifiedRow = rows.find((row) => isKycStatusVerified(row && row.kycVerified));
-    if (!verifiedRow && verifiedUidHint) {
-      verifiedRow = rows.find((row) => kycRowMatchesUid(row, verifiedUidHint));
+
+    let verifiedRow = null;
+    if (cleanHint) {
+      verifiedRow = rows.find((row) => kycRowMatchesUid(row, cleanHint));
     }
-    if (!verifiedRow && rows.length === 1) verifiedRow = rows[0];
-    if (verifiedRow) {
-      lines.push(`User ID: ${kycZoomDisplayId(verifiedRow)} Verified to rejected.`);
+    if (!verifiedRow) {
+      verifiedRow = rows.find((row) => isKycStatusVerified(row && row.kycVerified));
     }
+    if (!verifiedRow && rows.length === 1 && !cleanHint) {
+      verifiedRow = rows[0];
+    }
+
+    let verifiedDisplay = "";
+    if (cleanHint) {
+      if (verifiedRow) {
+        const rowDisplay = kycZoomDisplayId(verifiedRow);
+        if (rowDisplay && rowDisplay.includes("(") && !cleanHint.includes("(")) {
+          verifiedDisplay = rowDisplay;
+        } else {
+          verifiedDisplay = cleanHint;
+        }
+      } else {
+        verifiedDisplay = cleanHint;
+      }
+    } else if (verifiedRow) {
+      verifiedDisplay = kycZoomDisplayId(verifiedRow);
+    }
+
+    if (verifiedDisplay) {
+      lines.push(`User ID: ${verifiedDisplay} Verified to rejected.`);
+    }
+
     rows.forEach((row) => {
       if (row === verifiedRow) return;
       const display = kycZoomDisplayId(row);
       if (!display) return;
+      if (cleanHint && kycSamePlayerId(display, cleanHint)) return;
       lines.push(`User ID: ${display} Rejected.`);
     });
+
     return lines.join("\n");
   }
 
@@ -3598,7 +3654,13 @@
 
   function resolveKycPairAccounts(active, sibling, enteredVerifiedUid, selectedNoteChoice) {
     let other = sibling || null;
+    if (other && !kycZoomDisplayId(other)) {
+      other = null;
+    }
     const cleanOtherUid = String(enteredVerifiedUid || "").trim();
+    if (other && cleanOtherUid && !kycRowMatchesUid(other, cleanOtherUid)) {
+      other = null;
+    }
     if (!other && cleanOtherUid) {
       const parsed = parseUserIdValue(cleanOtherUid) || {};
       other = {
@@ -7060,10 +7122,20 @@
         const isHidden = dockElement ? dockElement.classList.contains("hidden-bar") : false;
         sendResponse({ visible: !!dockElement && !isHidden });
       } else if (request.action === "GET_KYC_PLAYER") {
+        const path = (window.location && window.location.pathname) || "";
+        if (!/\/user\/[^/]+/i.test(path) && !isUserOverviewPage()) {
+          sendResponse({ publicId: "" });
+          return;
+        }
         const p = scrapePlayerCredentials() || {};
+        const pid = kycPlainUid(p.publicId || p.userId);
+        if (!pid || /^(?:input|inputs|tab|tabs|item|items|page|pages|note|notes|duplicate|duplicates|attachment|attachments|doc|docs|file|files|field|fields|select|button)$/i.test(pid)) {
+          sendResponse({ publicId: "" });
+          return;
+        }
         const attrs = scrapeUserAttributes();
         sendResponse({
-          publicId: kycPlainUid(p.publicId || p.userId),
+          publicId: pid,
           userId: p.userId || "",
           userCombined: p.userCombined || "",
           kycVerified: p.kycVerified || "",

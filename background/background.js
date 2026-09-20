@@ -119,7 +119,7 @@ function handleKycFindSibling(sender, request, sendResponse) {
           return;
         }
         const publicId = kycPlainUidFromPlayer(res);
-        if (!publicId) {
+        if (!publicId || /^(?:input|inputs|tab|tabs|item|items|page|pages|note|notes|duplicate|duplicates|attachment|attachments|doc|docs|file|files|field|fields|select|button)\s*(?:\(\d+\))?$/i.test(res.userCombined || publicId)) {
           resolve(null);
           return;
         }

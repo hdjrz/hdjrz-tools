@@ -244,7 +244,8 @@ var hdjrzChrome = (function() {
             var player = ev.data.player;
             if (player && player.publicId) {
               var pKey = String(player.publicId).toLowerCase();
-              if ((!senderUid || pKey !== senderUid) && !others.some(function(o) { return String(o.publicId).toLowerCase() === pKey; })) {
+              var isCounter = /^(?:input|inputs|tab|tabs|item|items|page|pages|note|notes|duplicate|duplicates|attachment|attachments|doc|docs|file|files|field|fields|select|button)\s*(?:\(\d+\))?$/i.test(player.userCombined || pKey);
+              if (!isCounter && (!senderUid || pKey !== senderUid) && !others.some(function(o) { return String(o.publicId).toLowerCase() === pKey; })) {
                 others.push(player);
               }
             }
