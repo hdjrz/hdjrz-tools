@@ -156,7 +156,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.6.1";
+  const HARDCODED_VERSION = "1.6.2";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -176,9 +176,22 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.6.2",
+      title: "KYC Switch Auto-Scan & Readonly Verified UID Field",
+      date: "Latest",
+      agentFeatures: [
+        "🔒 Readonly Verified-to-Rejected Field: The 'Verified to rejected' text field is now locked and protected from accidental manual typing or pasting.",
+        "⚡ Automatic Cross-Tab Scanner: Instant automatic scanning pulls the duplicate/old account ID from your other open player tab with zero manual effort.",
+        "✨ Streamlined Status Label: Clear indicator displays scanning status and tab sync feedback directly below the field."
+      ],
+      adminFeatures: [
+        "🛡️ Automated Field Population: Enforces background tab query binding for KYC Switch escalations, eliminating operator entry typos."
+      ]
+    },
+    {
       version: "1.6.1",
       title: "Legal Age Badge Display & 21+ Classification Fix",
-      date: "Latest",
+      date: "v1.6.1",
       agentFeatures: [
         "🟢 Legal Age Badge (21+): Replaced glitchy 'undefined (age)' label on the dock toolbar with a clean, professional 'Legal Age (age)' badge.",
         "👁️ Instant Age Verification: Dock instantly shows glowing green 'Legal Age (38)' alongside player ID for clear compliance checks."
@@ -5166,14 +5179,19 @@
           <div class="esc-form-row" id="esc-kyc-verified-row" style="background: #09111e; padding: 10px 12px; border-radius: 6px; border: 1px solid #1e293b;${selectedZoomChoice === 1 ? " display:none;" : ""}">
             <label class="esc-form-label" for="esc-modal-verified-uid" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
               <span><strong>Verified to rejected</strong> (from DUP / Old account):</span>
-              <span id="esc-verified-status" style="font-size: 11px; font-weight: 500; color: ${enteredVerifiedUid ? '#34d399' : '#f59e0b'};">
-                ${enteredVerifiedUid ? '✓ Other player tab (edit if needed)' : '⚠️ Paste the other User ID'}
+              <span id="esc-verified-status" style="font-size: 11px; font-weight: 500; color: ${enteredVerifiedUid ? '#34d399' : '#94a3b8'};">
+                ${enteredVerifiedUid ? '✓ Auto-scanned from other tab' : '🔍 Scanning other tab...'}
               </span>
             </label>
             <input type="text" class="esc-input" id="esc-modal-verified-uid"
               value="${escapeHtml(enteredVerifiedUid)}"
-              placeholder="Enter Verified User ID"
-              style="font-family: monospace; font-size: 13.5px; font-weight: 700; color: #fde68a; background: #060c16; border-color: #ca8a04;">
+              placeholder="Scanning other open tab..."
+              readonly
+              disabled
+              style="font-family: monospace; font-size: 13.5px; font-weight: 700; color: #fde68a; background: #070d18; border-color: #334155; cursor: not-allowed; opacity: 0.9;">
+            <div style="font-size: 11px; color: #94a3b8; margin-top: 5px; display: flex; align-items: center; gap: 4px;">
+              <span>⚡ Automatically scanned from the other account in your open tab.</span>
+            </div>
           </div>`;
     }
 
@@ -5362,15 +5380,18 @@
     function applyKycSiblingPrefill() {
       if (selectedZoomChoice === 1) {
         const firstOther = kycOthers[0] && kycPlainUid(kycOthers[0].publicId || kycOthers[0].userId);
-        if (firstOther) enteredVerifiedUid = firstOther;
+        if (firstOther) {
+          enteredVerifiedUid = firstOther;
+          if (verifiedUidInput) verifiedUidInput.value = firstOther;
+        }
         return;
       }
       if (!verifiedUidInput) return;
       if (!kycSibling) return;
       const uid = kycPlainUid(kycSibling.publicId || kycSibling.userId);
       if (!uid) return;
-      if (String(verifiedUidInput.value || "").trim()) return;
       verifiedUidInput.value = uid;
+      enteredVerifiedUid = uid;
     }
 
     function updatePreview() {
@@ -5383,15 +5404,11 @@
       if (selectedZoomChoice !== 1 && verifiedUidInput) enteredVerifiedUid = verifiedUidInput.value.trim();
       if (verifiedStatus) {
         if (enteredVerifiedUid) {
-          const fromTabs = (selectedZoomChoice === 0 && kycSibling)
-            || (selectedZoomChoice === 1 && kycOthers.length);
-          verifiedStatus.textContent = fromTabs
-            ? "✓ From the other player tab (edit if needed)"
-            : "✓ Verified UID ready";
+          verifiedStatus.textContent = "✓ Auto-scanned from other tab";
           verifiedStatus.style.color = "#34d399";
         } else {
-          verifiedStatus.textContent = "⚠️ Paste the other User ID";
-          verifiedStatus.style.color = "#f59e0b";
+          verifiedStatus.textContent = "🔍 Scanning other tab...";
+          verifiedStatus.style.color = "#94a3b8";
         }
       }
       if (summaryDisplayId) {
