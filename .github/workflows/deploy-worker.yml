@@ -38,12 +38,12 @@ jobs:
             exit 1
           fi
 
-          # Auto-sync latestVersion in worker services with package.json
+          # Auto-sync latestVersion in worker services with package.json (anchored so admin/agent versions are preserved)
           PKG_VERSION=$(node -p "require('./package.json').version")
           echo "Packaging release version: $PKG_VERSION"
-          sed -i "s/latestVersion: \".*\"/latestVersion: \"$PKG_VERSION\"/g" backend/services/systemService.js
+          sed -i "s/^\(\s*latestVersion:\s*\"\)[^\"]*\"/\1$PKG_VERSION\"/g" backend/services/systemService.js
           if [ -f "license/worker.js" ]; then
-            sed -i "s/latestVersion: \".*\"/latestVersion: \"$PKG_VERSION\"/g" license/worker.js
+            sed -i "s/^\(\s*latestVersion:\s*\"\)[^\"]*\"/\1$PKG_VERSION\"/g" license/worker.js
           fi
 
           # Replace placeholder with actual KV Namespace ID and append account_id

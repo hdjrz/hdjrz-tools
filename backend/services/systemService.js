@@ -94,6 +94,13 @@ export async function getSystemConfig(env) {
     }
   } catch (e) {}
 
+  if (cfg.agentlatestVersion && !cfg.agentLatestVersion) {
+    cfg.agentLatestVersion = cfg.agentlatestVersion;
+  }
+  if (cfg.adminlatestVersion && !cfg.adminLatestVersion) {
+    cfg.adminLatestVersion = cfg.adminlatestVersion;
+  }
+
   if (isVersionBelow(cfg.latestVersion, DEFAULT_SYSTEM_CONFIG.latestVersion)) {
     cfg.latestVersion = DEFAULT_SYSTEM_CONFIG.latestVersion;
   }
@@ -101,7 +108,7 @@ export async function getSystemConfig(env) {
     cfg.adminLatestVersion = cfg.latestVersion;
   }
   if (!cfg.agentLatestVersion) {
-    cfg.agentLatestVersion = cfg.latestVersion;
+    cfg.agentLatestVersion = DEFAULT_SYSTEM_CONFIG.agentLatestVersion || cfg.latestVersion;
   }
   if (isVersionBelow(cfg.minRequiredVersion, DEFAULT_SYSTEM_CONFIG.minRequiredVersion)) {
     cfg.minRequiredVersion = DEFAULT_SYSTEM_CONFIG.minRequiredVersion;
