@@ -1047,7 +1047,7 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
           '<td><strong>' + escapeHtml(agentName) + '</strong></td>' +
           '<td><span style="font-family: var(--font-mono); color: #60a5fa;">v' + escapeHtml(u.version || "1.0.0") + '</span></td>' +
           '<td>' + timeAgo + '</td>' +
-          '<td><button type="button" class="btn btn-secondary btn-sm" onclick="filterSupportByAgent(\'' + escapeHtml(agentName) + '\')" style="padding: 2px 8px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">💬 View Chats</button></td>' +
+          '<td><button type="button" class="btn btn-secondary btn-sm" onclick="filterSupportByAgent(&quot;' + escapeHtml(agentName) + '&quot;)" style="padding: 2px 8px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">💬 View Chats</button></td>' +
         '</tr>';
       }).join("");
     }
@@ -1108,7 +1108,7 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
           '<td><div style="font-weight:600; color:#cbd5e1;">' + escapeHtml(item.meaning || "") + '</div><div style="font-size:11px; color:var(--muted);">' + escapeHtml(item.description || "") + '</div></td>' +
           '<td>' + statusBadge + '</td>' +
           '<td><div class="actions-cell">' +
-            '<button type="button" class="btn ' + (isActive ? 'btn-secondary' : 'btn-primary') + ' btn-sm" onclick="toggleEscalationStatus(\\'' + escapeHtml(item.code) + '\\')">' +
+            '<button type="button" class="btn ' + (isActive ? 'btn-secondary' : 'btn-primary') + ' btn-sm" onclick="toggleEscalationStatus(&quot;' + escapeHtml(item.code) + '&quot;)">' +
               (isActive ? '🚫 Deactivate' : '🟢 Activate') +
             '</button>' +
           '</div></td>' +

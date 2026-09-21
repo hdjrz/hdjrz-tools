@@ -156,7 +156,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.8.1";
+  const HARDCODED_VERSION = "1.8.2";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -176,8 +176,8 @@
 
   const CHANGELOG_HISTORY = [
     {
-      version: "1.8.1",
-      title: "Admin Targeted Direct Chat & Live Active Agent Roster",
+      version: "1.8.2",
+      title: "Admin Portal Script Parsing Fix & Case-Insensitive Auth",
       date: "Latest",
       agentFeatures: [
         "🔔 Direct Admin Messages: Instantly receive direct messages initiated by Admin with immediate unread sound chime, badge indicators, and thread sync.",

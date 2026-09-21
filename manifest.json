@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "hdjrzTools - Escalation Helper",
-  "version": "1.8.1",
+  "version": "1.8.2",
   "description": "Streamlines player escalations: extracts player info, formats User Notes, pins them, copies to clipboard, and opens Zoom workspace.",
   "permissions": [
     "storage",
