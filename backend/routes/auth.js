@@ -13,8 +13,9 @@ export async function handleAuthRoutes(request, env, url) {
   // POST /api/auth/login or legacy POST /admin/api/auth
   if (method === "POST" && (path === "/api/auth/login" || path === "/admin/api/auth")) {
     const body = await parseJsonBody(request);
-    validateRequired(body, ["password"]);
-    const res = await loginAdmin(env, body.password);
+    const pass = body.password || body.pass || body.key || "";
+    if (!pass) return jsonError("missing_password", "Password or admin key is required", 400);
+    const res = await loginAdmin(env, pass);
     return jsonSuccess({ token: res.token, role: res.role });
   }
 

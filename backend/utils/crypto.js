@@ -36,14 +36,15 @@ export function createAdminToken(masterPassword) {
  */
 export function verifyAdminToken(token, masterPassword) {
   if (!token || !masterPassword) return false;
-  if (token === masterPassword) return true;
+  if (token === masterPassword || token.toLowerCase() === masterPassword.toLowerCase()) return true;
   try {
     const decoded = atob(token);
     const [type, ts, prefix] = decoded.split(":");
     if (type !== "admin") return false;
-    if (!masterPassword.startsWith(prefix)) return false;
+    const masterPrefix = String(masterPassword || "").slice(0, 4);
+    if (!prefix || prefix.toLowerCase() !== masterPrefix.toLowerCase()) return false;
     const age = Date.now() - Number(ts);
-    const maxAgeMs = 7 * 24 * 60 * 60 * 1000; // 7 days
+    const maxAgeMs = 30 * 24 * 60 * 60 * 1000; // 30 days
     return age >= 0 && age < maxAgeMs;
   } catch (e) {
     return false;

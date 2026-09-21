@@ -156,7 +156,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.8.0";
+  const HARDCODED_VERSION = "1.8.1";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -176,7 +176,7 @@
 
   const CHANGELOG_HISTORY = [
     {
-      version: "1.8.0",
+      version: "1.8.1",
       title: "Admin Targeted Direct Chat & Live Active Agent Roster",
       date: "Latest",
       agentFeatures: [

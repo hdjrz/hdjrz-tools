@@ -744,13 +744,27 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
       setTimeout(() => { toast.style.display = "none"; }, 3000);
     }
 
+    let activeUsersInterval = null;
+    let supportTicketsInterval = null;
+
+    function stopBackgroundPolls() {
+      if (activeUsersInterval) { clearInterval(activeUsersInterval); activeUsersInterval = null; }
+      if (supportTicketsInterval) { clearInterval(supportTicketsInterval); supportTicketsInterval = null; }
+    }
+
     async function apiRequest(path, method = "GET", body = null) {
-      const headers = { "Content-Type": "application/json" };
-      if (authToken) headers["Authorization"] = "Bearer " + authToken;
-      const opts = { method, headers };
-      if (body) opts.body = JSON.stringify(body);
-      const res = await fetch(path, opts);
-      return res.json();
+      try {
+        const headers = { "Content-Type": "application/json" };
+        if (authToken) headers["Authorization"] = "Bearer " + authToken;
+        const opts = { method, headers };
+        if (body) opts.body = JSON.stringify(body);
+        const res = await fetch(path, opts);
+        const data = await res.json();
+        return data;
+      } catch (err) {
+        console.warn("[AdminPortal] apiRequest failed:", path, err);
+        return { ok: false, error: err.message || "Network request failed" };
+      }
     }
 
     function showLoginError(msg) {
@@ -768,6 +782,11 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
       if (errBox) errBox.style.display = "none";
       const pass = adminPassInput.value.trim();
       if (!pass) return showLoginError("Please enter Master Password or Admin License Key.");
+      
+      // Clear old session state before attempting fresh login
+      authToken = "";
+      sessionStorage.removeItem("hdjrz_admin_token");
+
       loginBtn.disabled = true;
       loginBtn.textContent = "Verifying...";
       try {
@@ -788,7 +807,8 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
           sessionStorage.setItem("hdjrz_admin_token", authToken);
           showDashboard();
         } else {
-          showLoginError((res && res.error) ? "Login failed: " + res.error : "Invalid password or admin key. Please verify and try again.");
+          const detail = (res && (res.message || res.error)) ? res.message || res.error : "Invalid password or admin key.";
+          showLoginError("Login failed: " + detail + " (Default password: hdjrzAdmin2026!)");
         }
       } catch (err) {
         showLoginError("Server connection error: " + err.message);
@@ -814,6 +834,7 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
     loginBtn.addEventListener("click", doLogin);
     adminPassInput.addEventListener("keydown", (e) => { if (e.key === "Enter") doLogin(); });
     logoutBtn.addEventListener("click", () => {
+      stopBackgroundPolls();
       authToken = "";
       sessionStorage.removeItem("hdjrz_admin_token");
       dashboardView.style.display = "none";
@@ -822,6 +843,7 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
     });
 
     function handleUnauthorized() {
+      stopBackgroundPolls();
       authToken = "";
       sessionStorage.removeItem("hdjrz_admin_token");
       dashboardView.style.display = "none";
@@ -838,8 +860,9 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
       loadPipelineStatus();
       loadReleaseChannels();
       loadSupportTickets();
-      setInterval(loadActiveUsers, 15000);
-      setInterval(loadSupportTickets, 6000);
+      stopBackgroundPolls();
+      activeUsersInterval = setInterval(loadActiveUsers, 15000);
+      supportTicketsInterval = setInterval(loadSupportTickets, 6000);
     }
 
     let currentLicenses = [];

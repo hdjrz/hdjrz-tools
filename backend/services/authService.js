@@ -20,7 +20,8 @@ export async function getAdminPassword(env) {
  */
 export async function verifyMasterPassword(env, password) {
   const master = await getAdminPassword(env);
-  return password === master;
+  const clean = String(password || "").trim();
+  return clean === master || clean.toLowerCase() === master.toLowerCase();
 }
 
 /**
@@ -30,16 +31,20 @@ export async function loginAdmin(env, password) {
   const clean = String(password || "").trim();
   const master = await getAdminPassword(env);
 
-  // 1. Check master password
-  if (clean === master) {
+  // 1. Check master password (case-insensitive for convenience)
+  if (clean === master || clean.toLowerCase() === master.toLowerCase()) {
     const token = createAdminToken(master);
     return { token, role: "admin" };
   }
 
-  // 2. Check if entered password is a valid Admin License Key
-  if (clean.startsWith("HDJRZ-ADMIN-") || clean.startsWith("HDJRZ-")) {
+  // 2. Check if entered password is a valid Admin License Key (case-insensitive)
+  const cleanUpper = clean.toUpperCase();
+  if (cleanUpper.startsWith("HDJRZ-ADMIN-") || cleanUpper.startsWith("HDJRZ-")) {
     try {
-      const raw = await env.LICENSES.get(clean);
+      let raw = await env.LICENSES.get(clean);
+      if (!raw && clean !== cleanUpper) {
+        raw = await env.LICENSES.get(cleanUpper);
+      }
       if (raw) {
         let row = {};
         try { row = JSON.parse(raw); } catch (e) {
@@ -62,12 +67,19 @@ export async function loginAdmin(env, password) {
 export async function verifyAdminAuthHeader(env, authHeader = "", directPass = "") {
   const master = await getAdminPassword(env);
   const cleanDirect = String(directPass || "").trim();
-  if (cleanDirect && cleanDirect === master) return true;
-  if (cleanDirect && (cleanDirect.startsWith("HDJRZ-ADMIN-") || cleanDirect.startsWith("HDJRZ-"))) {
+  if (cleanDirect && (cleanDirect === master || cleanDirect.toLowerCase() === master.toLowerCase())) return true;
+  if (cleanDirect && (cleanDirect.toUpperCase().startsWith("HDJRZ-ADMIN-") || cleanDirect.toUpperCase().startsWith("HDJRZ-"))) {
+    const directUpper = cleanDirect.toUpperCase();
     try {
-      const raw = await env.LICENSES.get(cleanDirect);
+      let raw = await env.LICENSES.get(cleanDirect);
+      if (!raw && cleanDirect !== directUpper) {
+        raw = await env.LICENSES.get(directUpper);
+      }
       if (raw) {
-        const row = JSON.parse(raw);
+        let row = {};
+        try { row = JSON.parse(raw); } catch (e) {
+          if (raw === "admin") row = { role: "admin", active: true };
+        }
         if (row && row.role === "admin" && row.active !== false) return true;
       }
     } catch (e) {}
@@ -75,12 +87,19 @@ export async function verifyAdminAuthHeader(env, authHeader = "", directPass = "
 
   if (authHeader && authHeader.startsWith("Bearer ")) {
     const token = authHeader.slice(7).trim();
-    if (token === master) return true;
-    if (token.startsWith("HDJRZ-ADMIN-") || token.startsWith("HDJRZ-")) {
+    if (token === master || token.toLowerCase() === master.toLowerCase()) return true;
+    const tokenUpper = token.toUpperCase();
+    if (tokenUpper.startsWith("HDJRZ-ADMIN-") || tokenUpper.startsWith("HDJRZ-")) {
       try {
-        const raw = await env.LICENSES.get(token);
+        let raw = await env.LICENSES.get(token);
+        if (!raw && token !== tokenUpper) {
+          raw = await env.LICENSES.get(tokenUpper);
+        }
         if (raw) {
-          const row = JSON.parse(raw);
+          let row = {};
+          try { row = JSON.parse(raw); } catch (e) {
+            if (raw === "admin") row = { role: "admin", active: true };
+          }
           if (row && row.role === "admin" && row.active !== false) return true;
         }
       } catch (e) {}
