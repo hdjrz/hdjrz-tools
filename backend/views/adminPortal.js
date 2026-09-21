@@ -1625,7 +1625,7 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
               }
             }
           } catch (_) {}
-        }, 3000);
+        }, 1200);
 
       } catch (err) {
         messagesWrap.innerHTML = '<div style="color: #fca5a5; padding: 14px;">Failed to load conversation: ' + escapeHtml(err.message) + '</div>';
@@ -1789,6 +1789,15 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
       if (e.target.id === "support-thread-modal") closeThreadModal();
     });
     document.getElementById("thread-send-reply-btn").addEventListener("click", sendAdminReply);
+    const threadReplyInput = document.getElementById("thread-reply-input");
+    if (threadReplyInput) {
+      threadReplyInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          sendAdminReply();
+        }
+      });
+    }
     document.getElementById("thread-mark-resolved-btn").addEventListener("click", () => updateTicketStatusAction("resolved"));
     document.getElementById("thread-mark-progress-btn").addEventListener("click", () => updateTicketStatusAction("in_progress"));
     document.getElementById("thread-delete-btn").addEventListener("click", () => deleteTicketAction());

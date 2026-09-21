@@ -156,7 +156,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.7.4";
+  const HARDCODED_VERSION = "1.7.5";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -176,9 +176,23 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.7.5",
+      title: "Real-Time Chat Optimization & Zero-Delay Messaging",
+      date: "Latest",
+      agentFeatures: [
+        "⚡ Instant Outgoing Chat: Optimistic UI rendering displays your reply with zero latency (0ms) immediately as you send.",
+        "🚀 3x Faster Reply Delivery: Active conversation sync rate accelerated from 3.5s to 1.2s for near-instant message receipt.",
+        "⌨️ Quick Send on Enter: Press Enter to send messages instantly, Shift+Enter for newlines."
+      ],
+      adminFeatures: [
+        "⚡ Accelerated Fleet Conversation Polling: Admin inbox thread sync rate boosted to 1.2s across both toolbar extension and web portal.",
+        "👁️ Tab Focus Auto-Sync: Switching back to the browser tab triggers an immediate zero-delay inbox refresh."
+      ]
+    },
+    {
       version: "1.7.4",
       title: "Conversation Alignment & Bubble Color Redesign",
-      date: "Latest",
+      date: "v1.7.4",
       agentFeatures: [
         "💬 Natural Chat Layout: Standardized conversational bubble placement (outgoing messages on the right in blue, incoming responses on the left in gray)."
       ],
@@ -7493,8 +7507,16 @@
     activeModal = overlay;
     playModalOpen(overlay);
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && currentView === "thread" && activeTicketId) {
+        pollActiveThreadSilently(activeTicketId);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     const closeBtn = overlay.querySelector("#esc-support-close");
     const closeSupport = () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       if (threadPollTimer) {
         clearInterval(threadPollTimer);
         threadPollTimer = null;
@@ -7814,7 +7836,7 @@
               return;
             }
             pollActiveThreadSilently(activeTicketId);
-          }, 3500);
+          }, 1200);
         });
       });
     }
@@ -7961,14 +7983,72 @@
       threadMsgs.scrollTop = threadMsgs.scrollHeight;
     }
 
+    function appendOptimisticBubble(m) {
+      const bubble = document.createElement("div");
+      bubble.className = "esc-support-msg esc-support-msg-me esc-msg-optimistic";
+      bubble.id = "esc-msg-optimistic";
+      bubble.style.opacity = "0.82";
+
+      const timeStr = new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      let imgHtml = "";
+      if (m.image) {
+        imgHtml = `<img src="${safeEsc(m.image)}" class="esc-support-msg-img" title="Click to zoom screenshot">`;
+      }
+
+      bubble.innerHTML = `
+        <div class="esc-support-msg-sender">
+          <span>${safeEsc(m.senderName)}</span>
+          <span style="opacity: 0.6; font-size: 9px; margin-left: auto;">${safeEsc(timeStr)} ⏳</span>
+        </div>
+        ${m.text ? `<div style="white-space: pre-wrap; word-break: break-word;">${safeEsc(m.text)}</div>` : ""}
+        ${imgHtml}
+      `;
+
+      const emptyDiv = threadMsgs.querySelector("div");
+      if (emptyDiv && emptyDiv.textContent.includes("No messages yet")) {
+        threadMsgs.innerHTML = "";
+      }
+
+      threadMsgs.appendChild(bubble);
+      threadMsgs.scrollTop = threadMsgs.scrollHeight;
+    }
+
+    function removeOptimisticBubble() {
+      const opt = threadMsgs.querySelector("#esc-msg-optimistic");
+      if (opt) opt.remove();
+    }
+
+    replyText.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        replySubmitBtn.click();
+      }
+    });
+
     // Submit Reply
     replySubmitBtn.addEventListener("click", () => {
       const text = replyText.value.trim();
-      if (!text && !threadReplyImage) {
+      const attachedImage = threadReplyImage;
+      if (!text && !attachedImage) {
         showToast("Please write a message or attach a screenshot.", false);
         return;
       }
       if (!activeTicketId) return;
+
+      const optimisticSender = isAdmin
+        ? (currentSettings.agentName ? `${currentSettings.agentName} (Admin)` : "Jetro (Admin)")
+        : (currentSettings.agentName || (licenseRole === "guest" ? "Guest User" : "Staff"));
+
+      appendOptimisticBubble({
+        senderName: optimisticSender,
+        text: text,
+        image: attachedImage,
+        timestamp: Date.now()
+      });
+
+      // Clear immediately for 0ms response feel
+      replyText.value = "";
+      replyPreviewRemove.click();
 
       replySubmitBtn.disabled = true;
       replySubmitBtn.innerHTML = `⏳ Sending...`;
@@ -7983,7 +8063,7 @@
           senderName: senderName,
           deviceId: devId,
           text: text,
-          imageBase64: threadReplyImage,
+          imageBase64: attachedImage,
           role: role,
           key: licenseKey
         };
@@ -7997,17 +8077,16 @@
           replySubmitBtn.innerHTML = `💬 Send Reply`;
           if (err || !res || !res.ok) {
             showToast("Reply failed: " + (err || (res && res.error) || "Error"), false);
+            replyText.value = text;
+            removeOptimisticBubble();
             return;
           }
-          replyText.value = "";
-          replyPreviewRemove.click();
           if (res.ticket && res.ticket.messages) {
             currentThreadMsgCount = res.ticket.messages.length;
             renderThreadMessages(res.ticket.messages);
           } else {
             openThread(activeTicketId);
           }
-          showToast("Reply sent!");
         });
       });
     });
