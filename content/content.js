@@ -156,7 +156,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.7.3";
+  const HARDCODED_VERSION = "1.7.4";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -176,9 +176,21 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.7.4",
+      title: "Conversation Alignment & Bubble Color Redesign",
+      date: "Latest",
+      agentFeatures: [
+        "💬 Natural Chat Layout: Standardized conversational bubble placement (outgoing messages on the right in blue, incoming responses on the left in gray)."
+      ],
+      adminFeatures: [
+        "👑 Admin Chat Layout Fix: In Admin Inbox, fleet agent messages appear on the left in gray, and admin replies appear on the right in blue.",
+        "✨ Enhanced Contrast & Badges: Improved sender label visibility and distinct tail accents on message bubbles."
+      ]
+    },
+    {
       version: "1.7.3",
       title: "In-Extension Admin Messages Inbox & Fleet Thread Management",
-      date: "Latest",
+      date: "v1.7.3",
       agentFeatures: [
         "📬 Dedicated Agent Inbox: Full isolation of messages and seamless two-way replies with admin from the floating toolbar.",
         "📸 Instant Screenshot Lightbox: Zoom and inspect attached screenshots directly within any conversation bubble."
@@ -7910,8 +7922,9 @@
       }
       messages.forEach((m) => {
         const isMsgAdmin = m.sender === "admin" || m.senderRole === "admin";
+        const isMe = isAdmin ? isMsgAdmin : !isMsgAdmin;
         const bubble = document.createElement("div");
-        bubble.className = `esc-support-msg ${isMsgAdmin ? "esc-support-msg-admin" : "esc-support-msg-agent"}`;
+        bubble.className = `esc-support-msg ${isMe ? "esc-support-msg-me" : "esc-support-msg-other"}`;
 
         let senderLabel;
         if (isAdmin) {

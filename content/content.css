@@ -3592,27 +3592,52 @@ body.esc-modal-scroll-lock {
   gap: 6px;
 }
 
-.esc-support-msg-agent {
+.esc-support-msg-me,
+.esc-support-msg.esc-support-msg-me {
   align-self: flex-end;
   background: #1e3a8a;
   border: 1px solid #2563eb;
   color: #eff6ff;
+  border-bottom-right-radius: 2px;
 }
 
-.esc-support-msg-admin {
+.esc-support-msg-other,
+.esc-support-msg.esc-support-msg-other {
+  align-self: flex-start;
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #f8fafc;
+  border-bottom-left-radius: 2px;
+}
+
+.esc-support-msg-agent {
   align-self: flex-start;
   background: #1e293b;
   border: 1px solid #334155;
   color: #f8fafc;
 }
 
+.esc-support-msg-admin {
+  align-self: flex-end;
+  background: #1e3a8a;
+  border: 1px solid #2563eb;
+  color: #eff6ff;
+}
+
 .esc-support-msg-sender {
   font-size: 10px;
   font-weight: 700;
-  color: #94a3b8;
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+.esc-support-msg-me .esc-support-msg-sender {
+  color: #93c5fd;
+}
+
+.esc-support-msg-other .esc-support-msg-sender {
+  color: #94a3b8;
 }
 
 .esc-support-msg-img {
