@@ -3,6 +3,8 @@
  */
 import { parseJsonBody } from "../middleware/validation.js";
 import { requireAdmin } from "../middleware/authorization.js";
+import { verifyAdminAuthHeader } from "../services/authService.js";
+import { UnauthorizedError } from "../utils/errors.js";
 import {
   createTicket,
   listTickets,
@@ -20,7 +22,7 @@ export async function handleSupportRoutes(request, env, url) {
   const path = url.pathname;
 
   // =========================================================================
-  // 1. Agent Client Endpoints
+  // 1. Client Endpoints (Agents & In-Extension Admin)
   // =========================================================================
 
   // POST /api/support/ticket - Create a new support/bug report
@@ -38,36 +40,98 @@ export async function handleSupportRoutes(request, env, url) {
     return jsonSuccess({ message: "Ticket submitted successfully!", ticket });
   }
 
-  // GET /api/support/my-tickets - Check agent's active tickets and unread count
+  // GET /api/support/my-tickets - Check active tickets and unread count
   if (method === "GET" && path === "/api/support/my-tickets") {
     const deviceId = String(url.searchParams.get("dev") || "").trim();
     const agentName = String(url.searchParams.get("agent") || "").trim();
+    const role = String(url.searchParams.get("role") || "").trim().toLowerCase();
+    const key = String(url.searchParams.get("key") || "").trim();
+
+    const authHeader = request.headers.get("Authorization") || "";
+    const directPass = request.headers.get("X-Admin-Password") || key || "";
+    const isAdmin = (role === "admin") && (await verifyAdminAuthHeader(env, authHeader, directPass));
+
+    if (isAdmin) {
+      const data = await listTickets(env, { status: "all", limit: 50 });
+      const unreadCount = (data.tickets || []).filter(t => t.unreadAdmin).length;
+      return jsonSuccess({
+        isAdmin: true,
+        tickets: data.tickets || [],
+        unreadCount
+      });
+    }
+
     const res = await getAgentTickets(env, deviceId, agentName);
-    return jsonSuccess(res);
+    return jsonSuccess({ isAdmin: false, ...res });
   }
 
-  // GET /api/support/ticket/:id - Agent view single ticket thread
+  // GET /api/support/ticket/:id - View single ticket thread
   if (method === "GET" && path.startsWith("/api/support/ticket/")) {
     const ticketId = path.replace("/api/support/ticket/", "").trim();
     const deviceId = String(url.searchParams.get("dev") || "").trim();
     const agentName = String(url.searchParams.get("agent") || "").trim();
-    const ticket = await getTicketDetail(env, ticketId, false);
-    // Mark as read for this agent
-    await markAgentTicketsRead(env, deviceId, agentName, ticketId);
-    return jsonSuccess({ ticket });
+    const role = String(url.searchParams.get("role") || "").trim().toLowerCase();
+    const key = String(url.searchParams.get("key") || "").trim();
+
+    const authHeader = request.headers.get("Authorization") || "";
+    const directPass = request.headers.get("X-Admin-Password") || key || "";
+    const isAdmin = (role === "admin") && (await verifyAdminAuthHeader(env, authHeader, directPass));
+
+    const ticket = await getTicketDetail(env, ticketId, isAdmin);
+    if (!isAdmin) {
+      await markAgentTicketsRead(env, deviceId, agentName, ticketId);
+    }
+    return jsonSuccess({ ticket, isAdmin });
   }
 
-  // POST /api/support/ticket/:id/reply - Agent reply to a ticket
+  // POST /api/support/ticket/:id/reply - Reply to a ticket
   if (method === "POST" && path.match(/^\/api\/support\/ticket\/[^\/]+\/reply$/)) {
     const ticketId = path.split("/")[4];
     const body = await parseJsonBody(request);
+    const role = String(body.role || url.searchParams.get("role") || "").trim().toLowerCase();
+    const key = String(body.key || url.searchParams.get("key") || "").trim();
+
+    const authHeader = request.headers.get("Authorization") || "";
+    const directPass = request.headers.get("X-Admin-Password") || key || "";
+    const isAdmin = (role === "admin") && (await verifyAdminAuthHeader(env, authHeader, directPass));
+
+    const senderRole = isAdmin ? "admin" : "agent";
+    const defaultName = isAdmin ? "Jetro (Admin)" : (body.agentName || "Agent");
+
     const ticket = await addReplyToTicket(env, ticketId, {
-      sender: "agent",
-      senderName: body.agentName || body.senderName || "Agent",
+      sender: senderRole,
+      senderName: body.senderName || defaultName,
       text: body.text,
       imageBase64: body.imageBase64
     });
-    return jsonSuccess({ message: "Reply sent!", ticket });
+    return jsonSuccess({ message: "Reply sent!", ticket, isAdmin });
+  }
+
+  // POST /api/support/ticket/:id/status - Update status from extension (Admin)
+  if (method === "POST" && path.match(/^\/api\/support\/ticket\/[^\/]+\/status$/)) {
+    const ticketId = path.split("/")[4];
+    const body = await parseJsonBody(request);
+    const key = String(body.key || url.searchParams.get("key") || "").trim();
+    const authHeader = request.headers.get("Authorization") || "";
+    const directPass = request.headers.get("X-Admin-Password") || key || "";
+    const isAdmin = await verifyAdminAuthHeader(env, authHeader, directPass);
+    if (!isAdmin) throw new UnauthorizedError("Admin authorization required", "unauthorized");
+
+    const ticket = await updateTicketStatus(env, ticketId, body.status);
+    return jsonSuccess({ message: `Status updated to '${body.status}'`, ticket });
+  }
+
+  // DELETE /api/support/ticket/:id - Delete ticket from extension (Admin)
+  if (method === "DELETE" && path.startsWith("/api/support/ticket/")) {
+    const ticketId = path.replace("/api/support/ticket/", "").trim();
+    const key = String(url.searchParams.get("key") || "").trim();
+    const authHeader = request.headers.get("Authorization") || "";
+    const directPass = request.headers.get("X-Admin-Password") || key || "";
+    const isAdmin = await verifyAdminAuthHeader(env, authHeader, directPass);
+    if (!isAdmin) throw new UnauthorizedError("Admin authorization required", "unauthorized");
+
+    const result = await deleteTicket(env, ticketId);
+    return jsonSuccess(result);
   }
 
   // =========================================================================

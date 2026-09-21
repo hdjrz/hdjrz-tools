@@ -156,7 +156,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.7.2";
+  const HARDCODED_VERSION = "1.7.3";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -176,9 +176,23 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.7.3",
+      title: "In-Extension Admin Messages Inbox & Fleet Thread Management",
+      date: "Latest",
+      agentFeatures: [
+        "📬 Dedicated Agent Inbox: Full isolation of messages and seamless two-way replies with admin from the floating toolbar.",
+        "📸 Instant Screenshot Lightbox: Zoom and inspect attached screenshots directly within any conversation bubble."
+      ],
+      adminFeatures: [
+        "👑 Extension Admin Inbox: Admin accounts now directly view all fleet agent conversations within the browser extension toolbar.",
+        "⚡ Direct Admin Replies & Status Control: Reply as Admin directly from the toolbar, mark threads resolved, or delete tickets with 1 click.",
+        "🔴 Fleet-Wide Unread Counter: Admin dock badge dynamically lights up whenever any agent across the fleet sends a message."
+      ]
+    },
+    {
       version: "1.7.2",
       title: "Real-Time Chat Auto-Refresh & Inbox Filter Sync",
-      date: "Latest",
+      date: "v1.7.2",
       agentFeatures: [
         "⚡ Live Chat Auto-Refresh: Active conversation thread automatically updates every 3.5 seconds so admin replies appear instantly in real-time.",
         "🔄 Instant Thread Refresh Button: Added one-click refresh button directly in the conversation header for zero-delay message checks.",
@@ -2626,6 +2640,21 @@
     }, 400);
   }
 
+  function getLicenseAuthData(cb) {
+    ensureLicenseDeviceId((devId) => {
+      const api = localStorageApi();
+      if (!api) {
+        cb({ devId, licenseKey: "", role: licenseRole || "" });
+        return;
+      }
+      api.get(["hdjrzLicenseKey", "hdjrzLicenseRole"], (d) => {
+        const key = (d && String(d.hdjrzLicenseKey || "").trim()) || "";
+        const role = (d && d.hdjrzLicenseRole) || licenseRole || "";
+        cb({ devId, licenseKey: key, role });
+      });
+    });
+  }
+
   let lastSeenSupportUnread = 0;
   let supportPollCounter = 0;
   function checkAgentSupportUnread(cb) {
@@ -2633,13 +2662,10 @@
       if (cb) cb();
       return;
     }
-    ensureLicenseDeviceId((devId) => {
-      const agentName = currentSettings.agentName || (licenseRole === "guest" ? "Guest User" : "Staff");
-      if (!devId && !agentName) {
-        if (cb) cb();
-        return;
-      }
-      const url = `https://hdjrz-license.rosechel05.workers.dev/api/support/my-tickets?dev=${encodeURIComponent(devId || "")}&agent=${encodeURIComponent(agentName)}&_t=${Date.now()}`;
+    getLicenseAuthData(({ devId, licenseKey, role }) => {
+      const agentName = currentSettings.agentName || (role === "guest" ? "Guest User" : "Staff");
+      const isAdmin = role === "admin";
+      const url = `https://hdjrz-license.rosechel05.workers.dev/api/support/my-tickets?dev=${encodeURIComponent(devId || "")}&agent=${encodeURIComponent(agentName)}&role=${encodeURIComponent(role)}&key=${encodeURIComponent(licenseKey)}&_t=${Date.now()}`;
       sendWorkerRequest({ url, method: "GET" }, (err, json) => {
         if (!err && json && json.ok) {
           const unreadCount = Number(json.unreadCount) || 0;
@@ -2653,7 +2679,10 @@
             tabBadge.style.display = unreadCount > 0 ? "inline-block" : "none";
           }
           if (unreadCount > 0 && lastSeenSupportUnread === 0) {
-            showToast(`💬 Admin replied to your message (${unreadCount} unread)!`, false);
+            const toastMsg = isAdmin
+              ? `📬 New agent message in Inbox (${unreadCount} unread)!`
+              : `💬 Admin replied to your message (${unreadCount} unread)!`;
+            showToast(toastMsg, false);
           }
           lastSeenSupportUnread = unreadCount;
           if (cb) cb(null, json);
@@ -7311,7 +7340,8 @@
   function runOpenSupportModal() {
     if (activeModal) activeModal.remove();
 
-    let currentView = "new"; // "new", "list", "thread"
+    const isAdmin = isAdminLicense();
+    let currentView = isAdmin ? "list" : "new"; // "new", "list", "thread"
     let newTicketImage = null;
     let threadReplyImage = null;
     let activeTicketId = null;
@@ -7322,12 +7352,31 @@
     overlay.className = "esc-modal-overlay";
     overlay.id = "esc-support-overlay";
 
+    const modalTitleText = isAdmin ? "📬 Agent Messages Inbox (Admin)" : "💬 Agent Messages & Support";
+    const tabsHtml = isAdmin ? `
+      <button type="button" class="esc-support-tab-btn is-active" id="esc-support-tab-list">
+        <span>📬 Agent Chats (Inbox)</span>
+        <span class="esc-support-badge-pill" id="esc-support-tab-unread" style="display:none;">0</span>
+      </button>
+      <button type="button" class="esc-support-tab-btn" id="esc-support-tab-new">
+        <span>💬 New / Test Message</span>
+      </button>
+    ` : `
+      <button type="button" class="esc-support-tab-btn is-active" id="esc-support-tab-new">
+        <span>💬 Send Message / Report</span>
+      </button>
+      <button type="button" class="esc-support-tab-btn" id="esc-support-tab-list">
+        <span>📬 My Messages</span>
+        <span class="esc-support-badge-pill" id="esc-support-tab-unread" style="display:none;">0</span>
+      </button>
+    `;
+
     overlay.innerHTML = `
       <div class="esc-popover-backdrop"></div>
-      <div class="esc-modal esc-support-modal" role="dialog" aria-modal="true" aria-label="Agent Messages & Bug Reporter">
+      <div class="esc-modal esc-support-modal" role="dialog" aria-modal="true" aria-label="${safeEsc(modalTitleText)}">
         <div class="esc-modal-header">
           <div class="esc-modal-title">
-            <span>💬 Agent Messages &amp; Support</span>
+            <span>${safeEsc(modalTitleText)}</span>
             <span style="font-size: 11px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); padding: 1px 6px; border-radius: 4px; margin-left: 6px; font-weight: 700;">v${safeEsc(SCRIPT_VERSION)}</span>
           </div>
           <button type="button" class="esc-icon-btn" id="esc-support-close" title="Close (Esc)">
@@ -7338,20 +7387,14 @@
         </div>
 
         <div class="esc-support-tabs">
-          <button type="button" class="esc-support-tab-btn is-active" id="esc-support-tab-new">
-            <span>💬 Send Message / Report</span>
-          </button>
-          <button type="button" class="esc-support-tab-btn" id="esc-support-tab-list">
-            <span>📬 My Messages</span>
-            <span class="esc-support-badge-pill" id="esc-support-tab-unread" style="display:none;">0</span>
-          </button>
+          ${tabsHtml}
         </div>
 
         <div class="esc-support-body">
           <!-- View 1: New Ticket -->
-          <div id="esc-support-view-new" style="display: flex; flex-direction: column; gap: 12px;">
+          <div id="esc-support-view-new" style="display: ${isAdmin ? 'none' : 'flex'}; flex-direction: column; gap: 12px;">
             <div style="font-size: 12px; color: #94a3b8; line-height: 1.4;">
-              Encountered an issue or have a message/question for the admin? Describe it below and paste a screenshot directly.
+              ${isAdmin ? "Send a test message or direct ticket from your admin account:" : "Encountered an issue or have a message/question for the admin? Describe it below and paste a screenshot directly."}
             </div>
 
             <textarea class="esc-support-textarea" id="esc-support-text" placeholder="Explain the problem, what happened, or your message..."></textarea>
@@ -7374,7 +7417,7 @@
 
             <!-- Diagnostics Pill Info -->
             <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-              <span class="esc-support-diag-pill">👤 Agent: ${safeEsc(currentSettings.agentName || (licenseRole === "guest" ? "Guest User" : "Staff"))}</span>
+              <span class="esc-support-diag-pill">👤 Agent: ${safeEsc(currentSettings.agentName || (isAdmin ? "Jetro (Admin)" : (licenseRole === "guest" ? "Guest User" : "Staff")))}</span>
               <span class="esc-support-diag-pill">🌐 ${safeEsc(window.location.pathname.slice(0, 26))}</span>
               <span class="esc-support-diag-pill">🎯 ${detectedPlayer && detectedPlayer.userId ? "UID: " + safeEsc(detectedPlayer.userId) : "No Player Scraped"}</span>
             </div>
@@ -7385,10 +7428,10 @@
             </button>
           </div>
 
-          <!-- View 2: My Tickets List -->
-          <div id="esc-support-view-list" style="display: none; flex-direction: column; gap: 10px;">
+          <!-- View 2: List (Tickets / Inbox) -->
+          <div id="esc-support-view-list" style="display: ${isAdmin ? 'flex' : 'none'}; flex-direction: column; gap: 10px;">
             <div style="display: flex; align-items: center; justify-content: space-between;">
-              <span style="font-size: 12px; color: #94a3b8;">Your message conversations with admin:</span>
+              <span style="font-size: 12px; color: #94a3b8;">${isAdmin ? "Incoming conversations from fleet agents:" : "Your message conversations with admin:"}</span>
               <button type="button" class="esc-btn-small" id="esc-support-list-refresh" style="background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.25); color: #38bdf8; border-radius: 4px; padding: 3px 8px; font-size: 11px; cursor: pointer;">
                 🔄 Refresh
               </button>
@@ -7402,15 +7445,15 @@
           <div id="esc-support-view-thread" style="display: none; flex-direction: column; gap: 10px;">
             <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #1e293b; padding-bottom: 8px;">
               <button type="button" class="esc-btn-small" id="esc-support-thread-back" style="background: #1e293b; border: 1px solid #334155; color: #cbd5e1; border-radius: 4px; padding: 4px 10px; font-size: 11px; cursor: pointer;">
-                ← Back to Messages
+                ${isAdmin ? "← Back to Inbox" : "← Back to Messages"}
               </button>
-              <div id="esc-support-thread-meta" style="font-size: 11px; color: #94a3b8; display: flex; align-items: center; gap: 6px;"></div>
+              <div id="esc-support-thread-meta" style="font-size: 11px; color: #94a3b8; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;"></div>
             </div>
 
             <div class="esc-support-thread-msgs" id="esc-support-thread-messages"></div>
 
             <div class="esc-support-reply-box">
-              <textarea class="esc-support-textarea" id="esc-support-reply-text" placeholder="Type a reply to admin (or paste screenshot Ctrl+V)..." style="min-height: 60px;"></textarea>
+              <textarea class="esc-support-textarea" id="esc-support-reply-text" placeholder="${isAdmin ? 'Type a reply to agent as Admin (or paste screenshot Ctrl+V)...' : 'Type a reply to admin (or paste screenshot Ctrl+V)...'}" style="min-height: 60px;"></textarea>
 
               <div class="esc-support-preview-box" id="esc-support-reply-preview-wrap" style="display: none;">
                 <img src="" class="esc-support-thumb" id="esc-support-reply-preview-img" title="Click to zoom screenshot">
@@ -7465,8 +7508,8 @@
         clearInterval(threadPollTimer);
         threadPollTimer = null;
       }
-      tabNew.classList.toggle("is-active", viewName === "new");
-      tabList.classList.toggle("is-active", viewName === "list" || viewName === "thread");
+      if (tabNew) tabNew.classList.toggle("is-active", viewName === "new");
+      if (tabList) tabList.classList.toggle("is-active", viewName === "list" || viewName === "thread");
 
       viewNew.style.display = viewName === "new" ? "flex" : "none";
       viewList.style.display = viewName === "list" ? "flex" : "none";
@@ -7477,8 +7520,8 @@
       }
     }
 
-    tabNew.addEventListener("click", () => switchView("new"));
-    tabList.addEventListener("click", () => switchView("list"));
+    if (tabNew) tabNew.addEventListener("click", () => switchView("new"));
+    if (tabList) tabList.addEventListener("click", () => switchView("list"));
 
     const threadBackBtn = overlay.querySelector("#esc-support-thread-back");
     threadBackBtn.addEventListener("click", () => switchView("list"));
@@ -7573,15 +7616,16 @@
       submitBtn.disabled = true;
       submitBtn.innerHTML = `<span>⏳ Submitting...</span>`;
 
-      ensureLicenseDeviceId((devId) => {
+      getLicenseAuthData(({ devId, licenseKey, role }) => {
         const payload = {
-          agentName: currentSettings.agentName || (licenseRole === "guest" ? "Guest User" : "Staff"),
+          agentName: currentSettings.agentName || (isAdmin ? "Jetro (Admin)" : (role === "guest" ? "Guest User" : "Staff")),
           deviceId: devId,
           scriptVersion: SCRIPT_VERSION,
           pageUrl: window.location.href,
           text: text,
           imageBase64: newTicketImage,
-          role: isAdminLicense() ? "admin" : (licenseRole === "guest" ? "guest" : "staff")
+          role: role,
+          key: licenseKey
         };
 
         sendWorkerRequest({
@@ -7607,24 +7651,26 @@
       });
     });
 
-    // View 2 (List Tickets)
+    // View 2 (List Tickets / Inbox)
     const ticketsContainer = overlay.querySelector("#esc-support-tickets-container");
     const listRefreshBtn = overlay.querySelector("#esc-support-list-refresh");
     listRefreshBtn.addEventListener("click", loadAgentTicketsList);
 
     function loadAgentTicketsList() {
       ticketsContainer.innerHTML = `<div style="text-align: center; padding: 20px; color: #64748b; font-size: 12px;">Loading messages...</div>`;
-      ensureLicenseDeviceId((devId) => {
-        const agent = currentSettings.agentName || (licenseRole === "guest" ? "Guest User" : "Staff");
-        const url = `https://hdjrz-license.rosechel05.workers.dev/api/support/my-tickets?dev=${encodeURIComponent(devId)}&agent=${encodeURIComponent(agent)}&_t=${Date.now()}`;
+      getLicenseAuthData(({ devId, licenseKey, role }) => {
+        const agent = currentSettings.agentName || (role === "guest" ? "Guest User" : "Staff");
+        const url = `https://hdjrz-license.rosechel05.workers.dev/api/support/my-tickets?dev=${encodeURIComponent(devId || "")}&agent=${encodeURIComponent(agent)}&role=${encodeURIComponent(role)}&key=${encodeURIComponent(licenseKey)}&_t=${Date.now()}`;
         sendWorkerRequest({ url, method: "GET" }, (err, res) => {
           if (err || !res || !res.ok) {
-            ticketsContainer.innerHTML = `<div style="text-align: center; padding: 20px; color: #f87171; font-size: 12px;">Failed to load messages: ${safeEsc(err || "Error")}</div>`;
+            ticketsContainer.innerHTML = `<div style="text-align: center; padding: 20px; color: #f87171; font-size: 12px;">Failed to load messages: ${safeEsc(err || (res && res.error) || "Error")}</div>`;
             return;
           }
           const unreadCount = Number(res.unreadCount) || 0;
-          tabUnreadBadge.textContent = String(unreadCount);
-          tabUnreadBadge.style.display = unreadCount > 0 ? "inline-block" : "none";
+          if (tabUnreadBadge) {
+            tabUnreadBadge.textContent = String(unreadCount);
+            tabUnreadBadge.style.display = unreadCount > 0 ? "inline-block" : "none";
+          }
           const dockBadge = document.getElementById("esc-dock-support-badge");
           if (dockBadge) dockBadge.style.display = unreadCount > 0 ? "block" : "none";
 
@@ -7632,7 +7678,7 @@
           if (tickets.length === 0) {
             ticketsContainer.innerHTML = `
               <div style="text-align: center; padding: 30px 10px; color: #64748b; font-size: 12px;">
-                No conversations yet.<br>Click <strong>"💬 Send Message / Report"</strong> above to talk with admin.
+                ${isAdmin ? "No agent messages yet.<br>Incoming messages from fleet agents will appear here." : "No conversations yet.<br>Click <strong>'💬 Send Message / Report'</strong> above to talk with admin."}
               </div>
             `;
             return;
@@ -7646,16 +7692,29 @@
             const statusClass = t.status === "resolved" ? "esc-support-status-resolved" : (t.status === "in_progress" ? "esc-support-status-in_progress" : "esc-support-status-open");
             const statusLabel = t.status === "resolved" ? "Resolved" : (t.status === "in_progress" ? "In Progress" : "Open");
 
+            const isUnread = isAdmin ? !!t.unreadAdmin : !!t.unread;
+            const agentHeader = isAdmin
+              ? `<span style="font-weight: 700; color: #38bdf8;">👤 ${safeEsc(t.agentName || "Agent")}</span>`
+              : `<strong style="color: #38bdf8;">#${safeEsc(t.id ? t.id.slice(-6) : "")}</strong>`;
+
+            const secondPill = isAdmin
+              ? `<span style="font-size: 10px; color: #64748b; font-family: monospace;">#${safeEsc(t.id ? t.id.slice(-6) : "")}</span>`
+              : "";
+
+            const urlSnippet = (isAdmin && t.pageUrl) ? `<div style="font-size: 10px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;">🌐 ${safeEsc(t.pageUrl.replace(/^https?:\/\//, ''))}</div>` : "";
+
             item.innerHTML = `
               <div class="esc-support-ticket-header">
-                <div style="display: flex; align-items: center; gap: 6px;">
-                  <strong style="color: #38bdf8;">#${safeEsc(t.id ? t.id.slice(-6) : "")}</strong>
+                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                  ${agentHeader}
+                  ${secondPill}
                   <span class="esc-support-status-badge ${statusClass}">${statusLabel}</span>
-                  ${t.unread ? `<span style="width: 7px; height: 7px; background: #ef4444; border-radius: 50%; display: inline-block;"></span>` : ""}
+                  ${isUnread ? `<span style="width: 8px; height: 8px; background: #ef4444; border-radius: 50%; display: inline-block; box-shadow: 0 0 6px rgba(239,68,68,0.7);" title="Unread"></span>` : ""}
                 </div>
                 <span style="font-size: 11px; color: #64748b;">${safeEsc(dateStr)}</span>
               </div>
-              <div class="esc-support-ticket-snippet">${safeEsc(t.snippet || "(No text, screenshot attached)")}</div>
+              <div class="esc-support-ticket-snippet">${safeEsc(t.snippet || t.lastMessage || "(No text, screenshot attached)")}</div>
+              ${urlSnippet}
             `;
             item.addEventListener("click", () => openThread(t.id));
             ticketsContainer.appendChild(item);
@@ -7714,31 +7773,21 @@
       threadMeta.innerHTML = `<span>Loading thread...</span>`;
       threadMsgs.innerHTML = `<div style="text-align:center;padding:20px;color:#64748b;font-size:12px;">Loading messages...</div>`;
 
-      ensureLicenseDeviceId((devId) => {
-        const agent = currentSettings.agentName || (licenseRole === "guest" ? "Guest User" : "Staff");
-        const url = `https://hdjrz-license.rosechel05.workers.dev/api/support/ticket/${encodeURIComponent(ticketId)}?dev=${encodeURIComponent(devId)}&agent=${encodeURIComponent(agent)}&_t=${Date.now()}`;
+      getLicenseAuthData(({ devId, licenseKey, role }) => {
+        const agent = currentSettings.agentName || (role === "guest" ? "Guest User" : "Staff");
+        const url = `https://hdjrz-license.rosechel05.workers.dev/api/support/ticket/${encodeURIComponent(ticketId)}?dev=${encodeURIComponent(devId || "")}&agent=${encodeURIComponent(agent)}&role=${encodeURIComponent(role)}&key=${encodeURIComponent(licenseKey)}&_t=${Date.now()}`;
         sendWorkerRequest({ url, method: "GET" }, (err, res) => {
           if (err || !res || !res.ok || !res.ticket) {
-            threadMsgs.innerHTML = `<div style="text-align:center;padding:20px;color:#f87171;font-size:12px;">Failed to load thread: ${safeEsc(err || "Error")}</div>`;
+            threadMsgs.innerHTML = `<div style="text-align:center;padding:20px;color:#f87171;font-size:12px;">Failed to load thread: ${safeEsc(err || (res && res.error) || "Error")}</div>`;
             return;
           }
           const ticket = res.ticket;
-          const statusClass = ticket.status === "resolved" ? "esc-support-status-resolved" : (ticket.status === "in_progress" ? "esc-support-status-in_progress" : "esc-support-status-open");
-          const statusLabel = ticket.status === "resolved" ? "Resolved" : (ticket.status === "in_progress" ? "In Progress" : "Open");
-          threadMeta.innerHTML = `
-            <strong>#${safeEsc(ticket.id ? ticket.id.slice(-6) : "")}</strong>
-            <span class="esc-support-status-badge ${statusClass}">${statusLabel}</span>
-            <button type="button" id="esc-support-thread-refresh-btn" style="background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.25); color: #38bdf8; border-radius: 4px; padding: 2px 6px; font-size: 10px; cursor: pointer; margin-left: 4px;" title="Refresh messages">🔄</button>
-          `;
-          const refreshBtn = threadMeta.querySelector("#esc-support-thread-refresh-btn");
-          if (refreshBtn) {
-            refreshBtn.addEventListener("click", () => pollActiveThreadSilently(ticketId));
-          }
+          renderThreadHeader(ticket, licenseKey);
 
           // Mark read locally
           const dockBadge = document.getElementById("esc-dock-support-badge");
           if (dockBadge) dockBadge.style.display = "none";
-          tabUnreadBadge.style.display = "none";
+          if (tabUnreadBadge) tabUnreadBadge.style.display = "none";
 
           currentThreadMsgCount = (ticket.messages || []).length;
           renderThreadMessages(ticket.messages || []);
@@ -7758,10 +7807,82 @@
       });
     }
 
+    function renderThreadHeader(ticket, licenseKey) {
+      const statusClass = ticket.status === "resolved" ? "esc-support-status-resolved" : (ticket.status === "in_progress" ? "esc-support-status-in_progress" : "esc-support-status-open");
+      const statusLabel = ticket.status === "resolved" ? "Resolved" : (ticket.status === "in_progress" ? "In Progress" : "Open");
+
+      let adminActionsHtml = "";
+      if (isAdmin) {
+        const isResolved = ticket.status === "resolved";
+        adminActionsHtml = `
+          <button type="button" id="esc-support-thread-resolve-btn" style="background: ${isResolved ? 'rgba(34, 197, 94, 0.2)' : 'rgba(148, 163, 184, 0.15)'}; border: 1px solid ${isResolved ? '#22c55e' : '#475569'}; color: ${isResolved ? '#4ade80' : '#cbd5e1'}; border-radius: 4px; padding: 2px 7px; font-size: 10px; cursor: pointer;" title="Toggle Resolved">
+            ${isResolved ? "✓ Resolved" : "Mark Resolved"}
+          </button>
+          <button type="button" id="esc-support-thread-delete-btn" style="background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; border-radius: 4px; padding: 2px 7px; font-size: 10px; cursor: pointer;" title="Delete Ticket">
+            🗑️
+          </button>
+        `;
+      }
+
+      threadMeta.innerHTML = `
+        <span style="font-weight: 600; color: #e2e8f0;">👤 ${safeEsc(ticket.agentName || "Agent")}</span>
+        <span class="esc-support-status-badge ${statusClass}">${statusLabel}</span>
+        ${adminActionsHtml}
+        <button type="button" id="esc-support-thread-refresh-btn" style="background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.25); color: #38bdf8; border-radius: 4px; padding: 2px 6px; font-size: 10px; cursor: pointer;" title="Refresh messages">🔄</button>
+      `;
+
+      const refreshBtn = threadMeta.querySelector("#esc-support-thread-refresh-btn");
+      if (refreshBtn) refreshBtn.addEventListener("click", () => pollActiveThreadSilently(ticket.id));
+
+      if (isAdmin) {
+        const resolveBtn = threadMeta.querySelector("#esc-support-thread-resolve-btn");
+        if (resolveBtn) {
+          resolveBtn.addEventListener("click", () => {
+            const nextStatus = ticket.status === "resolved" ? "open" : "resolved";
+            resolveBtn.disabled = true;
+            sendWorkerRequest({
+              url: `https://hdjrz-license.rosechel05.workers.dev/api/support/ticket/${encodeURIComponent(ticket.id)}/status`,
+              method: "POST",
+              data: { status: nextStatus, key: licenseKey }
+            }, (err, res) => {
+              resolveBtn.disabled = false;
+              if (!err && res && res.ok) {
+                ticket.status = nextStatus;
+                renderThreadHeader(ticket, licenseKey);
+                showToast(`Ticket status updated to ${nextStatus}!`);
+              } else {
+                showToast("Failed to update status: " + (err || "Error"), false);
+              }
+            });
+          });
+        }
+
+        const deleteBtn = threadMeta.querySelector("#esc-support-thread-delete-btn");
+        if (deleteBtn) {
+          deleteBtn.addEventListener("click", () => {
+            if (!confirm("Are you sure you want to delete this ticket and conversation?")) return;
+            deleteBtn.disabled = true;
+            sendWorkerRequest({
+              url: `https://hdjrz-license.rosechel05.workers.dev/api/support/ticket/${encodeURIComponent(ticket.id)}?key=${encodeURIComponent(licenseKey)}`,
+              method: "DELETE"
+            }, (err, res) => {
+              deleteBtn.disabled = false;
+              if (!err && res && res.ok) {
+                showToast("Ticket deleted!");
+                switchView("list");
+              } else {
+                showToast("Failed to delete ticket: " + (err || "Error"), false);
+              }
+            });
+          });
+        }
+      }
+    }
+
     function pollActiveThreadSilently(ticketId) {
-      ensureLicenseDeviceId((devId) => {
-        const agent = currentSettings.agentName || (licenseRole === "guest" ? "Guest User" : "Staff");
-        const url = `https://hdjrz-license.rosechel05.workers.dev/api/support/ticket/${encodeURIComponent(ticketId)}?dev=${encodeURIComponent(devId)}&agent=${encodeURIComponent(agent)}&_t=${Date.now()}`;
+      getLicenseAuthData(({ devId, licenseKey, role }) => {
+        const agent = currentSettings.agentName || (role === "guest" ? "Guest User" : "Staff");
+        const url = `https://hdjrz-license.rosechel05.workers.dev/api/support/ticket/${encodeURIComponent(ticketId)}?dev=${encodeURIComponent(devId || "")}&agent=${encodeURIComponent(agent)}&role=${encodeURIComponent(role)}&key=${encodeURIComponent(licenseKey)}&_t=${Date.now()}`;
         sendWorkerRequest({ url, method: "GET" }, (err, res) => {
           if (!err && res && res.ok && res.ticket) {
             const msgs = res.ticket.messages || [];
@@ -7788,11 +7909,17 @@
         return;
       }
       messages.forEach((m) => {
-        const isAgent = m.sender !== "admin" && m.senderRole !== "admin";
+        const isMsgAdmin = m.sender === "admin" || m.senderRole === "admin";
         const bubble = document.createElement("div");
-        bubble.className = `esc-support-msg ${isAgent ? "esc-support-msg-agent" : "esc-support-msg-admin"}`;
+        bubble.className = `esc-support-msg ${isMsgAdmin ? "esc-support-msg-admin" : "esc-support-msg-agent"}`;
 
-        const senderLabel = isAgent ? (m.senderName || "You") : (m.senderName || "👑 Admin Support");
+        let senderLabel;
+        if (isAdmin) {
+          senderLabel = isMsgAdmin ? (m.senderName || "Jetro (Admin)") : (m.senderName || "Agent");
+        } else {
+          senderLabel = isMsgAdmin ? (m.senderName || "👑 Admin Support") : (m.senderName || "You");
+        }
+
         const ts = m.timestamp || m.createdAt || Date.now();
         const timeStr = new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -7833,12 +7960,19 @@
       replySubmitBtn.disabled = true;
       replySubmitBtn.innerHTML = `⏳ Sending...`;
 
-      ensureLicenseDeviceId((devId) => {
+      getLicenseAuthData(({ devId, licenseKey, role }) => {
+        const senderName = isAdmin
+          ? (currentSettings.agentName ? `${currentSettings.agentName} (Admin)` : "Jetro (Admin)")
+          : (currentSettings.agentName || (role === "guest" ? "Guest User" : "Staff"));
+
         const payload = {
-          agentName: currentSettings.agentName || (licenseRole === "guest" ? "Guest User" : "Staff"),
+          agentName: senderName,
+          senderName: senderName,
           deviceId: devId,
           text: text,
-          imageBase64: threadReplyImage
+          imageBase64: threadReplyImage,
+          role: role,
+          key: licenseKey
         };
 
         sendWorkerRequest({
@@ -7864,6 +7998,10 @@
         });
       });
     });
+
+    if (isAdmin) {
+      loadAgentTicketsList();
+    }
 
     // Initial check for unread count in tab
     checkAgentSupportUnread();
