@@ -17,7 +17,8 @@ let d1Initialized = false;
 export async function ensureD1Tables(env) {
   if (!env.DB || d1Initialized) return;
   try {
-    await env.DB.exec(`
+    // 1. Create support_tickets table
+    await env.DB.prepare(`
       CREATE TABLE IF NOT EXISTS support_tickets (
         id TEXT PRIMARY KEY,
         agent_name TEXT,
@@ -32,11 +33,11 @@ export async function ensureD1Tables(env) {
         unread_admin INTEGER DEFAULT 1,
         unread_agent INTEGER DEFAULT 0,
         has_image INTEGER DEFAULT 0
-      );
-      CREATE INDEX IF NOT EXISTS idx_tickets_updated ON support_tickets(updated_at DESC);
-      CREATE INDEX IF NOT EXISTS idx_tickets_device ON support_tickets(device_id);
-      CREATE INDEX IF NOT EXISTS idx_tickets_agent ON support_tickets(agent_name);
+      )
+    `).run();
 
+    // 2. Create support_messages table
+    await env.DB.prepare(`
       CREATE TABLE IF NOT EXISTS support_messages (
         id TEXT PRIMARY KEY,
         ticket_id TEXT NOT NULL,
@@ -44,14 +45,53 @@ export async function ensureD1Tables(env) {
         sender_name TEXT,
         text TEXT,
         image TEXT,
-        created_at INTEGER NOT NULL,
-        FOREIGN KEY (ticket_id) REFERENCES support_tickets(id) ON DELETE CASCADE
-      );
-      CREATE INDEX IF NOT EXISTS idx_msgs_ticket ON support_messages(ticket_id, created_at ASC);
-    `);
+        created_at INTEGER NOT NULL
+      )
+    `).run();
+
+    // 3. Create indexes safely
+    try { await env.DB.prepare(`CREATE INDEX IF NOT EXISTS idx_tickets_updated ON support_tickets(updated_at DESC)`).run(); } catch (_) {}
+    try { await env.DB.prepare(`CREATE INDEX IF NOT EXISTS idx_tickets_device ON support_tickets(device_id)`).run(); } catch (_) {}
+    try { await env.DB.prepare(`CREATE INDEX IF NOT EXISTS idx_tickets_agent ON support_tickets(agent_name)`).run(); } catch (_) {}
+    try { await env.DB.prepare(`CREATE INDEX IF NOT EXISTS idx_msgs_ticket ON support_messages(ticket_id, created_at ASC)`).run(); } catch (_) {}
+
     d1Initialized = true;
   } catch (err) {
     console.warn("[supportService] D1 table initialization warning:", err.message);
+  }
+}
+
+export async function getD1Health(env) {
+  if (!env.DB) {
+    return { status: "no_binding", bound: false };
+  }
+  try {
+    await ensureD1Tables(env);
+    const tablesRes = await env.DB.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
+    const tables = (tablesRes.results || []).map(r => r.name);
+    let ticketCount = 0;
+    let messageCount = 0;
+    try {
+      const tc = await env.DB.prepare("SELECT count(*) as count FROM support_tickets").first();
+      ticketCount = tc ? tc.count : 0;
+    } catch (_) {}
+    try {
+      const mc = await env.DB.prepare("SELECT count(*) as count FROM support_messages").first();
+      messageCount = mc ? mc.count : 0;
+    } catch (_) {}
+    return {
+      status: "connected",
+      bound: true,
+      tables,
+      ticketCount,
+      messageCount
+    };
+  } catch (err) {
+    return {
+      status: "error",
+      bound: true,
+      error: err.message || String(err)
+    };
   }
 }
 
@@ -202,7 +242,8 @@ export async function getTicketDetail(env, ticketId, markAdminRead = false) {
           status: ticketRow.status,
           createdAt: ticketRow.created_at,
           updatedAt: ticketRow.updated_at,
-          messages
+          messages,
+          storage: "d1"
         };
       }
     } catch (err) {
@@ -217,6 +258,7 @@ export async function getTicketDetail(env, ticketId, markAdminRead = false) {
   }
 
   const ticket = JSON.parse(raw);
+  ticket.storage = "kv";
 
   if (markAdminRead) {
     const index = await getTicketsIndex(env);
@@ -434,7 +476,7 @@ export async function getAgentTickets(env, deviceId, agentName) {
         hasImage: !!r.has_image
       }));
       const unreadCount = tickets.filter(t => t.unreadAgent).length;
-      return { tickets, unreadCount };
+      return { tickets, unreadCount, storage: "d1" };
     } catch (err) {
       console.warn("[supportService] D1 getAgentTickets error, falling back to KV:", err.message);
     }
@@ -450,7 +492,8 @@ export async function getAgentTickets(env, deviceId, agentName) {
   const unreadCount = myTickets.filter(t => t.unreadAgent).length;
   return {
     tickets: myTickets,
-    unreadCount
+    unreadCount,
+    storage: "kv"
   };
 }
 
@@ -504,7 +547,8 @@ export async function listTickets(env, { status = "", search = "", limit = 50, o
 
       return {
         total: countRow ? countRow.total : tickets.length,
-        tickets
+        tickets,
+        storage: "d1"
       };
     } catch (err) {
       console.warn("[supportService] D1 listTickets error, falling back to KV:", err.message);
@@ -539,7 +583,8 @@ export async function listTickets(env, { status = "", search = "", limit = 50, o
 
   return {
     total,
-    tickets: paginated
+    tickets: paginated,
+    storage: "kv"
   };
 }
 

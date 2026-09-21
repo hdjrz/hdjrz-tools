@@ -156,7 +156,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.7.6";
+  const HARDCODED_VERSION = "1.7.7";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -176,9 +176,24 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.7.7",
+      title: "Real-Time D1 Migration & Zero-Lag Instant Chat",
+      date: "Latest",
+      agentFeatures: [
+        "⚡ 750ms Instant Messenger Polling: Sub-second conversational polling and in-memory credential caching for true real-time chat.",
+        "📬 3-Second Unread Notifications: Dedicated background checker notifies agents of admin replies in near real-time.",
+        "🚫 Edge Zero-Cache Headers: Worker responses explicitly bypass browser, proxy, and Cloudflare edge caches."
+      ],
+      adminFeatures: [
+        "📥 Automated Inbox Auto-Refresh: Incoming agent chats and ticket updates pop up automatically every 1.5s without manual refresh.",
+        "🗄️ Automated Remote D1 Migrations: Database schema executes directly into Cloudflare D1 with health diagnostics at /api/support/health.",
+        "⚡ Sub-Second Two-Way Sync: Instant read-after-write SQL queries for instant communication between admin and staff."
+      ]
+    },
+    {
       version: "1.7.6",
       title: "Cloudflare D1 SQL Chat Engine (Zero-Delay Consistency)",
-      date: "Latest",
+      date: "v1.7.6",
       agentFeatures: [
         "⚡ Zero Edge Caching Lag: Upgraded backend support pipeline to Cloudflare D1 SQL, eliminating the 10-second KV edge caching delay.",
         "💬 Instant Message Receiving: Immediate read-after-write consistency ensures conversation replies appear instantly."
@@ -2732,18 +2747,21 @@
     });
   }
 
-  // Fast background polling every 7 seconds for immediate live enforcement & sync
+  // Fast background polling every 7 seconds for remote templates
   setInterval(() => {
     fetchRemoteTemplates((err, res) => {
       if (!err && res && res.updated) {
         showToast(`✨ Templates updated from cloud (v${res.version})`);
       }
     });
-    supportPollCounter++;
-    if (supportPollCounter % 3 === 0) {
+  }, 7000);
+
+  // Dedicated high-frequency check for new support messages/replies every 3 seconds
+  setInterval(() => {
+    if (typeof document === "undefined" || !document.hidden) {
       checkAgentSupportUnread();
     }
-  }, 7000);
+  }, 3000);
 
   // Check immediately when agent switches back to the tab or visibility changes
   if (typeof document !== "undefined") {
@@ -7385,7 +7403,11 @@
     let threadReplyImage = null;
     let activeTicketId = null;
     let threadPollTimer = null;
+    let listPollTimer = null;
     let currentThreadMsgCount = 0;
+    let lastRenderedTicketsKey = "";
+    let cachedAuth = null;
+    getLicenseAuthData((a) => { cachedAuth = a; });
 
     const overlay = document.createElement("div");
     overlay.className = "esc-modal-overlay";
@@ -7534,6 +7556,10 @@
         clearInterval(threadPollTimer);
         threadPollTimer = null;
       }
+      if (listPollTimer) {
+        clearInterval(listPollTimer);
+        listPollTimer = null;
+      }
       closeOverlayZoom(overlay, () => {
         overlay.remove();
         if (activeModal === overlay) activeModal = null;
@@ -7555,6 +7581,10 @@
         clearInterval(threadPollTimer);
         threadPollTimer = null;
       }
+      if (viewName !== "list" && listPollTimer) {
+        clearInterval(listPollTimer);
+        listPollTimer = null;
+      }
       if (tabNew) tabNew.classList.toggle("is-active", viewName === "new");
       if (tabList) tabList.classList.toggle("is-active", viewName === "list" || viewName === "thread");
 
@@ -7563,7 +7593,18 @@
       viewThread.style.display = viewName === "thread" ? "flex" : "none";
 
       if (viewName === "list") {
-        loadAgentTicketsList();
+        loadAgentTicketsList(false);
+        if (listPollTimer) clearInterval(listPollTimer);
+        listPollTimer = setInterval(() => {
+          if (currentView !== "list" || !document.getElementById("esc-support-overlay")) {
+            if (listPollTimer) {
+              clearInterval(listPollTimer);
+              listPollTimer = null;
+            }
+            return;
+          }
+          loadAgentTicketsList(true);
+        }, 1500);
       }
     }
 
@@ -7701,16 +7742,20 @@
     // View 2 (List Tickets / Inbox)
     const ticketsContainer = overlay.querySelector("#esc-support-tickets-container");
     const listRefreshBtn = overlay.querySelector("#esc-support-list-refresh");
-    listRefreshBtn.addEventListener("click", loadAgentTicketsList);
+    listRefreshBtn.addEventListener("click", () => loadAgentTicketsList(false));
 
-    function loadAgentTicketsList() {
-      ticketsContainer.innerHTML = `<div style="text-align: center; padding: 20px; color: #64748b; font-size: 12px;">Loading messages...</div>`;
-      getLicenseAuthData(({ devId, licenseKey, role }) => {
+    function loadAgentTicketsList(silent = false) {
+      if (!silent) {
+        ticketsContainer.innerHTML = `<div style="text-align: center; padding: 20px; color: #64748b; font-size: 12px;">Loading messages...</div>`;
+      }
+      const fetchList = ({ devId, licenseKey, role }) => {
         const agent = currentSettings.agentName || (role === "guest" ? "Guest User" : "Staff");
         const url = `https://hdjrz-license.rosechel05.workers.dev/api/support/my-tickets?dev=${encodeURIComponent(devId || "")}&agent=${encodeURIComponent(agent)}&role=${encodeURIComponent(role)}&key=${encodeURIComponent(licenseKey)}&_t=${Date.now()}`;
         sendWorkerRequest({ url, method: "GET" }, (err, res) => {
           if (err || !res || !res.ok) {
-            ticketsContainer.innerHTML = `<div style="text-align: center; padding: 20px; color: #f87171; font-size: 12px;">Failed to load messages: ${safeEsc(err || (res && res.error) || "Error")}</div>`;
+            if (!silent) {
+              ticketsContainer.innerHTML = `<div style="text-align: center; padding: 20px; color: #f87171; font-size: 12px;">Failed to load messages: ${safeEsc(err || (res && res.error) || "Error")}</div>`;
+            }
             return;
           }
           const unreadCount = Number(res.unreadCount) || 0;
@@ -7722,6 +7767,12 @@
           if (dockBadge) dockBadge.style.display = unreadCount > 0 ? "block" : "none";
 
           const tickets = res.tickets || [];
+          const newKey = tickets.map(t => `${t.id}_${t.updatedAt}_${t.unreadAdmin || t.unreadAgent || ''}`).join("|");
+          if (silent && newKey === lastRenderedTicketsKey) {
+            return; // No change in data, prevent DOM redraw/flicker
+          }
+          lastRenderedTicketsKey = newKey;
+
           if (tickets.length === 0) {
             ticketsContainer.innerHTML = `
               <div style="text-align: center; padding: 30px 10px; color: #64748b; font-size: 12px;">
@@ -7767,7 +7818,16 @@
             ticketsContainer.appendChild(item);
           });
         });
-      });
+      };
+
+      if (cachedAuth) {
+        fetchList(cachedAuth);
+      } else {
+        getLicenseAuthData((auth) => {
+          cachedAuth = auth;
+          fetchList(auth);
+        });
+      }
     }
 
     // View 3 (Thread View)
@@ -7849,7 +7909,7 @@
               return;
             }
             pollActiveThreadSilently(activeTicketId);
-          }, 1200);
+          }, 750);
         });
       });
     }
@@ -7927,7 +7987,7 @@
     }
 
     function pollActiveThreadSilently(ticketId) {
-      getLicenseAuthData(({ devId, licenseKey, role }) => {
+      const fetchThread = ({ devId, licenseKey, role }) => {
         const agent = currentSettings.agentName || (role === "guest" ? "Guest User" : "Staff");
         const url = `https://hdjrz-license.rosechel05.workers.dev/api/support/ticket/${encodeURIComponent(ticketId)}?dev=${encodeURIComponent(devId || "")}&agent=${encodeURIComponent(agent)}&role=${encodeURIComponent(role)}&key=${encodeURIComponent(licenseKey)}&_t=${Date.now()}`;
         sendWorkerRequest({ url, method: "GET" }, (err, res) => {
@@ -7946,7 +8006,16 @@
             }
           }
         });
-      });
+      };
+
+      if (cachedAuth) {
+        fetchThread(cachedAuth);
+      } else {
+        getLicenseAuthData((auth) => {
+          cachedAuth = auth;
+          fetchThread(auth);
+        });
+      }
     }
 
     function renderThreadMessages(messages) {

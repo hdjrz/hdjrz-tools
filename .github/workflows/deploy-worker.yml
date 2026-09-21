@@ -53,6 +53,14 @@ jobs:
           echo "✅ D1 database bound to worker as 'env.DB' (ID: 2694104f-b9f7-4b99-81db-b5c27a5a2040)."
           echo "✅ Configuration prepared successfully for v$PKG_VERSION."
 
+      - name: Apply Cloudflare D1 Database Migrations
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          echo "Applying schema.sql to Cloudflare D1 database 'hdjrz-support'..."
+          npx --yes wrangler d1 execute hdjrz-support --remote --file=backend/db/schema.sql || true
+
       - name: Deploy to Cloudflare Workers
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

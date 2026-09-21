@@ -6,7 +6,9 @@ export const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "*, Content-Type, Cache-Control, Pragma, Authorization, X-Requested-With, X-Admin-Password",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, HEAD",
-  "Content-Type": "application/json"
+  "Content-Type": "application/json",
+  "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+  "Pragma": "no-cache"
 };
 
 /**

@@ -13,7 +13,8 @@ import {
   updateTicketStatus,
   deleteTicket,
   getAgentTickets,
-  markAgentTicketsRead
+  markAgentTicketsRead,
+  getD1Health
 } from "../services/supportService.js";
 import { jsonSuccess } from "../utils/response.js";
 
@@ -22,7 +23,22 @@ export async function handleSupportRoutes(request, env, url) {
   const path = url.pathname;
 
   // =========================================================================
-  // 1. Client Endpoints (Agents & In-Extension Admin)
+  // 1. Diagnostic & Health Endpoints
+  // =========================================================================
+
+  // GET /api/support/health - Check D1 database status & tables
+  if (method === "GET" && path === "/api/support/health") {
+    const health = await getD1Health(env);
+    return jsonSuccess({
+      ok: true,
+      d1: health,
+      kvActive: !!env.LICENSES,
+      timestamp: Date.now()
+    });
+  }
+
+  // =========================================================================
+  // 2. Client Endpoints (Agents & In-Extension Admin)
   // =========================================================================
 
   // POST /api/support/ticket - Create a new support/bug report
