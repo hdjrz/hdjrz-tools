@@ -156,7 +156,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.7.5";
+  const HARDCODED_VERSION = "1.7.6";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -176,9 +176,22 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.7.6",
+      title: "Cloudflare D1 SQL Chat Engine (Zero-Delay Consistency)",
+      date: "Latest",
+      agentFeatures: [
+        "⚡ Zero Edge Caching Lag: Upgraded backend support pipeline to Cloudflare D1 SQL, eliminating the 10-second KV edge caching delay.",
+        "💬 Instant Message Receiving: Immediate read-after-write consistency ensures conversation replies appear instantly."
+      ],
+      adminFeatures: [
+        "🚀 High-Performance D1 Database: Real-time SQL queries power both extension and web admin inboxes with sub-second message sync.",
+        "🛡️ Automatic KV Fallback: Seamless automatic fallback architecture guarantees zero message loss or downtime."
+      ]
+    },
+    {
       version: "1.7.5",
       title: "Real-Time Chat Optimization & Zero-Delay Messaging",
-      date: "Latest",
+      date: "v1.7.5",
       agentFeatures: [
         "⚡ Instant Outgoing Chat: Optimistic UI rendering displays your reply with zero latency (0ms) immediately as you send.",
         "🚀 3x Faster Reply Delivery: Active conversation sync rate accelerated from 3.5s to 1.2s for near-instant message receipt.",
