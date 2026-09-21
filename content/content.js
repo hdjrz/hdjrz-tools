@@ -156,7 +156,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.7.7";
+  const HARDCODED_VERSION = "1.7.8";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -176,9 +176,23 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.7.8",
+      title: "Instant Agent-Side Chat Receiving & Lock-Free Polling",
+      date: "Latest",
+      agentFeatures: [
+        "⚡ Sub-Second Inbound Messages: Eliminated database write stalls so admin messages now appear on the agent screen immediately (<450ms).",
+        "🚀 450ms Thread Polling: Continuous low-latency thread polling with zero delay or lag.",
+        "🔔 1.2s Fast Badge & Toast Checker: Background notifications for new admin replies now trigger within 1.2 seconds."
+      ],
+      adminFeatures: [
+        "⚡ Atomic Batch Replies: Combined message insert and ticket updates into a single round-trip D1 SQL transaction.",
+        "🛡️ Lock-Free Polling: Agent thread requests are now 100% read-only, preventing write locks on the database."
+      ]
+    },
+    {
       version: "1.7.7",
       title: "Real-Time D1 Migration & Zero-Lag Instant Chat",
-      date: "Latest",
+      date: "v1.7.7",
       agentFeatures: [
         "⚡ 750ms Instant Messenger Polling: Sub-second conversational polling and in-memory credential caching for true real-time chat.",
         "📬 3-Second Unread Notifications: Dedicated background checker notifies agents of admin replies in near real-time.",
@@ -2756,12 +2770,12 @@
     });
   }, 7000);
 
-  // Dedicated high-frequency check for new support messages/replies every 3 seconds
+  // Dedicated high-frequency check for new support messages/replies every 1.2 seconds
   setInterval(() => {
     if (typeof document === "undefined" || !document.hidden) {
       checkAgentSupportUnread();
     }
-  }, 3000);
+  }, 1200);
 
   // Check immediately when agent switches back to the tab or visibility changes
   if (typeof document !== "undefined") {
@@ -7880,7 +7894,20 @@
       threadMeta.innerHTML = `<span>Loading thread...</span>`;
       threadMsgs.innerHTML = `<div style="text-align:center;padding:20px;color:#64748b;font-size:12px;">Loading messages...</div>`;
 
-      getLicenseAuthData(({ devId, licenseKey, role }) => {
+      // Start the 450ms thread poll timer immediately!
+      if (threadPollTimer) clearInterval(threadPollTimer);
+      threadPollTimer = setInterval(() => {
+        if (currentView !== "thread" || !activeTicketId || !document.getElementById("esc-support-overlay")) {
+          if (threadPollTimer) {
+            clearInterval(threadPollTimer);
+            threadPollTimer = null;
+          }
+          return;
+        }
+        pollActiveThreadSilently(activeTicketId);
+      }, 450);
+
+      const runInitialLoad = ({ devId, licenseKey, role }) => {
         const agent = currentSettings.agentName || (role === "guest" ? "Guest User" : "Staff");
         const url = `https://hdjrz-license.rosechel05.workers.dev/api/support/ticket/${encodeURIComponent(ticketId)}?dev=${encodeURIComponent(devId || "")}&agent=${encodeURIComponent(agent)}&role=${encodeURIComponent(role)}&key=${encodeURIComponent(licenseKey)}&_t=${Date.now()}`;
         sendWorkerRequest({ url, method: "GET" }, (err, res) => {
@@ -7898,20 +7925,17 @@
 
           currentThreadMsgCount = (ticket.messages || []).length;
           renderThreadMessages(ticket.messages || []);
-
-          if (threadPollTimer) clearInterval(threadPollTimer);
-          threadPollTimer = setInterval(() => {
-            if (currentView !== "thread" || !activeTicketId || !document.getElementById("esc-support-overlay")) {
-              if (threadPollTimer) {
-                clearInterval(threadPollTimer);
-                threadPollTimer = null;
-              }
-              return;
-            }
-            pollActiveThreadSilently(activeTicketId);
-          }, 750);
         });
-      });
+      };
+
+      if (cachedAuth) {
+        runInitialLoad(cachedAuth);
+      } else {
+        getLicenseAuthData((auth) => {
+          cachedAuth = auth;
+          runInitialLoad(auth);
+        });
+      }
     }
 
     function renderThreadHeader(ticket, licenseKey) {

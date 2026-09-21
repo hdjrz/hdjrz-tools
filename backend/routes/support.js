@@ -93,10 +93,7 @@ export async function handleSupportRoutes(request, env, url) {
     const directPass = request.headers.get("X-Admin-Password") || key || "";
     const isAdmin = (role === "admin") && (await verifyAdminAuthHeader(env, authHeader, directPass));
 
-    const ticket = await getTicketDetail(env, ticketId, isAdmin);
-    if (!isAdmin) {
-      await markAgentTicketsRead(env, deviceId, agentName, ticketId);
-    }
+    const ticket = await getTicketDetail(env, ticketId, isAdmin, !isAdmin);
     return jsonSuccess({ ticket, isAdmin });
   }
 

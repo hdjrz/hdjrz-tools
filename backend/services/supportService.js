@@ -211,15 +211,21 @@ export async function createTicket(env, {
 /**
  * Retrieve full ticket details including conversation messages and screenshot
  */
-export async function getTicketDetail(env, ticketId, markAdminRead = false) {
+export async function getTicketDetail(env, ticketId, markAdminRead = false, markAgentRead = false) {
   // 1. Try D1 if bound
   if (env.DB) {
     try {
       await ensureD1Tables(env);
       const ticketRow = await env.DB.prepare(`SELECT * FROM support_tickets WHERE id = ?`).bind(ticketId).first();
       if (ticketRow) {
+        // Fast conditional unread reset: ONLY execute UPDATE if unread was actually set!
         if (markAdminRead && ticketRow.unread_admin) {
           await env.DB.prepare(`UPDATE support_tickets SET unread_admin = 0 WHERE id = ?`).bind(ticketId).run();
+          ticketRow.unread_admin = 0;
+        }
+        if (markAgentRead && ticketRow.unread_agent) {
+          await env.DB.prepare(`UPDATE support_tickets SET unread_agent = 0 WHERE id = ?`).bind(ticketId).run();
+          ticketRow.unread_agent = 0;
         }
 
         const msgRows = await env.DB.prepare(`SELECT * FROM support_messages WHERE ticket_id = ? ORDER BY created_at ASC`).bind(ticketId).all();
@@ -260,13 +266,11 @@ export async function getTicketDetail(env, ticketId, markAdminRead = false) {
   const ticket = JSON.parse(raw);
   ticket.storage = "kv";
 
-  if (markAdminRead) {
-    const index = await getTicketsIndex(env);
-    const item = index.find(t => t.id === ticketId);
-    if (item && item.unreadAdmin) {
-      item.unreadAdmin = false;
-      await saveTicketsIndex(env, index);
-    }
+  if (markAdminRead && ticket.unreadAdmin) {
+    ticket.unreadAdmin = false;
+  }
+  if (markAgentRead && ticket.unreadAgent) {
+    ticket.unreadAgent = false;
   }
 
   return ticket;
@@ -301,21 +305,21 @@ export async function addReplyToTicket(env, ticketId, {
         const unreadAdmin = sender === "agent" ? 1 : 0;
         const unreadAgent = sender === "admin" ? 1 : 0;
 
-        await env.DB.prepare(`
+        // Atomically batch insert message and update ticket in ONE single round-trip
+        const stmtInsert = env.DB.prepare(`
           INSERT INTO support_messages (id, ticket_id, sender, sender_name, text, image, created_at)
           VALUES (?, ?, ?, ?, ?, ?, ?)
-        `).bind(newMsgId, ticketId, sender, senderName, cleanText, imageBase64 || null, now).run();
+        `).bind(newMsgId, ticketId, sender, senderName, cleanText, imageBase64 || null, now);
 
-        await env.DB.prepare(`
+        const stmtUpdate = env.DB.prepare(`
           UPDATE support_tickets
           SET updated_at = ?, status = ?, last_message = ?, unread_admin = ?, unread_agent = ?, has_image = CASE WHEN ? IS NOT NULL THEN 1 ELSE has_image END
           WHERE id = ?
-        `).bind(now, effectiveStatus, lastMsg, unreadAdmin, unreadAgent, imageBase64 || null, ticketId).run();
+        `).bind(now, effectiveStatus, lastMsg, unreadAdmin, unreadAgent, imageBase64 || null, ticketId);
 
-        // Also sync KV in background
-        syncKvReply(env, ticketId, { id: newMsgId, sender, senderName, text: cleanText, image: imageBase64 || null, timestamp: now }, effectiveStatus).catch(() => {});
+        await env.DB.batch([stmtInsert, stmtUpdate]);
 
-        return await getTicketDetail(env, ticketId, false);
+        return await getTicketDetail(env, ticketId, false, false);
       }
     } catch (err) {
       console.warn("[supportService] D1 addReplyToTicket error, falling back to KV:", err.message);
