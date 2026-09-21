@@ -50,38 +50,7 @@ jobs:
           sed -i "s/LICENSES_ID_PLACEHOLDER/$KV_ID/g" wrangler.toml
           echo "account_id = \"$ACCOUNT_ID\"" >> wrangler.toml
 
-          # Query or auto-create Cloudflare D1 database for zero-lag chat
-          echo "Checking Cloudflare D1 database 'hdjrz-support'..."
-          D1_LIST_RESP=$(curl -s -X GET "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/d1/database" \
-            -H "Authorization: Bearer $API_TOKEN" \
-            -H "Content-Type: application/json")
-
-          D1_ID=$(echo "$D1_LIST_RESP" | jq -r '.result[]? | select(.name=="hdjrz-support") | .uuid' | head -n 1)
-
-          if [ -z "$D1_ID" ] || [ "$D1_ID" = "null" ]; then
-            echo "D1 database 'hdjrz-support' not found. Auto-creating D1 database..."
-            CREATE_D1_RESP=$(curl -s -X POST "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/d1/database" \
-              -H "Authorization: Bearer $API_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d '{"name":"hdjrz-support"}')
-            D1_ID=$(echo "$CREATE_D1_RESP" | jq -r '.result.uuid // empty')
-            if [ -n "$D1_ID" ]; then
-              echo "✅ Created Cloudflare D1 database: $D1_ID"
-            else
-              echo "⚠️ Could not auto-create D1 database. Response: $CREATE_D1_RESP"
-            fi
-          else
-            echo "✅ Found existing Cloudflare D1 database: $D1_ID"
-          fi
-
-          if [ -n "$D1_ID" ] && [ "$D1_ID" != "null" ]; then
-            sed -i "s/D1_ID_PLACEHOLDER/$D1_ID/g" wrangler.toml
-            echo "✅ D1 database bound to worker as 'env.DB'."
-          else
-            echo "ℹ️ Running in KV-only mode (removing D1 binding placeholder)."
-            sed -i '/\[\[d1_databases\]\]/,+3d' wrangler.toml || true
-          fi
-
+          echo "✅ D1 database bound to worker as 'env.DB' (ID: 2694104f-b9f7-4b99-81db-b5c27a5a2040)."
           echo "✅ Configuration prepared successfully for v$PKG_VERSION."
 
       - name: Deploy to Cloudflare Workers

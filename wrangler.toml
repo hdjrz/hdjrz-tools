@@ -9,4 +9,4 @@ kv_namespaces = [
 [[d1_databases]]
 binding = "DB"
 database_name = "hdjrz-support"
-database_id = "D1_ID_PLACEHOLDER"
+database_id = "2694104f-b9f7-4b99-81db-b5c27a5a2040"
