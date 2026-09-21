@@ -569,8 +569,10 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
           </div>
           <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
             <select id="filter-support-status" style="background: #060c18; border: 1px solid #334155; border-radius: 4px; padding: 4px 10px; color: #fff; font-size: 12px;">
-              <option value="all">All Messages</option>
-              <option value="open" selected>Open &amp; Unread</option>
+              <option value="all" selected>All Conversations</option>
+              <option value="active">Active (Open &amp; In Progress)</option>
+              <option value="unread">Unread Only</option>
+              <option value="open">Open Only</option>
               <option value="in_progress">In Progress</option>
               <option value="resolved">Resolved / Closed</option>
             </select>
@@ -836,7 +838,7 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
       loadReleaseChannels();
       loadSupportTickets();
       setInterval(loadActiveUsers, 15000);
-      setInterval(loadSupportTickets, 20000);
+      setInterval(loadSupportTickets, 6000);
     }
 
     let currentLicenses = [];
@@ -1464,6 +1466,7 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
     // =========================================================================
     let currentActiveTicket = null;
     let supportDebounceTimer = null;
+    let adminThreadPollTimer = null;
 
     async function loadSupportTickets() {
       const statusFilter = document.getElementById("filter-support-status").value;
@@ -1603,6 +1606,26 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
 
         renderThreadMessages(t.messages || []);
         loadSupportTickets();
+
+        if (adminThreadPollTimer) clearInterval(adminThreadPollTimer);
+        adminThreadPollTimer = setInterval(async () => {
+          if (!currentActiveTicket || modal.style.display === "none") {
+            if (adminThreadPollTimer) clearInterval(adminThreadPollTimer);
+            adminThreadPollTimer = null;
+            return;
+          }
+          try {
+            const pollRes = await apiRequest("/admin/api/support/ticket/" + currentActiveTicket.id);
+            if (pollRes && pollRes.ok && pollRes.ticket && pollRes.ticket.messages) {
+              const prevLen = (currentActiveTicket.messages || []).length;
+              if (pollRes.ticket.messages.length !== prevLen) {
+                currentActiveTicket = pollRes.ticket;
+                renderThreadMessages(pollRes.ticket.messages);
+                loadSupportTickets();
+              }
+            }
+          } catch (_) {}
+        }, 3000);
 
       } catch (err) {
         messagesWrap.innerHTML = '<div style="color: #fca5a5; padding: 14px;">Failed to load conversation: ' + escapeHtml(err.message) + '</div>';
@@ -1753,9 +1776,17 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
       const sec = document.getElementById("section-support-tickets");
       if (sec) sec.scrollIntoView({ behavior: "smooth" });
     });
-    document.getElementById("close-thread-modal-btn").addEventListener("click", () => {
+    function closeThreadModal() {
       document.getElementById("support-thread-modal").style.display = "none";
       currentActiveTicket = null;
+      if (adminThreadPollTimer) {
+        clearInterval(adminThreadPollTimer);
+        adminThreadPollTimer = null;
+      }
+    }
+    document.getElementById("close-thread-modal-btn").addEventListener("click", closeThreadModal);
+    document.getElementById("support-thread-modal").addEventListener("click", (e) => {
+      if (e.target.id === "support-thread-modal") closeThreadModal();
     });
     document.getElementById("thread-send-reply-btn").addEventListener("click", sendAdminReply);
     document.getElementById("thread-mark-resolved-btn").addEventListener("click", () => updateTicketStatusAction("resolved"));

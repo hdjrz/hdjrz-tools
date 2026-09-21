@@ -156,7 +156,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.7.1";
+  const HARDCODED_VERSION = "1.7.2";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -176,9 +176,24 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.7.2",
+      title: "Real-Time Chat Auto-Refresh & Inbox Filter Sync",
+      date: "Latest",
+      agentFeatures: [
+        "⚡ Live Chat Auto-Refresh: Active conversation thread automatically updates every 3.5 seconds so admin replies appear instantly in real-time.",
+        "🔄 Instant Thread Refresh Button: Added one-click refresh button directly in the conversation header for zero-delay message checks.",
+        "💬 Persistent Active Messaging: Agent replies automatically reopen conversation threads so they always remain top-of-inbox for admin."
+      ],
+      adminFeatures: [
+        "📬 Default 'All Conversations' Filter: Prevents in-progress or newly updated threads from disappearing under strict status filters.",
+        "⚡ Real-Time Admin Thread Polling: Automatically syncs open conversation drawer every 3 seconds to show incoming agent replies live.",
+        "🚀 Fast Inbox Sync: Shortened background portal sync interval to 6 seconds for instantaneous notification delivery."
+      ]
+    },
+    {
       version: "1.7.1",
       title: "Agent Messages Inbox & Real-Time Communication Fix",
-      date: "Latest",
+      date: "v1.7.1",
       agentFeatures: [
         "📬 Two-Way Agent Chat Inbox: Chat directly with admin, send feedback, paste screenshots (Ctrl+V), and view full conversation history.",
         "⚡ Guest & Staff Instant Connectivity: Fixed guest/unactivated session routing and persistent device identification for immediate messaging without setup hurdles.",
@@ -7300,6 +7315,8 @@
     let newTicketImage = null;
     let threadReplyImage = null;
     let activeTicketId = null;
+    let threadPollTimer = null;
+    let currentThreadMsgCount = 0;
 
     const overlay = document.createElement("div");
     overlay.className = "esc-modal-overlay";
@@ -7423,6 +7440,10 @@
 
     const closeBtn = overlay.querySelector("#esc-support-close");
     const closeSupport = () => {
+      if (threadPollTimer) {
+        clearInterval(threadPollTimer);
+        threadPollTimer = null;
+      }
       closeOverlayZoom(overlay, () => {
         overlay.remove();
         if (activeModal === overlay) activeModal = null;
@@ -7440,6 +7461,10 @@
 
     function switchView(viewName) {
       currentView = viewName;
+      if (viewName !== "thread" && threadPollTimer) {
+        clearInterval(threadPollTimer);
+        threadPollTimer = null;
+      }
       tabNew.classList.toggle("is-active", viewName === "new");
       tabList.classList.toggle("is-active", viewName === "list" || viewName === "thread");
 
@@ -7703,14 +7728,55 @@
           threadMeta.innerHTML = `
             <strong>#${safeEsc(ticket.id ? ticket.id.slice(-6) : "")}</strong>
             <span class="esc-support-status-badge ${statusClass}">${statusLabel}</span>
+            <button type="button" id="esc-support-thread-refresh-btn" style="background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.25); color: #38bdf8; border-radius: 4px; padding: 2px 6px; font-size: 10px; cursor: pointer; margin-left: 4px;" title="Refresh messages">🔄</button>
           `;
+          const refreshBtn = threadMeta.querySelector("#esc-support-thread-refresh-btn");
+          if (refreshBtn) {
+            refreshBtn.addEventListener("click", () => pollActiveThreadSilently(ticketId));
+          }
 
           // Mark read locally
           const dockBadge = document.getElementById("esc-dock-support-badge");
           if (dockBadge) dockBadge.style.display = "none";
           tabUnreadBadge.style.display = "none";
 
+          currentThreadMsgCount = (ticket.messages || []).length;
           renderThreadMessages(ticket.messages || []);
+
+          if (threadPollTimer) clearInterval(threadPollTimer);
+          threadPollTimer = setInterval(() => {
+            if (currentView !== "thread" || !activeTicketId || !document.getElementById("esc-support-overlay")) {
+              if (threadPollTimer) {
+                clearInterval(threadPollTimer);
+                threadPollTimer = null;
+              }
+              return;
+            }
+            pollActiveThreadSilently(activeTicketId);
+          }, 3500);
+        });
+      });
+    }
+
+    function pollActiveThreadSilently(ticketId) {
+      ensureLicenseDeviceId((devId) => {
+        const agent = currentSettings.agentName || (licenseRole === "guest" ? "Guest User" : "Staff");
+        const url = `https://hdjrz-license.rosechel05.workers.dev/api/support/ticket/${encodeURIComponent(ticketId)}?dev=${encodeURIComponent(devId)}&agent=${encodeURIComponent(agent)}&_t=${Date.now()}`;
+        sendWorkerRequest({ url, method: "GET" }, (err, res) => {
+          if (!err && res && res.ok && res.ticket) {
+            const msgs = res.ticket.messages || [];
+            if (msgs.length !== currentThreadMsgCount) {
+              currentThreadMsgCount = msgs.length;
+              renderThreadMessages(msgs);
+            }
+            const statusClass = res.ticket.status === "resolved" ? "esc-support-status-resolved" : (res.ticket.status === "in_progress" ? "esc-support-status-in_progress" : "esc-support-status-open");
+            const statusLabel = res.ticket.status === "resolved" ? "Resolved" : (res.ticket.status === "in_progress" ? "In Progress" : "Open");
+            const badge = threadMeta.querySelector(".esc-support-status-badge");
+            if (badge) {
+              badge.className = `esc-support-status-badge ${statusClass}`;
+              badge.textContent = statusLabel;
+            }
+          }
         });
       });
     }
@@ -7789,6 +7855,7 @@
           replyText.value = "";
           replyPreviewRemove.click();
           if (res.ticket && res.ticket.messages) {
+            currentThreadMsgCount = res.ticket.messages.length;
             renderThreadMessages(res.ticket.messages);
           } else {
             openThread(activeTicketId);

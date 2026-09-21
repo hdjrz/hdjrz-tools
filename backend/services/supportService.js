@@ -103,7 +103,13 @@ export async function listTickets(env, { status = "", search = "", limit = 50, o
   let index = await getTicketsIndex(env);
 
   if (status && status !== "all") {
-    index = index.filter(t => t.status === status);
+    if (status === "active") {
+      index = index.filter(t => t.status === "open" || t.status === "in_progress");
+    } else if (status === "unread") {
+      index = index.filter(t => t.unreadAdmin);
+    } else {
+      index = index.filter(t => t.status === status);
+    }
   }
 
   if (search) {
@@ -181,8 +187,8 @@ export async function addReplyToTicket(env, ticketId, {
 
   ticket.messages.push(newMsg);
   ticket.updatedAt = now;
-  // If agent replies, reopen if it was resolved
-  if (sender === "agent" && ticket.status === "resolved") {
+  // If agent replies, reopen ticket so it appears as Open for admin
+  if (sender === "agent") {
     ticket.status = "open";
   }
 
