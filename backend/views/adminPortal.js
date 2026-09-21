@@ -366,9 +366,12 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
           <div class="stat-title">📚 Escalations</div>
           <div class="stat-value" style="color: #60a5fa;" id="stat-escalations-count">14 Active</div>
         </div>
-        <div class="stat-card" id="card-stat-support" style="cursor: pointer;">
-          <div class="stat-title">💬 Support Tickets</div>
-          <div class="stat-value" style="color: #f59e0b;" id="stat-support-count">0 Open</div>
+        <div class="stat-card" id="card-stat-support" style="cursor: pointer;" title="Click to view Agent Messages Inbox">
+          <div class="stat-title" style="display: flex; align-items: center; justify-content: space-between;">
+            <span>📬 Agent Messages</span>
+            <span class="badge-status" id="stat-support-unread-badge" style="background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4); display: none; font-size: 10px; padding: 1px 6px;">0 Unread</span>
+          </div>
+          <div class="stat-value" style="color: #38bdf8;" id="stat-support-count">0 Conversations</div>
         </div>
       </div>
 
@@ -557,27 +560,27 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
         </div>
       </div>
 
-      <!-- 💬 Agent Support & Bug Tickets -->
+      <!-- 📬 Agent Messages & Bug Reports (Inbox) -->
       <div class="section-card" id="section-support-tickets">
         <div class="section-header">
           <div class="section-title">
-            <span>💬 Agent Support &amp; Bug Tickets</span>
-            <span class="badge-status" id="support-unread-badge" style="display:none; background: rgba(245, 158, 11, 0.2); color: #fde047; border: 1px solid rgba(245, 158, 11, 0.4); margin-left: 8px;">0 New</span>
+            <span>📬 Agent Messages &amp; Bug Reports (Inbox)</span>
+            <span class="badge-status" id="support-unread-badge" style="display:none; background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4); margin-left: 8px;">0 New</span>
           </div>
           <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
             <select id="filter-support-status" style="background: #060c18; border: 1px solid #334155; border-radius: 4px; padding: 4px 10px; color: #fff; font-size: 12px;">
-              <option value="all">All Statuses</option>
-              <option value="open" selected>Open Only</option>
+              <option value="all">All Messages</option>
+              <option value="open" selected>Open &amp; Unread</option>
               <option value="in_progress">In Progress</option>
-              <option value="resolved">Resolved</option>
+              <option value="resolved">Resolved / Closed</option>
             </select>
-            <input type="text" id="search-support" placeholder="Search agent or issue..." style="background: #060c18; border: 1px solid #334155; border-radius: 4px; padding: 4px 10px; color: #fff; font-size: 12px; width: 180px;">
+            <input type="text" id="search-support" placeholder="Search agent name or message..." style="background: #060c18; border: 1px solid #334155; border-radius: 4px; padding: 4px 10px; color: #fff; font-size: 12px; width: 200px;">
             <button type="button" id="refresh-support-btn" class="btn btn-secondary btn-sm">🔄 Refresh</button>
           </div>
         </div>
 
         <div id="support-tickets-list" style="display: flex; flex-direction: column; gap: 10px;">
-          <div style="color: var(--muted); font-size: 13px; text-align: center; padding: 24px;">Loading support tickets...</div>
+          <div style="color: var(--muted); font-size: 13px; text-align: center; padding: 24px;">Loading messages...</div>
         </div>
       </div>
 
@@ -683,7 +686,7 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
       <div class="modal-header">
         <div>
           <div style="font-size: 16px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px;">
-            <span id="thread-agent-name">Agent</span>
+            <span>💬 Conversation with <strong id="thread-agent-name" style="color:#38bdf8;">Agent</strong></span>
             <span class="badge-status" id="thread-status-badge">Open</span>
           </div>
           <div style="font-size: 11px; color: var(--muted); margin-top: 4px;" id="thread-meta-info">Version | URL</div>
@@ -708,7 +711,7 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
             <button type="button" id="thread-mark-resolved-btn" class="btn btn-sm" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4);">✓ Mark as Resolved</button>
             <button type="button" id="thread-mark-progress-btn" class="btn btn-sm" style="background: rgba(59, 130, 246, 0.2); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.4);">⏳ Mark In Progress</button>
           </div>
-          <button type="button" id="thread-delete-btn" class="btn btn-danger btn-sm">🗑️ Delete Ticket</button>
+          <button type="button" id="thread-delete-btn" class="btn btn-danger btn-sm">🗑️ Delete Conversation</button>
         </div>
       </div>
     </div>
@@ -1457,7 +1460,7 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
     });
 
     // =========================================================================
-    // 💬 Agent Support & Bug Tickets Management
+    // 📬 Agent Messages & Bug Reports (Inbox)
     // =========================================================================
     let currentActiveTicket = null;
     let supportDebounceTimer = null;
@@ -1468,6 +1471,7 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
       const listEl = document.getElementById("support-tickets-list");
       const statCountEl = document.getElementById("stat-support-count");
       const unreadBadgeEl = document.getElementById("support-unread-badge");
+      const statUnreadBadgeEl = document.getElementById("stat-support-unread-badge");
 
       try {
         const query = new URLSearchParams();
@@ -1485,13 +1489,22 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
         const unreadCount = tickets.filter(t => t.unreadAdmin).length;
 
         if (statCountEl) {
-          statCountEl.textContent = openCount + " Open";
-          statCountEl.style.color = openCount > 0 ? "#f59e0b" : "#34d399";
+          statCountEl.textContent = tickets.length + " Conversations";
+          statCountEl.style.color = unreadCount > 0 ? "#f59e0b" : "#38bdf8";
+        }
+
+        if (statUnreadBadgeEl) {
+          if (unreadCount > 0) {
+            statUnreadBadgeEl.textContent = unreadCount + " Unread";
+            statUnreadBadgeEl.style.display = "inline-flex";
+          } else {
+            statUnreadBadgeEl.style.display = "none";
+          }
         }
 
         if (unreadBadgeEl) {
           if (unreadCount > 0) {
-            unreadBadgeEl.textContent = unreadCount + " New";
+            unreadBadgeEl.textContent = unreadCount + " New Message" + (unreadCount > 1 ? "s" : "");
             unreadBadgeEl.style.display = "inline-flex";
           } else {
             unreadBadgeEl.style.display = "none";
@@ -1499,11 +1512,9 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
         }
 
         if (tickets.length === 0) {
-          listEl.innerHTML = `
-            <div style="color: var(--muted); font-size: 13px; text-align: center; padding: 36px 12px; background: #060c18; border: 1px dashed #1e293b; border-radius: 8px;">
-              ✨ No support tickets found for this filter. All clear!
-            </div>
-          `;
+          listEl.innerHTML = '<div style="color: var(--muted); font-size: 13px; text-align: center; padding: 36px 12px; background: #060c18; border: 1px dashed #1e293b; border-radius: 8px;">' +
+            '📬 No agent conversations found for this filter.' +
+          '</div>';
           return;
         }
 
@@ -1516,44 +1527,41 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
           };
           const st = statusColors[t.status] || statusColors.open;
           const timeStr = formatRelativeTime(t.updatedAt || t.createdAt);
-          const unreadIndicator = t.unreadAdmin ? '<span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#ef4444; margin-right:6px;" title="New message from agent"></span>' : '';
+          const unreadIndicator = t.unreadAdmin ? '<span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#ef4444; margin-right:6px;" title="New unread message from agent"></span>' : '';
           const imageTag = t.hasImage ? '<span style="background: rgba(147, 51, 234, 0.2); color: #c084fc; border: 1px solid rgba(147, 51, 234, 0.4); padding: 1px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">📷 Screenshot Attached</span>' : '';
 
-          html += `
-            <div style="background: #060c18; border: 1px solid ${t.unreadAdmin ? '#38bdf8' : '#1e293b'}; border-radius: 8px; padding: 14px 18px; transition: border-color 0.2s; box-shadow: ${t.unreadAdmin ? '0 0 10px rgba(56, 189, 248, 0.15)' : 'none'};">
-              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
-                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                  ${unreadIndicator}
-                  <span style="font-weight: 700; font-size: 14px; color: #fff;">${escapeHtml(t.agentName || "Agent")}</span>
-                  <span class="key-tag" style="background: rgba(37, 99, 235, 0.2); color: #93c5fd; border: 1px solid rgba(37, 99, 235, 0.4); font-size: 11px;">v${escapeHtml(t.scriptVersion || "1.0.0")}</span>
-                  ${imageTag}
-                  <span style="font-size: 11px; color: var(--muted);">${timeStr}</span>
-                </div>
-                <div style="display: flex; align-items: center; gap: 6px;">
-                  <span style="background: ${st.bg}; color: ${st.text}; border: 1px solid ${st.border}; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">
-                    ${st.label}
-                  </span>
-                  <button type="button" class="btn btn-primary btn-sm view-thread-btn" data-id="${escapeHtml(t.id)}" style="padding: 3px 10px; font-size: 11.5px;">
-                    💬 View &amp; Reply
-                  </button>
-                  <button type="button" class="btn btn-danger btn-sm delete-ticket-btn" data-id="${escapeHtml(t.id)}" title="Delete Ticket" style="padding: 3px 8px;">
-                    🗑️
-                  </button>
-                </div>
-              </div>
-              <div style="font-size: 13px; color: #e2e8f0; margin-bottom: 8px; line-height: 1.4; word-break: break-word;">
-                ${escapeHtml(t.lastMessage || "")}
-              </div>
-              <div style="font-size: 11px; color: #64748b; font-family: var(--font-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                🌐 ${escapeHtml(t.pageUrl || "Direct tool report")}
-              </div>
-            </div>
-          `;
+          html += '<div style="background: #060c18; border: 1px solid ' + (t.unreadAdmin ? '#38bdf8' : '#1e293b') + '; border-radius: 8px; padding: 14px 18px; transition: border-color 0.2s; box-shadow: ' + (t.unreadAdmin ? '0 0 10px rgba(56, 189, 248, 0.15)' : 'none') + ';">' +
+            '<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">' +
+              '<div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">' +
+                unreadIndicator +
+                '<span style="font-weight: 700; font-size: 14px; color: #fff;">' + escapeHtml(t.agentName || "Agent") + '</span>' +
+                '<span class="key-tag" style="background: rgba(37, 99, 235, 0.2); color: #93c5fd; border: 1px solid rgba(37, 99, 235, 0.4); font-size: 11px;">v' + escapeHtml(t.scriptVersion || "1.0.0") + '</span>' +
+                imageTag +
+                '<span style="font-size: 11px; color: var(--muted);">' + timeStr + '</span>' +
+              '</div>' +
+              '<div style="display: flex; align-items: center; gap: 6px;">' +
+                '<span style="background: ' + st.bg + '; color: ' + st.text + '; border: 1px solid ' + st.border + '; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">' +
+                  st.label +
+                '</span>' +
+                '<button type="button" class="btn btn-primary btn-sm view-thread-btn" data-id="' + escapeHtml(t.id) + '" style="padding: 3px 10px; font-size: 11.5px;">' +
+                  '💬 Open Chat' +
+                '</button>' +
+                '<button type="button" class="btn btn-danger btn-sm delete-ticket-btn" data-id="' + escapeHtml(t.id) + '" title="Delete Conversation" style="padding: 3px 8px;">' +
+                  '🗑️' +
+                '</button>' +
+              '</div>' +
+            '</div>' +
+            '<div style="font-size: 13px; color: #e2e8f0; margin-bottom: 8px; line-height: 1.4; word-break: break-word;">' +
+              escapeHtml(t.lastMessage || "(No message text)") +
+            '</div>' +
+            '<div style="font-size: 11px; color: #64748b; font-family: var(--font-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' +
+              '🌐 ' + escapeHtml(t.pageUrl || "Direct tool report") +
+            '</div>' +
+          '</div>';
         }
 
         listEl.innerHTML = html;
 
-        // Attach buttons
         listEl.querySelectorAll(".view-thread-btn").forEach(btn => {
           btn.addEventListener("click", () => openTicketThread(btn.getAttribute("data-id")));
         });
@@ -1562,7 +1570,7 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
         });
 
       } catch (err) {
-        listEl.innerHTML = `<div style="color: #fca5a5; font-size: 12px; padding: 14px;">Error loading tickets: ${escapeHtml(err.message)}</div>`;
+        listEl.innerHTML = '<div style="color: #fca5a5; font-size: 12px; padding: 14px;">Error loading messages: ' + escapeHtml(err.message) + '</div>';
       }
     }
 
@@ -1574,13 +1582,13 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
       const statusBadgeEl = document.getElementById("thread-status-badge");
       const metaInfoEl = document.getElementById("thread-meta-info");
 
-      messagesWrap.innerHTML = '<div style="color: var(--muted); text-align: center; padding: 24px;">Loading thread...</div>';
+      messagesWrap.innerHTML = '<div style="color: var(--muted); text-align: center; padding: 24px;">Loading conversation...</div>';
       modal.style.display = "flex";
 
       try {
         const res = await apiRequest("/admin/api/support/ticket/" + ticketId);
         if (!res.ok || !res.ticket) {
-          alert("Could not load ticket: " + (res.error || "Unknown error"));
+          alert("Could not load conversation: " + (res.error || "Unknown error"));
           modal.style.display = "none";
           return;
         }
@@ -1591,20 +1599,20 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
         agentNameEl.textContent = t.agentName || "Agent";
         statusBadgeEl.textContent = t.status.toUpperCase();
         statusBadgeEl.className = "badge-status " + (t.status === "resolved" ? "active" : (t.status === "in_progress" ? "" : "frozen"));
-        metaInfoEl.textContent = `Script: v${t.scriptVersion || "1.0.0"} | Device: ${t.deviceId || "unknown"} | URL: ${t.pageUrl || "—"}`;
+        metaInfoEl.textContent = "Script: v" + (t.scriptVersion || "1.0.0") + " | Device: " + (t.deviceId || "unknown") + " | URL: " + (t.pageUrl || "—");
 
         renderThreadMessages(t.messages || []);
-        loadSupportTickets(); // Refresh unread count
+        loadSupportTickets();
 
       } catch (err) {
-        messagesWrap.innerHTML = `<div style="color: #fca5a5; padding: 14px;">Failed to load thread: ${escapeHtml(err.message)}</div>`;
+        messagesWrap.innerHTML = '<div style="color: #fca5a5; padding: 14px;">Failed to load conversation: ' + escapeHtml(err.message) + '</div>';
       }
     }
 
     function renderThreadMessages(messages) {
       const messagesWrap = document.getElementById("thread-messages-wrap");
       if (!messages || messages.length === 0) {
-        messagesWrap.innerHTML = '<div style="color: var(--muted); text-align: center; padding: 20px;">No messages in this ticket.</div>';
+        messagesWrap.innerHTML = '<div style="color: var(--muted); text-align: center; padding: 20px;">No messages in this conversation.</div>';
         return;
       }
 
@@ -1618,35 +1626,29 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
 
         let imgHtml = "";
         if (m.image) {
-          imgHtml = `
-            <div style="margin-top: 8px;">
-              <img class="thread-screenshot-thumb" src="${m.image}" alt="Screenshot" style="max-width: 280px; max-height: 180px; border-radius: 6px; border: 1px solid #475569; cursor: pointer; display: block; box-shadow: 0 4px 8px rgba(0,0,0,0.4);" title="Click to view full size">
-              <span style="font-size: 10px; color: #93c5fd; cursor: pointer; margin-top: 3px; display: inline-block;">🔍 Click to enlarge screenshot</span>
-            </div>
-          `;
+          imgHtml = '<div style="margin-top: 8px;">' +
+            '<img class="thread-screenshot-thumb" src="' + m.image + '" alt="Screenshot" style="max-width: 280px; max-height: 180px; border-radius: 6px; border: 1px solid #475569; cursor: pointer; display: block; box-shadow: 0 4px 8px rgba(0,0,0,0.4);" title="Click to view full size">' +
+            '<span style="font-size: 10px; color: #93c5fd; cursor: pointer; margin-top: 3px; display: inline-block;">🔍 Click to enlarge screenshot</span>' +
+          '</div>';
         }
 
-        html += `
-          <div style="display: flex; flex-direction: column; align-items: ${align};">
-            <div style="font-size: 11px; color: #94a3b8; margin-bottom: 3px; padding: 0 4px;">
-              ${isAdmin ? '👑 ' : '👤 '}<strong>${escapeHtml(m.senderName || (isAdmin ? "Admin" : "Agent"))}</strong> • ${timeStr}
-            </div>
-            <div style="background: ${bubbleBg}; border: 1px solid ${bubbleBorder}; border-radius: 8px; padding: 10px 14px; max-width: 85%; color: #fff; font-size: 13px; line-height: 1.45; word-break: break-word;">
-              ${m.text ? escapeHtml(m.text) : ''}
-              ${imgHtml}
-            </div>
-          </div>
-        `;
+        html += '<div style="display: flex; flex-direction: column; align-items: ' + align + ';">' +
+          '<div style="font-size: 11px; color: #94a3b8; margin-bottom: 3px; padding: 0 4px;">' +
+            (isAdmin ? '👑 ' : '👤 ') + '<strong>' + escapeHtml(m.senderName || (isAdmin ? "Admin" : "Agent")) + '</strong> • ' + timeStr +
+          '</div>' +
+          '<div style="background: ' + bubbleBg + '; border: 1px solid ' + bubbleBorder + '; border-radius: 8px; padding: 10px 14px; max-width: 85%; color: #fff; font-size: 13px; line-height: 1.45; word-break: break-word;">' +
+            (m.text ? escapeHtml(m.text) : '') +
+            imgHtml +
+          '</div>' +
+        '</div>';
       }
 
       messagesWrap.innerHTML = html;
 
-      // Click to enlarge screenshot
       messagesWrap.querySelectorAll(".thread-screenshot-thumb").forEach(img => {
         img.addEventListener("click", () => openScreenshotLightbox(img.src));
       });
 
-      // Auto scroll to bottom
       messagesWrap.scrollTop = messagesWrap.scrollHeight;
     }
 
@@ -1661,8 +1663,8 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
       btn.textContent = "Sending...";
 
       try {
-        const res = await apiRequest(`/admin/api/support/ticket/${currentActiveTicket.id}/reply`, "POST", {
-          text,
+        const res = await apiRequest("/admin/api/support/ticket/" + currentActiveTicket.id + "/reply", "POST", {
+          text: text,
           senderName: "Jetro (Admin)"
         });
 
@@ -1686,13 +1688,13 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
     async function updateTicketStatusAction(status) {
       if (!currentActiveTicket) return;
       try {
-        const res = await apiRequest(`/admin/api/support/ticket/${currentActiveTicket.id}/status`, "POST", { status });
+        const res = await apiRequest("/admin/api/support/ticket/" + currentActiveTicket.id + "/status", "POST", { status: status });
         if (res.ok && res.ticket) {
           currentActiveTicket = res.ticket;
           const badge = document.getElementById("thread-status-badge");
           badge.textContent = status.toUpperCase();
           badge.className = "badge-status " + (status === "resolved" ? "active" : (status === "in_progress" ? "" : "frozen"));
-          showToast(`✓ Ticket status updated to ${status}`);
+          showToast("✓ Conversation status updated to " + status);
           loadSupportTickets();
         } else {
           alert("Error: " + (res.error || "Failed to update status"));
@@ -1705,18 +1707,18 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
     async function deleteTicketAction(ticketId) {
       const id = ticketId || (currentActiveTicket && currentActiveTicket.id);
       if (!id) return;
-      if (!confirm("Are you sure you want to permanently delete this ticket?")) return;
+      if (!confirm("Are you sure you want to permanently delete this conversation?")) return;
 
       try {
-        const res = await apiRequest(`/admin/api/support/ticket/${id}`, "DELETE");
+        const res = await apiRequest("/admin/api/support/ticket/" + id, "DELETE");
         if (res.ok) {
-          showToast("🗑️ Ticket deleted.");
+          showToast("🗑️ Conversation deleted.");
           const modal = document.getElementById("support-thread-modal");
           if (modal) modal.style.display = "none";
           currentActiveTicket = null;
           loadSupportTickets();
         } else {
-          alert("Error: " + (res.error || "Failed to delete ticket"));
+          alert("Error: " + (res.error || "Failed to delete"));
         }
       } catch (err) {
         alert("Error: " + err.message);
@@ -1735,8 +1737,8 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
       if (!timestamp) return "—";
       const diff = Math.floor((Date.now() - timestamp) / 1000);
       if (diff < 60) return "Just now";
-      if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-      if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+      if (diff < 3600) return Math.floor(diff / 60) + "m ago";
+      if (diff < 86400) return Math.floor(diff / 3600) + "h ago";
       return new Date(timestamp).toLocaleDateString([], { month: "short", day: "numeric" });
     }
 

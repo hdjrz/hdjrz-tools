@@ -63,7 +63,7 @@ export async function handleSupportRoutes(request, env, url) {
     const body = await parseJsonBody(request);
     const ticket = await addReplyToTicket(env, ticketId, {
       sender: "agent",
-      senderName: body.senderName || "Agent",
+      senderName: body.agentName || body.senderName || "Agent",
       text: body.text,
       imageBase64: body.imageBase64
     });

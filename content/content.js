@@ -156,7 +156,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.7.0";
+  const HARDCODED_VERSION = "1.7.1";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -176,9 +176,23 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.7.1",
+      title: "Agent Messages Inbox & Real-Time Communication Fix",
+      date: "Latest",
+      agentFeatures: [
+        "📬 Two-Way Agent Chat Inbox: Chat directly with admin, send feedback, paste screenshots (Ctrl+V), and view full conversation history.",
+        "⚡ Guest & Staff Instant Connectivity: Fixed guest/unactivated session routing and persistent device identification for immediate messaging without setup hurdles.",
+        "🔴 Live Unread Badge & Alerts: Instant alert when admin responds to your messages with real-time notification toasts."
+      ],
+      adminFeatures: [
+        "📬 Agent Messages Inbox: Dedicated inbox in the Web Admin Portal (/admin) with live unread indicators, conversation threads, and quick response drawer.",
+        "⚡ Worker Route Resolution: Fully resolved /api/support/my-tickets endpoints and worker script execution for flawless deployment."
+      ]
+    },
+    {
       version: "1.7.0",
       title: "Real-Time Support Chat & Screenshot Bug Reporter",
-      date: "Latest",
+      date: "v1.7.0",
       agentFeatures: [
         "💬 Direct Admin Support Chat: Open Support directly from the floating dock to ask questions, report bugs, and chat with admin in real-time.",
         "📸 Clipboard Screenshot Dropzone (Ctrl+V): Easily paste screenshots directly from your clipboard with automatic offscreen compression.",
@@ -2604,19 +2618,13 @@
       if (cb) cb();
       return;
     }
-    const api = localStorageApi();
-    if (!api) {
-      if (cb) cb();
-      return;
-    }
-    api.get(["hdjrzLicenseDeviceId", "hdjrzLicenseKey"], (d) => {
-      const devId = (d && d.hdjrzLicenseDeviceId) || "";
-      const agentName = currentSettings.agentName || "";
+    ensureLicenseDeviceId((devId) => {
+      const agentName = currentSettings.agentName || (licenseRole === "guest" ? "Guest User" : "Staff");
       if (!devId && !agentName) {
         if (cb) cb();
         return;
       }
-      const url = `https://hdjrz-license.rosechel05.workers.dev/api/support/my-tickets?dev=${encodeURIComponent(devId)}&agent=${encodeURIComponent(agentName)}&_t=${Date.now()}`;
+      const url = `https://hdjrz-license.rosechel05.workers.dev/api/support/my-tickets?dev=${encodeURIComponent(devId || "")}&agent=${encodeURIComponent(agentName)}&_t=${Date.now()}`;
       sendWorkerRequest({ url, method: "GET" }, (err, json) => {
         if (!err && json && json.ok) {
           const unreadCount = Number(json.unreadCount) || 0;
@@ -2630,12 +2638,12 @@
             tabBadge.style.display = unreadCount > 0 ? "inline-block" : "none";
           }
           if (unreadCount > 0 && lastSeenSupportUnread === 0) {
-            showToast(`💬 Admin replied to your support ticket (${unreadCount} unread)!`, false);
+            showToast(`💬 Admin replied to your message (${unreadCount} unread)!`, false);
           }
           lastSeenSupportUnread = unreadCount;
           if (cb) cb(null, json);
         } else {
-          if (cb) cb(err || "Failed to check tickets");
+          if (cb) cb(err || "Failed to check messages");
         }
       });
     });
@@ -7299,10 +7307,10 @@
 
     overlay.innerHTML = `
       <div class="esc-popover-backdrop"></div>
-      <div class="esc-modal esc-support-modal" role="dialog" aria-modal="true" aria-label="Support & Bug Reporter">
+      <div class="esc-modal esc-support-modal" role="dialog" aria-modal="true" aria-label="Agent Messages & Bug Reporter">
         <div class="esc-modal-header">
           <div class="esc-modal-title">
-            <span>💬 Support &amp; Bug Report</span>
+            <span>💬 Agent Messages &amp; Support</span>
             <span style="font-size: 11px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); padding: 1px 6px; border-radius: 4px; margin-left: 6px; font-weight: 700;">v${safeEsc(SCRIPT_VERSION)}</span>
           </div>
           <button type="button" class="esc-icon-btn" id="esc-support-close" title="Close (Esc)">
@@ -7314,10 +7322,10 @@
 
         <div class="esc-support-tabs">
           <button type="button" class="esc-support-tab-btn is-active" id="esc-support-tab-new">
-            <span>➕ New Ticket</span>
+            <span>💬 Send Message / Report</span>
           </button>
           <button type="button" class="esc-support-tab-btn" id="esc-support-tab-list">
-            <span>📋 My Conversations</span>
+            <span>📬 My Messages</span>
             <span class="esc-support-badge-pill" id="esc-support-tab-unread" style="display:none;">0</span>
           </button>
         </div>
@@ -7326,10 +7334,10 @@
           <!-- View 1: New Ticket -->
           <div id="esc-support-view-new" style="display: flex; flex-direction: column; gap: 12px;">
             <div style="font-size: 12px; color: #94a3b8; line-height: 1.4;">
-              Encountered an issue or have feedback for the developer/admin? Describe it below and paste a screenshot directly.
+              Encountered an issue or have a message/question for the admin? Describe it below and paste a screenshot directly.
             </div>
 
-            <textarea class="esc-support-textarea" id="esc-support-text" placeholder="Explain the problem, what happened, or your question..."></textarea>
+            <textarea class="esc-support-textarea" id="esc-support-text" placeholder="Explain the problem, what happened, or your message..."></textarea>
 
             <!-- Dropzone / Paste Screenshot -->
             <div class="esc-support-dropzone" id="esc-support-dropzone" title="Click to browse image or press Ctrl+V anywhere">
@@ -7349,27 +7357,27 @@
 
             <!-- Diagnostics Pill Info -->
             <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-              <span class="esc-support-diag-pill">👤 Agent: ${safeEsc(currentSettings.agentName || "Staff")}</span>
+              <span class="esc-support-diag-pill">👤 Agent: ${safeEsc(currentSettings.agentName || (licenseRole === "guest" ? "Guest User" : "Staff"))}</span>
               <span class="esc-support-diag-pill">🌐 ${safeEsc(window.location.pathname.slice(0, 26))}</span>
               <span class="esc-support-diag-pill">🎯 ${detectedPlayer && detectedPlayer.userId ? "UID: " + safeEsc(detectedPlayer.userId) : "No Player Scraped"}</span>
             </div>
 
             <!-- Submit Action -->
             <button type="button" class="esc-support-submit-btn" id="esc-support-submit">
-              <span>🚀 Send to Admin</span>
+              <span>🚀 Send Message</span>
             </button>
           </div>
 
           <!-- View 2: My Tickets List -->
           <div id="esc-support-view-list" style="display: none; flex-direction: column; gap: 10px;">
             <div style="display: flex; align-items: center; justify-content: space-between;">
-              <span style="font-size: 12px; color: #94a3b8;">Your past tickets and responses:</span>
+              <span style="font-size: 12px; color: #94a3b8;">Your message conversations with admin:</span>
               <button type="button" class="esc-btn-small" id="esc-support-list-refresh" style="background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.25); color: #38bdf8; border-radius: 4px; padding: 3px 8px; font-size: 11px; cursor: pointer;">
                 🔄 Refresh
               </button>
             </div>
             <div class="esc-support-ticket-list" id="esc-support-tickets-container">
-              <div style="text-align: center; padding: 20px; color: #64748b; font-size: 12px;">Loading tickets...</div>
+              <div style="text-align: center; padding: 20px; color: #64748b; font-size: 12px;">Loading messages...</div>
             </div>
           </div>
 
@@ -7377,7 +7385,7 @@
           <div id="esc-support-view-thread" style="display: none; flex-direction: column; gap: 10px;">
             <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #1e293b; padding-bottom: 8px;">
               <button type="button" class="esc-btn-small" id="esc-support-thread-back" style="background: #1e293b; border: 1px solid #334155; color: #cbd5e1; border-radius: 4px; padding: 4px 10px; font-size: 11px; cursor: pointer;">
-                ← Back to Tickets
+                ← Back to Messages
               </button>
               <div id="esc-support-thread-meta" style="font-size: 11px; color: #94a3b8; display: flex; align-items: center; gap: 6px;"></div>
             </div>
@@ -7542,13 +7550,13 @@
 
       ensureLicenseDeviceId((devId) => {
         const payload = {
-          agentName: currentSettings.agentName || "Staff",
+          agentName: currentSettings.agentName || (licenseRole === "guest" ? "Guest User" : "Staff"),
           deviceId: devId,
           scriptVersion: SCRIPT_VERSION,
           pageUrl: window.location.href,
           text: text,
           imageBase64: newTicketImage,
-          role: isAdminLicense() ? "admin" : "staff"
+          role: isAdminLicense() ? "admin" : (licenseRole === "guest" ? "guest" : "staff")
         };
 
         sendWorkerRequest({
@@ -7557,12 +7565,12 @@
           data: payload
         }, (err, res) => {
           submitBtn.disabled = false;
-          submitBtn.innerHTML = `<span>🚀 Send to Admin</span>`;
+          submitBtn.innerHTML = `<span>🚀 Send Message</span>`;
           if (err || !res || !res.ok) {
             showToast("Submission failed: " + (err || (res && res.error) || "Error"), false);
             return;
           }
-          showToast("🎉 Support ticket submitted!");
+          showToast("🎉 Message sent to admin!");
           textArea.value = "";
           previewRemove.click();
           if (res.ticket && res.ticket.id) {
@@ -7580,13 +7588,13 @@
     listRefreshBtn.addEventListener("click", loadAgentTicketsList);
 
     function loadAgentTicketsList() {
-      ticketsContainer.innerHTML = `<div style="text-align: center; padding: 20px; color: #64748b; font-size: 12px;">Loading tickets...</div>`;
+      ticketsContainer.innerHTML = `<div style="text-align: center; padding: 20px; color: #64748b; font-size: 12px;">Loading messages...</div>`;
       ensureLicenseDeviceId((devId) => {
-        const agent = currentSettings.agentName || "";
+        const agent = currentSettings.agentName || (licenseRole === "guest" ? "Guest User" : "Staff");
         const url = `https://hdjrz-license.rosechel05.workers.dev/api/support/my-tickets?dev=${encodeURIComponent(devId)}&agent=${encodeURIComponent(agent)}&_t=${Date.now()}`;
         sendWorkerRequest({ url, method: "GET" }, (err, res) => {
           if (err || !res || !res.ok) {
-            ticketsContainer.innerHTML = `<div style="text-align: center; padding: 20px; color: #f87171; font-size: 12px;">Failed to load tickets: ${safeEsc(err || "Error")}</div>`;
+            ticketsContainer.innerHTML = `<div style="text-align: center; padding: 20px; color: #f87171; font-size: 12px;">Failed to load messages: ${safeEsc(err || "Error")}</div>`;
             return;
           }
           const unreadCount = Number(res.unreadCount) || 0;
@@ -7599,7 +7607,7 @@
           if (tickets.length === 0) {
             ticketsContainer.innerHTML = `
               <div style="text-align: center; padding: 30px 10px; color: #64748b; font-size: 12px;">
-                No conversations yet.<br>Click <strong>"➕ New Ticket"</strong> above to send a report to admin.
+                No conversations yet.<br>Click <strong>"💬 Send Message / Report"</strong> above to talk with admin.
               </div>
             `;
             return;
@@ -7682,7 +7690,7 @@
       threadMsgs.innerHTML = `<div style="text-align:center;padding:20px;color:#64748b;font-size:12px;">Loading messages...</div>`;
 
       ensureLicenseDeviceId((devId) => {
-        const agent = currentSettings.agentName || "";
+        const agent = currentSettings.agentName || (licenseRole === "guest" ? "Guest User" : "Staff");
         const url = `https://hdjrz-license.rosechel05.workers.dev/api/support/ticket/${encodeURIComponent(ticketId)}?dev=${encodeURIComponent(devId)}&agent=${encodeURIComponent(agent)}&_t=${Date.now()}`;
         sendWorkerRequest({ url, method: "GET" }, (err, res) => {
           if (err || !res || !res.ok || !res.ticket) {
@@ -7714,16 +7722,18 @@
         return;
       }
       messages.forEach((m) => {
-        const isAgent = m.senderRole !== "admin";
+        const isAgent = m.sender !== "admin" && m.senderRole !== "admin";
         const bubble = document.createElement("div");
         bubble.className = `esc-support-msg ${isAgent ? "esc-support-msg-agent" : "esc-support-msg-admin"}`;
 
-        const senderLabel = isAgent ? (m.senderName || "You") : "👑 Admin Support";
-        const timeStr = m.createdAt ? new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "";
+        const senderLabel = isAgent ? (m.senderName || "You") : (m.senderName || "👑 Admin Support");
+        const ts = m.timestamp || m.createdAt || Date.now();
+        const timeStr = new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+        const imgSrc = m.image || m.imageBase64;
         let imgHtml = "";
-        if (m.imageBase64) {
-          imgHtml = `<img src="${safeEsc(m.imageBase64)}" class="esc-support-msg-img" title="Click to zoom screenshot">`;
+        if (imgSrc) {
+          imgHtml = `<img src="${safeEsc(imgSrc)}" class="esc-support-msg-img" title="Click to zoom screenshot">`;
         }
 
         bubble.innerHTML = `
@@ -7736,8 +7746,8 @@
         `;
 
         const imgEl = bubble.querySelector(".esc-support-msg-img");
-        if (imgEl && m.imageBase64) {
-          imgEl.addEventListener("click", () => openScreenshotLightbox(m.imageBase64));
+        if (imgEl && imgSrc) {
+          imgEl.addEventListener("click", () => openScreenshotLightbox(imgSrc));
         }
 
         threadMsgs.appendChild(bubble);
@@ -7759,7 +7769,7 @@
 
       ensureLicenseDeviceId((devId) => {
         const payload = {
-          agentName: currentSettings.agentName || "Staff",
+          agentName: currentSettings.agentName || (licenseRole === "guest" ? "Guest User" : "Staff"),
           deviceId: devId,
           text: text,
           imageBase64: threadReplyImage

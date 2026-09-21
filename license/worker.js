@@ -5,8 +5,8 @@
 
 const DEFAULT_SYSTEM_CONFIG = {
   minRequiredVersion: "1.1.4",
-  latestVersion: "1.7.0",
-  adminLatestVersion: "1.7.0",
+  latestVersion: "1.7.1",
+  adminLatestVersion: "1.7.1",
   agentLatestVersion: "1.5.9",
   killSwitch: false,
   killSwitchMessage: "hdjrzTools is temporarily disabled for emergency maintenance.",
