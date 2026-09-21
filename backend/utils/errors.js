@@ -30,3 +30,11 @@ export class NotFoundError extends AppError {
     this.name = "NotFoundError";
   }
 }
+
+export class ValidationError extends AppError {
+  constructor(message = "Validation failed", code = "validation_error") {
+    super(message, 400, code);
+    this.name = "ValidationError";
+  }
+}
+
