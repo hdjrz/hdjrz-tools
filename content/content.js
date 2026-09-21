@@ -156,7 +156,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.7.9";
+  const HARDCODED_VERSION = "1.8.0";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -176,9 +176,23 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.8.0",
+      title: "Admin Targeted Direct Chat & Live Active Agent Roster",
+      date: "Latest",
+      agentFeatures: [
+        "🔔 Direct Admin Messages: Instantly receive direct messages initiated by Admin with immediate unread sound chime, badge indicators, and thread sync.",
+        "⚡ Sub-Second Delivery: Seamless two-way conversational message delivery with zero delay."
+      ],
+      adminFeatures: [
+        "🎯 Select Agent to Chat: Choose any fleet agent from a structured dropdown or clickable active agent chips to direct messages to.",
+        "🟢 Live Active Fleet Roster: Real-time active agent status bar showing who is online now, installed version, and activity timing.",
+        "💬 Smart Thread Jump: Automatically detects existing open conversation threads with selected agents and provides 1-click jump to active chat."
+      ]
+    },
+    {
       version: "1.7.9",
       title: "Real-Time Zero-Queue Chat & Instant Edge Transport",
-      date: "Latest",
+      date: "v1.7.9",
       agentFeatures: [
         "⚡ Instant Sub-500ms Two-Way Delivery: Eliminated Tampermonkey GM_xmlhttpRequest queue congestion by prioritizing native browser window.fetch with HTTP/2 multiplexing.",
         "🔄 Non-Stacking Self-Scheduling Poller: Replaced fixed setInterval with adaptive non-overlapping recursion, completely eliminating the 10-15s backlog delay.",
@@ -7477,7 +7491,7 @@
         <span class="esc-support-badge-pill" id="esc-support-tab-unread" style="display:none;">0</span>
       </button>
       <button type="button" class="esc-support-tab-btn" id="esc-support-tab-new">
-        <span>💬 New / Test Message</span>
+        <span>💬 Direct Chat / Message</span>
       </button>
     ` : `
       <button type="button" class="esc-support-tab-btn is-active" id="esc-support-tab-new">
@@ -7509,13 +7523,59 @@
         </div>
 
         <div class="esc-support-body">
-          <!-- View 1: New Ticket -->
+          <!-- View 1: New Ticket / Direct Message -->
           <div id="esc-support-view-new" style="display: ${isAdmin ? 'none' : 'flex'}; flex-direction: column; gap: 12px;">
-            <div style="font-size: 12px; color: #94a3b8; line-height: 1.4;">
-              ${isAdmin ? "Send a test message or direct ticket from your admin account:" : "Encountered an issue or have a message/question for the admin? Describe it below and paste a screenshot directly."}
-            </div>
+            ${isAdmin ? `
+              <!-- Admin Header & Active Agents Roster -->
+              <div class="esc-admin-active-card">
+                <div class="esc-admin-card-header">
+                  <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #f1f5f9;">
+                    <span class="esc-admin-pulse-dot"></span>
+                    <span>Active Fleet Agents Online</span>
+                    <span id="esc-admin-online-badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 10px;">0 Online</span>
+                  </div>
+                  <button type="button" id="esc-admin-refresh-agents" style="background: transparent; border: 1px solid #334155; color: #94a3b8; border-radius: 4px; padding: 2px 8px; font-size: 11px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                    🔄 Refresh
+                  </button>
+                </div>
+                <div id="esc-admin-active-chips" class="esc-admin-chips-container">
+                  <span style="font-size: 11px; color: #64748b;">Loading active agents...</span>
+                </div>
+              </div>
 
-            <textarea class="esc-support-textarea" id="esc-support-text" placeholder="Explain the problem, what happened, or your message..."></textarea>
+              <!-- Choose Who to Chat With -->
+              <div style="display: flex; flex-direction: column; gap: 6px;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <label style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">
+                    🎯 Choose Agent to Chat With:
+                  </label>
+                  <span id="esc-admin-agent-status-tag" style="font-size: 11px; color: #38bdf8; font-weight: 600;"></span>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <select id="esc-admin-agent-select" class="esc-support-textarea" style="min-height: 38px; height: 38px; padding: 6px 10px; font-size: 13px; color: #f8fafc; background: #0b1329; border: 1px solid #334155; border-radius: 6px; cursor: pointer; flex: 1;">
+                    <option value="">-- Choose an Agent to message --</option>
+                  </select>
+                  <input type="text" id="esc-admin-custom-name" placeholder="Enter custom agent name..." style="display: none; height: 38px; padding: 6px 10px; font-size: 13px; color: #fff; background: #0b1329; border: 1px solid #38bdf8; border-radius: 6px; flex: 1;">
+                </div>
+              </div>
+
+              <!-- Existing Conversation Banner -->
+              <div id="esc-admin-existing-banner" class="esc-admin-existing-banner" style="display: none;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="font-size: 14px;">💬</span>
+                  <span id="esc-admin-existing-text">Active conversation found with this agent.</span>
+                </div>
+                <button type="button" id="esc-admin-open-existing-btn" style="background: #0284c7; border: 1px solid #38bdf8; color: #fff; border-radius: 4px; padding: 4px 10px; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap;">
+                  👉 Open Chat Thread
+                </button>
+              </div>
+            ` : `
+              <div style="font-size: 12px; color: #94a3b8; line-height: 1.4;">
+                Encountered an issue or have a message/question for the admin? Describe it below and paste a screenshot directly.
+              </div>
+            `}
+
+            <textarea class="esc-support-textarea" id="esc-support-text" placeholder="${isAdmin ? 'Type your direct message or instruction to agent (press Ctrl+Enter to send)...' : 'Explain the problem, what happened, or your message...'}"></textarea>
 
             <!-- Dropzone / Paste Screenshot -->
             <div class="esc-support-dropzone" id="esc-support-dropzone" title="Click to browse image or press Ctrl+V anywhere">
@@ -7535,14 +7595,20 @@
 
             <!-- Diagnostics Pill Info -->
             <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-              <span class="esc-support-diag-pill">👤 Agent: ${safeEsc(currentSettings.agentName || (isAdmin ? "Jetro (Admin)" : (licenseRole === "guest" ? "Guest User" : "Staff")))}</span>
-              <span class="esc-support-diag-pill">🌐 ${safeEsc(window.location.pathname.slice(0, 26))}</span>
-              <span class="esc-support-diag-pill">🎯 ${detectedPlayer && detectedPlayer.userId ? "UID: " + safeEsc(detectedPlayer.userId) : "No Player Scraped"}</span>
+              ${isAdmin ? `
+                <span class="esc-support-diag-pill" id="esc-admin-pill-target">🎯 Recipient: <strong style="color: #38bdf8; margin-left: 2px;">(Select Agent)</strong></span>
+                <span class="esc-support-diag-pill">🛡️ Sender: <strong style="color: #e2e8f0; margin-left: 2px;">${safeEsc(currentSettings.agentName || "Jetro (Admin)")}</strong></span>
+                <span class="esc-support-diag-pill" id="esc-admin-pill-online">⚪ Offline</span>
+              ` : `
+                <span class="esc-support-diag-pill">👤 Agent: ${safeEsc(currentSettings.agentName || (licenseRole === "guest" ? "Guest User" : "Staff"))}</span>
+                <span class="esc-support-diag-pill">🌐 ${safeEsc(window.location.pathname.slice(0, 26))}</span>
+                <span class="esc-support-diag-pill">🎯 ${detectedPlayer && detectedPlayer.userId ? "UID: " + safeEsc(detectedPlayer.userId) : "No Player Scraped"}</span>
+              `}
             </div>
 
             <!-- Submit Action -->
             <button type="button" class="esc-support-submit-btn" id="esc-support-submit">
-              <span>🚀 Send Message</span>
+              <span>${isAdmin ? '🚀 Send Direct Message' : '🚀 Send Message'}</span>
             </button>
           </div>
 
@@ -7648,6 +7714,10 @@
       viewNew.style.display = viewName === "new" ? "flex" : "none";
       viewList.style.display = viewName === "list" ? "flex" : "none";
       viewThread.style.display = viewName === "thread" ? "flex" : "none";
+
+      if (viewName === "new" && isAdmin) {
+        loadActiveAgentsForAdmin();
+      }
 
       if (viewName === "list") {
         loadAgentTicketsList(false);
@@ -7758,9 +7828,289 @@
       });
     }
 
+    // Admin Active Agents & Recipient Selection Handling
+    let adminAgentsData = { users: [], allAgents: [] };
+    let selectedAgent = null;
+
+    function formatTimeAgo(ts) {
+      if (!ts) return "offline";
+      const sec = Math.round((Date.now() - ts) / 1000);
+      if (sec < 60) return "just now";
+      const min = Math.round(sec / 60);
+      if (min < 60) return `${min}m ago`;
+      const hr = Math.round(min / 60);
+      if (hr < 24) return `${hr}h ago`;
+      const days = Math.round(hr / 24);
+      return `${days}d ago`;
+    }
+
+    function loadActiveAgentsForAdmin(forceRefresh = false) {
+      if (!isAdmin) return;
+      const chipsWrap = overlay.querySelector("#esc-admin-active-chips");
+      const badge = overlay.querySelector("#esc-admin-online-badge");
+      const select = overlay.querySelector("#esc-admin-agent-select");
+      if (!chipsWrap || !select) return;
+
+      if (!forceRefresh && adminAgentsData.users.length > 0 && adminAgentsData.allAgents.length > 0) {
+        renderAdminAgentsUi();
+        return;
+      }
+
+      chipsWrap.innerHTML = `<span style="font-size: 11px; color: #64748b;">⏳ Fetching active agents...</span>`;
+
+      const fetchRoster = ({ licenseKey }) => {
+        const url = `https://hdjrz-license.rosechel05.workers.dev/api/agents/active?role=admin&key=${encodeURIComponent(licenseKey)}&_t=${Date.now()}`;
+        sendWorkerRequest({
+          url,
+          method: "GET",
+          headers: {
+            "Authorization": "Bearer " + licenseKey,
+            "X-Admin-Password": licenseKey
+          }
+        }, (err, res) => {
+          if (err || !res || !res.ok) {
+            chipsWrap.innerHTML = `<span style="font-size: 11px; color: #f87171;">Failed to load agents: ${safeEsc(err || (res && res.error) || 'Error')}</span>`;
+            return;
+          }
+          adminAgentsData = {
+            users: res.users || [],
+            allAgents: res.allAgents || res.users || []
+          };
+          renderAdminAgentsUi();
+        });
+      };
+
+      if (cachedAuth) {
+        fetchRoster(cachedAuth);
+      } else {
+        getLicenseAuthData((auth) => {
+          cachedAuth = auth;
+          fetchRoster(auth);
+        });
+      }
+    }
+
+    function renderAdminAgentsUi() {
+      if (!isAdmin) return;
+      const chipsWrap = overlay.querySelector("#esc-admin-active-chips");
+      const badge = overlay.querySelector("#esc-admin-online-badge");
+      const select = overlay.querySelector("#esc-admin-agent-select");
+      if (!chipsWrap || !select) return;
+
+      const onlineUsers = adminAgentsData.users || [];
+      const allAgents = adminAgentsData.allAgents || [];
+
+      if (badge) {
+        badge.textContent = `${onlineUsers.length} Online`;
+        badge.style.color = onlineUsers.length > 0 ? "#34d399" : "#94a3b8";
+      }
+
+      // 1. Render active chips
+      chipsWrap.innerHTML = "";
+      if (onlineUsers.length === 0) {
+        chipsWrap.innerHTML = `<span style="font-size: 11px; color: #64748b;">No agents active in the last 5 minutes. You can pick an agent from the roster below.</span>`;
+      } else {
+        onlineUsers.forEach((u) => {
+          const chip = document.createElement("div");
+          chip.className = "esc-admin-agent-chip" + (selectedAgent && selectedAgent.agent === u.agent ? " is-selected" : "");
+          chip.innerHTML = `
+            <span class="esc-admin-pulse-dot"></span>
+            <strong>${safeEsc(u.agent || "Agent")}</strong>
+            <span style="color: #60a5fa; font-family: monospace; font-size: 10px;">v${safeEsc(u.version || "1.0.0")}</span>
+          `;
+          chip.addEventListener("click", () => {
+            selectAgentForAdmin({
+              agent: u.agent,
+              devId: u.devId || "",
+              version: u.version || "",
+              online: true,
+              latestTicketId: u.latestTicketId || null,
+              latestTicketStatus: u.latestTicketStatus || null
+            });
+          });
+          chipsWrap.appendChild(chip);
+        });
+      }
+
+      // 2. Render select options
+      const currentSelectedVal = select.value;
+      select.innerHTML = `<option value="">-- Choose an Agent to message --</option>`;
+
+      if (onlineUsers.length > 0) {
+        const groupOnline = document.createElement("optgroup");
+        groupOnline.label = "🟢 Online Agents (Active Now)";
+        onlineUsers.forEach((u) => {
+          const opt = document.createElement("option");
+          opt.value = u.agent;
+          opt.textContent = `🟢 ${u.agent} (v${u.version || '1.0.0'} - Active now)`;
+          groupOnline.appendChild(opt);
+        });
+        select.appendChild(groupOnline);
+      }
+
+      const offlineAgents = allAgents.filter(a => !onlineUsers.some(u => (u.agent || '').toLowerCase() === (a.agent || '').toLowerCase()));
+      if (offlineAgents.length > 0) {
+        const groupOffline = document.createElement("optgroup");
+        groupOffline.label = "⚪ Fleet Agents (Roster)";
+        offlineAgents.forEach((a) => {
+          const opt = document.createElement("option");
+          opt.value = a.agent;
+          const timeAgo = formatTimeAgo(a.lastSeen);
+          opt.textContent = `⚪ ${a.agent} (${timeAgo})`;
+          groupOffline.appendChild(opt);
+        });
+        select.appendChild(groupOffline);
+      }
+
+      const groupOther = document.createElement("optgroup");
+      groupOther.label = "✏️ Other";
+      const customOpt = document.createElement("option");
+      customOpt.value = "__custom__";
+      customOpt.textContent = "➕ Enter Custom Agent Name...";
+      groupOther.appendChild(customOpt);
+      select.appendChild(groupOther);
+
+      if (selectedAgent) {
+        select.value = selectedAgent.isCustom ? "__custom__" : selectedAgent.agent;
+      } else if (currentSelectedVal) {
+        select.value = currentSelectedVal;
+      }
+    }
+
+    function selectAgentForAdmin(agentObj) {
+      selectedAgent = agentObj;
+      const select = overlay.querySelector("#esc-admin-agent-select");
+      const customInput = overlay.querySelector("#esc-admin-custom-name");
+      const existingBanner = overlay.querySelector("#esc-admin-existing-banner");
+      const existingText = overlay.querySelector("#esc-admin-existing-text");
+      const openExistingBtn = overlay.querySelector("#esc-admin-open-existing-btn");
+      const pillRecipient = overlay.querySelector("#esc-admin-pill-target");
+      const pillOnline = overlay.querySelector("#esc-admin-pill-online");
+      const agentStatusTag = overlay.querySelector("#esc-admin-agent-status-tag");
+      const textArea = overlay.querySelector("#esc-support-text");
+      const submitBtn = overlay.querySelector("#esc-support-submit");
+
+      // Update chips highlight
+      const chips = overlay.querySelectorAll(".esc-admin-agent-chip");
+      chips.forEach((c) => {
+        const strong = c.querySelector("strong");
+        const name = strong ? strong.textContent : "";
+        c.classList.toggle("is-selected", !!(selectedAgent && name === selectedAgent.agent));
+      });
+
+      if (!agentObj) {
+        if (select) select.value = "";
+        if (customInput) customInput.style.display = "none";
+        if (existingBanner) existingBanner.style.display = "none";
+        if (pillRecipient) pillRecipient.innerHTML = `🎯 Recipient: <strong style="color: #38bdf8; margin-left: 2px;">(Select Agent)</strong>`;
+        if (pillOnline) pillOnline.innerHTML = `⚪ Offline`;
+        if (agentStatusTag) agentStatusTag.textContent = "";
+        if (textArea) textArea.placeholder = "Type your direct message or instruction to agent (press Ctrl+Enter to send)...";
+        if (submitBtn) submitBtn.innerHTML = `<span>🚀 Send Direct Message</span>`;
+        return;
+      }
+
+      if (agentObj.isCustom) {
+        if (select) select.value = "__custom__";
+        if (customInput) {
+          customInput.style.display = "block";
+          customInput.focus();
+        }
+        if (existingBanner) existingBanner.style.display = "none";
+        const val = (customInput && customInput.value.trim()) || "Custom Agent";
+        if (pillRecipient) pillRecipient.innerHTML = `🎯 Recipient: <strong style="color: #38bdf8; margin-left: 2px;">${safeEsc(val)}</strong>`;
+        if (pillOnline) pillOnline.innerHTML = `✏️ Custom`;
+        if (agentStatusTag) agentStatusTag.textContent = "Custom Name";
+        if (textArea) textArea.placeholder = `Type your message to ${val}... (Ctrl+Enter to send)`;
+        if (submitBtn) submitBtn.innerHTML = `<span>🚀 Send Direct Message to ${safeEsc(val)}</span>`;
+        return;
+      }
+
+      if (customInput) customInput.style.display = "none";
+      if (select) select.value = agentObj.agent;
+
+      const isOnline = !!agentObj.online;
+      if (pillRecipient) pillRecipient.innerHTML = `🎯 Recipient: <strong style="color: #38bdf8; margin-left: 2px;">${safeEsc(agentObj.agent)}</strong>`;
+      if (pillOnline) {
+        pillOnline.innerHTML = isOnline
+          ? `<span class="esc-admin-pulse-dot" style="display:inline-block; margin-right:4px;"></span><span style="color:#34d399;font-weight:700;">Online</span>`
+          : `⚪ Offline`;
+      }
+      if (agentStatusTag) {
+        agentStatusTag.textContent = isOnline ? `🟢 Online (v${agentObj.version || '1.0.0'})` : "⚪ Offline";
+        agentStatusTag.style.color = isOnline ? "#34d399" : "#94a3b8";
+      }
+      if (textArea) textArea.placeholder = `Type your message or instruction to ${agentObj.agent}... (Ctrl+Enter to send)`;
+      if (submitBtn) submitBtn.innerHTML = `<span>🚀 Send Direct Message to ${safeEsc(agentObj.agent)}</span>`;
+
+      // Check existing ticket/thread
+      if (agentObj.latestTicketId) {
+        if (existingBanner) {
+          existingBanner.style.display = "flex";
+          if (existingText) {
+            const statusLabel = agentObj.latestTicketStatus === "resolved" ? "Resolved" : (agentObj.latestTicketStatus === "in_progress" ? "In Progress" : "Open");
+            existingText.innerHTML = `Active conversation exists with <strong>${safeEsc(agentObj.agent)}</strong> (Thread #${safeEsc(agentObj.latestTicketId.slice(-6))}, ${statusLabel}).`;
+          }
+          if (openExistingBtn) {
+            openExistingBtn.onclick = () => openThread(agentObj.latestTicketId);
+          }
+        }
+      } else {
+        if (existingBanner) existingBanner.style.display = "none";
+      }
+    }
+
+    // Bind Admin Agent Selector Controls
+    if (isAdmin) {
+      const adminSelect = overlay.querySelector("#esc-admin-agent-select");
+      const customInput = overlay.querySelector("#esc-admin-custom-name");
+      const refreshAgentsBtn = overlay.querySelector("#esc-admin-refresh-agents");
+
+      if (adminSelect) {
+        adminSelect.addEventListener("change", () => {
+          const val = adminSelect.value;
+          if (!val) {
+            selectAgentForAdmin(null);
+          } else if (val === "__custom__") {
+            selectAgentForAdmin({ isCustom: true, agent: "", online: false });
+          } else {
+            const foundOnline = (adminAgentsData.users || []).find(u => u.agent === val);
+            const foundAll = (adminAgentsData.allAgents || []).find(a => a.agent === val);
+            const target = foundOnline || foundAll || { agent: val, online: false };
+            selectAgentForAdmin(target);
+          }
+        });
+      }
+
+      if (customInput) {
+        customInput.addEventListener("input", () => {
+          const val = customInput.value.trim();
+          const pillRecipient = overlay.querySelector("#esc-admin-pill-target");
+          const textArea = overlay.querySelector("#esc-support-text");
+          const submitBtn = overlay.querySelector("#esc-support-submit");
+          if (pillRecipient) pillRecipient.innerHTML = `🎯 Recipient: <strong style="color: #38bdf8; margin-left: 2px;">${safeEsc(val || "Custom Agent")}</strong>`;
+          if (textArea) textArea.placeholder = `Type your message to ${val || 'agent'}... (Ctrl+Enter to send)`;
+          if (submitBtn) submitBtn.innerHTML = `<span>🚀 Send Direct Message to ${safeEsc(val || 'Agent')}</span>`;
+        });
+      }
+
+      if (refreshAgentsBtn) {
+        refreshAgentsBtn.addEventListener("click", () => loadActiveAgentsForAdmin(true));
+      }
+    }
+
     // Submit New Ticket
     const submitBtn = overlay.querySelector("#esc-support-submit");
     const textArea = overlay.querySelector("#esc-support-text");
+
+    if (textArea) {
+      textArea.addEventListener("keydown", (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+          e.preventDefault();
+          submitBtn.click();
+        }
+      });
+    }
 
     submitBtn.addEventListener("click", () => {
       const text = textArea.value.trim();
@@ -7768,19 +8118,41 @@
         showToast("Please enter a description or attach a screenshot.", false);
         return;
       }
+
+      let targetAgentName = "";
+      let targetDevId = "";
+      if (isAdmin) {
+        if (!selectedAgent) {
+          showToast("Please choose an agent to chat with.", false);
+          return;
+        }
+        if (selectedAgent.isCustom) {
+          const customInp = overlay.querySelector("#esc-admin-custom-name");
+          targetAgentName = (customInp && customInp.value.trim()) || "";
+          if (!targetAgentName) {
+            showToast("Please enter a custom agent name.", false);
+            return;
+          }
+        } else {
+          targetAgentName = selectedAgent.agent;
+          targetDevId = selectedAgent.devId || "";
+        }
+      }
+
       submitBtn.disabled = true;
       submitBtn.innerHTML = `<span>⏳ Submitting...</span>`;
 
       getLicenseAuthData(({ devId, licenseKey, role }) => {
         const payload = {
-          agentName: currentSettings.agentName || (isAdmin ? "Jetro (Admin)" : (role === "guest" ? "Guest User" : "Staff")),
-          deviceId: devId,
+          agentName: isAdmin ? targetAgentName : (currentSettings.agentName || (role === "guest" ? "Guest User" : "Staff")),
+          deviceId: isAdmin ? (targetDevId || "") : devId,
           scriptVersion: SCRIPT_VERSION,
           pageUrl: window.location.href,
           text: text,
           imageBase64: newTicketImage,
           role: role,
-          key: licenseKey
+          key: licenseKey,
+          adminName: currentSettings.agentName || "Jetro (Admin)"
         };
 
         sendWorkerRequest({
@@ -7789,12 +8161,12 @@
           data: payload
         }, (err, res) => {
           submitBtn.disabled = false;
-          submitBtn.innerHTML = `<span>🚀 Send Message</span>`;
+          submitBtn.innerHTML = `<span>${isAdmin ? '🚀 Send Direct Message' : '🚀 Send Message'}</span>`;
           if (err || !res || !res.ok) {
             showToast("Submission failed: " + (err || (res && res.error) || "Error"), false);
             return;
           }
-          showToast("🎉 Message sent to admin!");
+          showToast(isAdmin ? `🎉 Direct message sent to ${targetAgentName}!` : "🎉 Message sent to admin!");
           textArea.value = "";
           previewRemove.click();
           if (res.ticket && res.ticket.id) {

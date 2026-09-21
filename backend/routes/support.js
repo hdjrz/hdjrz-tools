@@ -41,9 +41,13 @@ export async function handleSupportRoutes(request, env, url, ctx = null) {
   // 2. Client Endpoints (Agents & In-Extension Admin)
   // =========================================================================
 
-  // POST /api/support/ticket - Create a new support/bug report
+  // POST /api/support/ticket - Create a new support/bug report or direct admin message
   if (method === "POST" && path === "/api/support/ticket") {
     const body = await parseJsonBody(request);
+    const authHeader = request.headers.get("Authorization") || "";
+    const directPass = request.headers.get("X-Admin-Password") || body.key || (url.searchParams.get("key")) || "";
+    const isAdmin = (body.role === "admin") && (await verifyAdminAuthHeader(env, authHeader, directPass));
+
     const ticket = await createTicket(env, {
       agentName: body.agentName,
       deviceId: body.deviceId,
@@ -51,7 +55,9 @@ export async function handleSupportRoutes(request, env, url, ctx = null) {
       pageUrl: body.pageUrl,
       text: body.text,
       imageBase64: body.imageBase64,
-      role: body.role
+      role: body.role,
+      senderRole: isAdmin ? "admin" : "agent",
+      senderName: isAdmin ? (body.adminName || "Jetro (Admin)") : body.agentName
     });
     return jsonSuccess({ message: "Ticket submitted successfully!", ticket });
   }

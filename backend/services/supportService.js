@@ -129,12 +129,19 @@ export async function createTicket(env, {
   pageUrl = "",
   text = "",
   imageBase64 = null,
-  role = "guest"
+  role = "guest",
+  senderRole = "agent",
+  senderName = ""
 } = {}) {
   const cleanText = String(text || "").trim();
   if (!cleanText && !imageBase64) {
     throw new ValidationError("Message text or a screenshot is required.", "missing_content");
   }
+
+  const isAdminSender = senderRole === "admin";
+  const effectiveSenderName = isAdminSender ? (senderName || "Jetro (Admin)") : agentName;
+  const unreadAdmin = isAdminSender ? 0 : 1;
+  const unreadAgent = isAdminSender ? 1 : 0;
 
   const now = Date.now();
   const id = `tk_${now}_${Math.random().toString(36).slice(2, 6)}`;
@@ -143,8 +150,8 @@ export async function createTicket(env, {
 
   const firstMsg = {
     id: firstMsgId,
-    sender: "agent",
-    senderName: agentName,
+    sender: isAdminSender ? "admin" : "agent",
+    senderName: effectiveSenderName,
     text: cleanText,
     image: imageBase64 || null,
     timestamp: now
@@ -160,6 +167,8 @@ export async function createTicket(env, {
     status: "open",
     createdAt: now,
     updatedAt: now,
+    unreadAdmin: !!unreadAdmin,
+    unreadAgent: !!unreadAgent,
     messages: [firstMsg]
   };
 
@@ -168,13 +177,13 @@ export async function createTicket(env, {
     try {
       await env.DB.prepare(`
         INSERT INTO support_tickets (id, agent_name, device_id, role, script_version, page_url, status, created_at, updated_at, last_message, unread_admin, unread_agent, has_image)
-        VALUES (?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, 1, 0, ?)
-      `).bind(id, agentName, deviceId, role, scriptVersion, pageUrl.slice(0, 500), now, now, lastMsg, imageBase64 ? 1 : 0).run();
+        VALUES (?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, ?)
+      `).bind(id, agentName, deviceId, role, scriptVersion, pageUrl.slice(0, 500), now, now, lastMsg, unreadAdmin, unreadAgent, imageBase64 ? 1 : 0).run();
 
       await env.DB.prepare(`
         INSERT INTO support_messages (id, ticket_id, sender, sender_name, text, image, created_at)
-        VALUES (?, ?, 'agent', ?, ?, ?, ?)
-      `).bind(firstMsgId, id, agentName, cleanText, imageBase64 || null, now).run();
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).bind(firstMsgId, id, isAdminSender ? "admin" : "agent", effectiveSenderName, cleanText, imageBase64 || null, now).run();
     } catch (err) {
       console.warn("[supportService] D1 createTicket error, falling back to KV:", err.message);
     }
@@ -193,8 +202,8 @@ export async function createTicket(env, {
       createdAt: now,
       updatedAt: now,
       lastMessage: lastMsg,
-      unreadAdmin: true,
-      unreadAgent: false,
+      unreadAdmin: !!unreadAdmin,
+      unreadAgent: !!unreadAgent,
       hasImage: !!imageBase64
     };
     const index = await getTicketsIndex(env);

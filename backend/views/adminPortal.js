@@ -444,10 +444,11 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
                 <th>Agent Name</th>
                 <th>Script Version</th>
                 <th>Last Active</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody id="active-users-tbody">
-              <tr><td colspan="4" style="text-align: center; color: var(--muted); padding: 20px;">No agents active in the last 5 minutes.</td></tr>
+              <tr><td colspan="5" style="text-align: center; color: var(--muted); padding: 20px;">No agents active in the last 5 minutes.</td></tr>
             </tbody>
           </table>
         </div>
@@ -1009,7 +1010,7 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
       document.getElementById("stat-active-count").textContent = users.length;
 
       if (!users.length) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--muted); padding: 20px;">No agents active in the last 5 minutes.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--muted); padding: 20px;">No agents active in the last 5 minutes.</td></tr>';
         return;
       }
 
@@ -1017,14 +1018,26 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
       tbody.innerHTML = users.map(u => {
         const diffSec = Math.round((now - (u.lastSeen || now)) / 1000);
         const timeAgo = diffSec < 60 ? "Just now" : Math.round(diffSec / 60) + "m ago";
+        const agentName = u.agent || "Agent";
         return '<tr>' +
           '<td><span style="color: #34d399; font-weight:700;">🟢 Online</span></td>' +
-          '<td><strong>' + escapeHtml(u.agent || "Agent") + '</strong></td>' +
+          '<td><strong>' + escapeHtml(agentName) + '</strong></td>' +
           '<td><span style="font-family: var(--font-mono); color: #60a5fa;">v' + escapeHtml(u.version || "1.0.0") + '</span></td>' +
           '<td>' + timeAgo + '</td>' +
+          '<td><button type="button" class="btn btn-secondary btn-sm" onclick="filterSupportByAgent(\'' + escapeHtml(agentName) + '\')" style="padding: 2px 8px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">💬 View Chats</button></td>' +
         '</tr>';
       }).join("");
     }
+
+    window.filterSupportByAgent = function(name) {
+      const sec = document.getElementById("section-support-tickets");
+      if (sec) sec.scrollIntoView({ behavior: "smooth" });
+      const searchInput = document.getElementById("search-support");
+      if (searchInput) {
+        searchInput.value = name;
+        loadSupportTickets();
+      }
+    };
 
     // Escalation Library Management
     let currentEscalations = [];
