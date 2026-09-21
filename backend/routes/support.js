@@ -18,7 +18,7 @@ import {
 } from "../services/supportService.js";
 import { jsonSuccess } from "../utils/response.js";
 
-export async function handleSupportRoutes(request, env, url) {
+export async function handleSupportRoutes(request, env, url, ctx = null) {
   const method = request.method;
   const path = url.pathname;
 
@@ -93,7 +93,7 @@ export async function handleSupportRoutes(request, env, url) {
     const directPass = request.headers.get("X-Admin-Password") || key || "";
     const isAdmin = (role === "admin") && (await verifyAdminAuthHeader(env, authHeader, directPass));
 
-    const ticket = await getTicketDetail(env, ticketId, isAdmin, !isAdmin);
+    const ticket = await getTicketDetail(env, ticketId, isAdmin, !isAdmin, ctx);
     return jsonSuccess({ ticket, isAdmin });
   }
 
@@ -167,7 +167,7 @@ export async function handleSupportRoutes(request, env, url) {
   if (method === "GET" && path.startsWith("/admin/api/support/ticket/")) {
     await requireAdmin(request, env);
     const ticketId = path.replace("/admin/api/support/ticket/", "").trim();
-    const ticket = await getTicketDetail(env, ticketId, true);
+    const ticket = await getTicketDetail(env, ticketId, true, false, ctx);
     return jsonSuccess({ ticket });
   }
 

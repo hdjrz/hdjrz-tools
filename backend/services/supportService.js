@@ -166,7 +166,6 @@ export async function createTicket(env, {
   // Primary: Cloudflare D1 (Immediate Read-After-Write Consistency)
   if (env.DB) {
     try {
-      await ensureD1Tables(env);
       await env.DB.prepare(`
         INSERT INTO support_tickets (id, agent_name, device_id, role, script_version, page_url, status, created_at, updated_at, last_message, unread_admin, unread_agent, has_image)
         VALUES (?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, 1, 0, ?)
@@ -211,20 +210,23 @@ export async function createTicket(env, {
 /**
  * Retrieve full ticket details including conversation messages and screenshot
  */
-export async function getTicketDetail(env, ticketId, markAdminRead = false, markAgentRead = false) {
+export async function getTicketDetail(env, ticketId, markAdminRead = false, markAgentRead = false, ctx = null) {
   // 1. Try D1 if bound
   if (env.DB) {
     try {
-      await ensureD1Tables(env);
       const ticketRow = await env.DB.prepare(`SELECT * FROM support_tickets WHERE id = ?`).bind(ticketId).first();
       if (ticketRow) {
-        // Fast conditional unread reset: ONLY execute UPDATE if unread was actually set!
+        // Fast non-blocking unread reset via ctx.waitUntil (client gets response immediately with ZERO write lock delay)
         if (markAdminRead && ticketRow.unread_admin) {
-          await env.DB.prepare(`UPDATE support_tickets SET unread_admin = 0 WHERE id = ?`).bind(ticketId).run();
+          const p = env.DB.prepare(`UPDATE support_tickets SET unread_admin = 0 WHERE id = ?`).bind(ticketId).run();
+          if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(p);
+          else p.catch(() => {});
           ticketRow.unread_admin = 0;
         }
         if (markAgentRead && ticketRow.unread_agent) {
-          await env.DB.prepare(`UPDATE support_tickets SET unread_agent = 0 WHERE id = ?`).bind(ticketId).run();
+          const p = env.DB.prepare(`UPDATE support_tickets SET unread_agent = 0 WHERE id = ?`).bind(ticketId).run();
+          if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(p);
+          else p.catch(() => {});
           ticketRow.unread_agent = 0;
         }
 
@@ -298,7 +300,6 @@ export async function addReplyToTicket(env, ticketId, {
   // 1. Primary: Cloudflare D1
   if (env.DB) {
     try {
-      await ensureD1Tables(env);
       const ticketRow = await env.DB.prepare(`SELECT id, status FROM support_tickets WHERE id = ?`).bind(ticketId).first();
       if (ticketRow) {
         const effectiveStatus = nextStatus || ticketRow.status;
@@ -398,7 +399,6 @@ export async function updateTicketStatus(env, ticketId, status) {
 
   if (env.DB) {
     try {
-      await ensureD1Tables(env);
       await env.DB.prepare(`UPDATE support_tickets SET status = ?, updated_at = ? WHERE id = ?`).bind(status, now, ticketId).run();
     } catch (err) {
       console.warn("[supportService] D1 updateTicketStatus error:", err.message);
@@ -432,7 +432,6 @@ export async function updateTicketStatus(env, ticketId, status) {
 export async function deleteTicket(env, ticketId) {
   if (env.DB) {
     try {
-      await ensureD1Tables(env);
       await env.DB.prepare(`DELETE FROM support_messages WHERE ticket_id = ?`).bind(ticketId).run();
       await env.DB.prepare(`DELETE FROM support_tickets WHERE id = ?`).bind(ticketId).run();
     } catch (err) {
@@ -458,7 +457,6 @@ export async function getAgentTickets(env, deviceId, agentName) {
 
   if (env.DB) {
     try {
-      await ensureD1Tables(env);
       const rows = await env.DB.prepare(`
         SELECT * FROM support_tickets
         WHERE (? != '' AND device_id = ?) OR (? != '' AND agent_name = ?)
@@ -507,7 +505,6 @@ export async function getAgentTickets(env, deviceId, agentName) {
 export async function listTickets(env, { status = "", search = "", limit = 50, offset = 0 } = {}) {
   if (env.DB) {
     try {
-      await ensureD1Tables(env);
       let sql = `SELECT * FROM support_tickets WHERE 1=1`;
       const params = [];
 
@@ -598,7 +595,6 @@ export async function listTickets(env, { status = "", search = "", limit = 50, o
 export async function markAgentTicketsRead(env, deviceId, agentName, ticketId = null) {
   if (env.DB) {
     try {
-      await ensureD1Tables(env);
       if (ticketId) {
         await env.DB.prepare(`UPDATE support_tickets SET unread_agent = 0 WHERE id = ?`).bind(ticketId).run();
       } else {

@@ -157,7 +157,7 @@ export default {
       if (response) return response;
 
       // /api/support/* and /admin/api/support/*
-      response = await handleSupportRoutes(request, env, url);
+      response = await handleSupportRoutes(request, env, url, ctx);
       if (response) return response;
 
       // 5. Unmatched route

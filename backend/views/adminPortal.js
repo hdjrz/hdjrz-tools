@@ -1607,25 +1607,38 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
         renderThreadMessages(t.messages || []);
         loadSupportTickets();
 
-        if (adminThreadPollTimer) clearInterval(adminThreadPollTimer);
-        adminThreadPollTimer = setInterval(async () => {
-          if (!currentActiveTicket || modal.style.display === "none") {
-            if (adminThreadPollTimer) clearInterval(adminThreadPollTimer);
-            adminThreadPollTimer = null;
-            return;
-          }
-          try {
-            const pollRes = await apiRequest("/admin/api/support/ticket/" + currentActiveTicket.id);
-            if (pollRes && pollRes.ok && pollRes.ticket && pollRes.ticket.messages) {
-              const prevLen = (currentActiveTicket.messages || []).length;
-              if (pollRes.ticket.messages.length !== prevLen) {
-                currentActiveTicket = pollRes.ticket;
-                renderThreadMessages(pollRes.ticket.messages);
-                loadSupportTickets();
-              }
+        if (adminThreadPollTimer) clearTimeout(adminThreadPollTimer);
+        let isAdminPolling = false;
+        const scheduleAdminPoll = (delayMs = 450) => {
+          if (adminThreadPollTimer) clearTimeout(adminThreadPollTimer);
+          adminThreadPollTimer = setTimeout(async () => {
+            if (!currentActiveTicket || modal.style.display === "none") {
+              adminThreadPollTimer = null;
+              return;
             }
-          } catch (_) {}
-        }, 1200);
+            if (isAdminPolling) {
+              scheduleAdminPoll(150);
+              return;
+            }
+            isAdminPolling = true;
+            try {
+              const pollRes = await apiRequest("/admin/api/support/ticket/" + currentActiveTicket.id);
+              if (pollRes && pollRes.ok && pollRes.ticket && pollRes.ticket.messages) {
+                const prevLen = (currentActiveTicket.messages || []).length;
+                if (pollRes.ticket.messages.length !== prevLen) {
+                  currentActiveTicket = pollRes.ticket;
+                  renderThreadMessages(pollRes.ticket.messages);
+                  loadSupportTickets();
+                }
+              }
+            } catch (_) {}
+            finally {
+              isAdminPolling = false;
+              scheduleAdminPoll(450);
+            }
+          }, delayMs);
+        };
+        scheduleAdminPoll(450);
 
       } catch (err) {
         messagesWrap.innerHTML = '<div style="color: #fca5a5; padding: 14px;">Failed to load conversation: ' + escapeHtml(err.message) + '</div>';
