@@ -5,6 +5,7 @@ import { generateLicenseKey } from "../utils/crypto.js";
 import { AppError, NotFoundError, UnauthorizedError, ForbiddenError } from "../utils/errors.js";
 import { getSystemConfig, isVersionBelow, getEffectiveVersionForRole } from "./systemService.js";
 import { logAuditEvent } from "./auditService.js";
+import { removeAgentPresence } from "./agentService.js";
 
 const SYSTEM_KEYS = new Set([
   "SYSTEM_CONFIG",
@@ -303,7 +304,8 @@ export async function activateOrVerifyLicense(env, { key = "", deviceId = "", ac
     if (used && used !== cleanDevice && role !== "admin") {
       throw new ForbiddenError("Device mismatch for release", "already_used");
     }
-    await env.LICENSES.put(cleanKey, JSON.stringify({ ...row, role, deviceId: "" }));
+    await env.LICENSES.put(cleanKey, JSON.stringify({ ...row, role, deviceId: "", isOnline: false }));
+    await removeAgentPresence(env, { agent: cleanAgent || row.owner, devId: cleanDevice, key: cleanKey });
     await logAuditEvent(env, { action: "DEVICE_RELEASED", actor: cleanKey, target: cleanDevice });
     return { ok: true, role };
   }

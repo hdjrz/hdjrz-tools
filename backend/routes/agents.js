@@ -3,7 +3,7 @@
  */
 import { parseJsonBody } from "../middleware/validation.js";
 import { requireAdmin } from "../middleware/authorization.js";
-import { getActiveAgents, getAgentRoster, recordAgentHeartbeat } from "../services/agentService.js";
+import { getActiveAgents, getAgentRoster, recordAgentHeartbeat, removeAgentPresence } from "../services/agentService.js";
 import { jsonSuccess } from "../utils/response.js";
 
 export async function handleAgentRoutes(request, env, url) {
@@ -27,9 +27,39 @@ export async function handleAgentRoutes(request, env, url) {
     const activeList = await recordAgentHeartbeat(env, {
       agent: body.agent,
       version: body.version,
-      devId: body.devId
+      devId: body.devId,
+      key: body.key
     });
     return jsonSuccess({ totalActive: activeList.length });
+  }
+
+  // POST /api/agents/offline (Client tab close or signout notification)
+  if (method === "POST" && path === "/api/agents/offline") {
+    const body = await parseJsonBody(request);
+    await removeAgentPresence(env, {
+      agent: body.agent,
+      devId: body.devId,
+      key: body.key
+    });
+    return jsonSuccess({ ok: true });
+  }
+
+  // POST /api/agents/disconnect (Admin force-disconnects agent or clears ghost session)
+  if (method === "POST" && (path === "/api/agents/disconnect" || path === "/admin/api/agents/disconnect")) {
+    await requireAdmin(request, env);
+    const body = await parseJsonBody(request);
+    await removeAgentPresence(env, {
+      agent: body.agent,
+      devId: body.devId,
+      key: body.key
+    });
+    const roster = await getAgentRoster(env);
+    return jsonSuccess({
+      ok: true,
+      users: roster.activeUsers,
+      allAgents: roster.allAgents,
+      count: roster.activeUsers.length
+    });
   }
 
   return null;

@@ -146,13 +146,22 @@ export async function handleTemplateRoutes(request, env, url) {
       ? "https://hdjrz-license.rosechel05.workers.dev/script.user.js?channel=admin"
       : "https://hdjrz-license.rosechel05.workers.dev/script.user.js";
 
-    if (devId || agentName || key) {
-      await recordAgentHeartbeat(env, {
-        agent: agentName,
-        version: clientVer,
-        devId,
-        key
-      });
+    // Only record online agent presence if the request has an active, valid license key
+    if (key) {
+      try {
+        const rawLic = await env.LICENSES.get(key);
+        if (rawLic) {
+          const lic = JSON.parse(rawLic);
+          if (lic && lic.active !== false && (!lic.deviceId || !devId || lic.deviceId === devId)) {
+            await recordAgentHeartbeat(env, {
+              agent: agentName || lic.owner || "Agent",
+              version: clientVer,
+              devId,
+              key
+            });
+          }
+        }
+      } catch (e) {}
     }
 
     const tmplData = await getRemoteTemplates(env);

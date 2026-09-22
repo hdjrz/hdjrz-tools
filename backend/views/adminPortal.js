@@ -434,7 +434,10 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
       <div class="section-card">
         <div class="section-header">
           <div class="section-title"><span>📋 Currently Active Staff (Real-time Pings)</span></div>
-          <span style="font-size: 11px; color: #64748b;">Auto-refreshes every 15s</span>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button type="button" id="refresh-active-users-btn" class="btn btn-secondary btn-sm" onclick="loadActiveUsers()">🔄 Refresh</button>
+            <span style="font-size: 11px; color: #64748b;">Auto-refreshes every 15s</span>
+          </div>
         </div>
         <div class="table-wrap">
           <table>
@@ -1033,7 +1036,7 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
       document.getElementById("stat-active-count").textContent = users.length;
 
       if (!users.length) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--muted); padding: 20px;">No agents active in the last 5 minutes.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--muted); padding: 20px;">No agents active in the last 2 minutes.</td></tr>';
         return;
       }
 
@@ -1047,10 +1050,26 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
           '<td><strong>' + escapeHtml(agentName) + '</strong></td>' +
           '<td><span style="font-family: var(--font-mono); color: #60a5fa;">v' + escapeHtml(u.version || "1.0.0") + '</span></td>' +
           '<td>' + timeAgo + '</td>' +
-          '<td><button type="button" class="btn btn-secondary btn-sm" onclick="filterSupportByAgent(&quot;' + escapeHtml(agentName) + '&quot;)" style="padding: 2px 8px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">💬 View Chats</button></td>' +
+          '<td>' +
+            '<div style="display: inline-flex; align-items: center; gap: 6px;">' +
+              '<button type="button" class="btn btn-secondary btn-sm" onclick="filterSupportByAgent(&quot;' + escapeHtml(agentName) + '&quot;)" style="padding: 2px 8px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">💬 View Chats</button>' +
+              '<button type="button" class="btn btn-danger btn-sm" onclick="disconnectAgent(&quot;' + escapeHtml(agentName) + '&quot;, &quot;' + escapeHtml(u.devId || "") + '&quot;)" style="padding: 2px 8px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;" title="Set offline / force disconnect">⏹️ Disconnect</button>' +
+            '</div>' +
+          '</td>' +
         '</tr>';
       }).join("");
     }
+
+    window.disconnectAgent = async function(name, devId) {
+      if (!confirm("Force disconnect " + name + " and mark them offline?")) return;
+      const res = await apiRequest("/api/agents/disconnect", "POST", { agent: name, devId: devId });
+      if (res.ok) {
+        showToast("✓ " + name + " marked offline.");
+        loadActiveUsers();
+      } else {
+        alert("Failed to disconnect: " + (res.error || "Unknown error"));
+      }
+    };
 
     window.filterSupportByAgent = function(name) {
       const sec = document.getElementById("section-support-tickets");

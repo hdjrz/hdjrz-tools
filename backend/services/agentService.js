@@ -2,7 +2,56 @@
  * Agent Activity & Telemetry Service
  */
 
-const ACTIVE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+const ACTIVE_TIMEOUT_MS = 90 * 1000; // 90 seconds (1.5 minutes)
+
+/**
+ * Remove an agent presence from active roster (e.g. on sign out, tab close, or admin disconnect)
+ */
+export async function removeAgentPresence(env, { agent = "", devId = "", key = "" } = {}) {
+  let activeMap = {};
+  try {
+    const raw = await env.LICENSES.get("ACTIVE_AGENTS");
+    if (raw) activeMap = JSON.parse(raw);
+  } catch (e) {}
+
+  const cleanAgent = String(agent || "").trim().toLowerCase();
+  const cleanDev = String(devId || "").trim();
+  const cleanKey = String(key || "").trim();
+
+  let changed = false;
+  for (const k in activeMap) {
+    const item = activeMap[k];
+    if (!item) continue;
+    const matchDev = cleanDev && (item.devId === cleanDev || k === cleanDev);
+    const matchKey = cleanKey && (item.key === cleanKey || k === "key_" + cleanKey);
+    const matchAgent = cleanAgent && cleanAgent !== "agent" && String(item.agent || "").trim().toLowerCase() === cleanAgent;
+
+    if (matchDev || matchKey || matchAgent) {
+      delete activeMap[k];
+      changed = true;
+    }
+  }
+
+  if (changed) {
+    try {
+      await env.LICENSES.put("ACTIVE_AGENTS", JSON.stringify(activeMap));
+    } catch (e) {}
+  }
+
+  // Also if key is provided, update license record isOnline: false
+  if (cleanKey) {
+    try {
+      const rawLic = await env.LICENSES.get(cleanKey);
+      if (rawLic) {
+        const licData = JSON.parse(rawLic);
+        licData.isOnline = false;
+        await env.LICENSES.put(cleanKey, JSON.stringify(licData));
+      }
+    } catch (e) {}
+  }
+
+  return Object.values(activeMap);
+}
 
 /**
  * Record an agent presence heartbeat
@@ -16,7 +65,7 @@ export async function recordAgentHeartbeat(env, { agent = "Agent", version = "1.
 
   const now = Date.now();
 
-  // Prune agents inactive for > 5 minutes
+  // Prune agents inactive for > 90 seconds
   for (const k in activeMap) {
     if (!activeMap[k] || (now - (activeMap[k].lastSeen || 0)) > ACTIVE_TIMEOUT_MS) {
       delete activeMap[k];

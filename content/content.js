@@ -156,7 +156,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.8.2";
+  const HARDCODED_VERSION = "1.8.3";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -176,9 +176,22 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.8.3",
+      title: "Real-Time Agent Presence & Instant Offline Synchronization",
+      date: "Latest",
+      agentFeatures: [
+        "🔒 Instant Sign-Out Sync: Signing out or releasing device immediately revokes online presence across all Admin panels.",
+        "⚡ Pagehide Offline Beacon: Closing browser tabs automatically signals offline status with sub-second Edge cleanup."
+      ],
+      adminFeatures: [
+        "⏹️ Force Disconnect Action: Admins can manually disconnect and mark offline any active agent or ghost session in 1 click.",
+        "🔄 Instant Roster Refresh: Added dedicated manual Refresh button and shortened presence timeout to 90s."
+      ]
+    },
+    {
       version: "1.8.2",
       title: "Admin Portal Script Parsing Fix & Case-Insensitive Auth",
-      date: "Latest",
+      date: "v1.8.2",
       agentFeatures: [
         "🔔 Direct Admin Messages: Instantly receive direct messages initiated by Admin with immediate unread sound chime, badge indicators, and thread sync.",
         "⚡ Sub-Second Delivery: Seamless two-way conversational message delivery with zero delay."
@@ -967,15 +980,23 @@
     api.get(["hdjrzLicenseKey", "hdjrzLicenseDeviceId"], (data) => {
       const key = data && String(data.hdjrzLicenseKey || "").trim();
       const deviceId = data && String(data.hdjrzLicenseDeviceId || "").trim();
-      if (!key || !deviceId) {
+      const agent = String(currentSettings.agentName || "").trim();
+      if (!key && !deviceId) {
         done();
         return;
       }
       sendWorkerRequest({
         url: LICENSE_ACTIVATE_URL,
         method: "POST",
-        data: { key, deviceId, action: "release" }
-      }, () => done());
+        data: { key, deviceId, action: "release", agent }
+      }, () => {
+        // Also explicitly remove agent presence
+        sendWorkerRequest({
+          url: "https://hdjrz-license.rosechel05.workers.dev/api/agents/offline",
+          method: "POST",
+          data: { key, devId: deviceId, agent }
+        }, () => done());
+      });
     });
   }
 
@@ -1698,13 +1719,16 @@
     };
 
     getCreds((devId, key) => {
-      const agent = encodeURIComponent(currentSettings.agentName || "");
+      // Do not broadcast agent presence if not logged in with an active license
+      const hasActiveLicense = !!(key && (licenseRole === "admin" || licenseRole === "guest"));
+      const agent = hasActiveLicense ? encodeURIComponent(currentSettings.agentName || "") : "";
+      const dev = hasActiveLicense ? encodeURIComponent(devId || "") : "";
       const v = encodeURIComponent(SCRIPT_VERSION);
       const tmplVer = currentSettings.remoteTemplatesVersion || 0;
       const domain = encodeURIComponent((typeof window !== "undefined" && window.location && window.location.hostname) || "");
       const k = encodeURIComponent(key || "");
       const roleParam = isAdminLicense() ? "admin" : "guest";
-      const url = `${REMOTE_CONFIG_URL}?agent=${agent}&v=${v}&tmpl_v=${tmplVer}&dev=${encodeURIComponent(devId)}&key=${k}&role=${roleParam}&domain=${domain}&_t=${Date.now()}`;
+      const url = `${REMOTE_CONFIG_URL}?agent=${agent}&v=${v}&tmpl_v=${tmplVer}&dev=${dev}&key=${k}&role=${roleParam}&domain=${domain}&_t=${Date.now()}`;
 
       sendWorkerRequest({ url, method: "GET" }, (err, json) => {
         if (err || !json) {
@@ -2890,6 +2914,25 @@
     };
     ["mousemove", "keydown", "click", "scroll", "touchstart"].forEach(evtName => {
       window.addEventListener(evtName, onUserActivityHeartbeat, { passive: true });
+    });
+
+    window.addEventListener("pagehide", () => {
+      try {
+        const api = localStorageApi();
+        if (api && currentSettings.agentName) {
+          api.get(["hdjrzLicenseKey", "hdjrzLicenseDeviceId"], (d) => {
+            const k = d && d.hdjrzLicenseKey;
+            const dev = d && d.hdjrzLicenseDeviceId;
+            if (k || dev) {
+              const beaconUrl = "https://hdjrz-license.rosechel05.workers.dev/api/agents/offline";
+              const payload = JSON.stringify({ agent: currentSettings.agentName, devId: dev, key: k });
+              if (navigator.sendBeacon) {
+                navigator.sendBeacon(beaconUrl, new Blob([payload], { type: "application/json" }));
+              }
+            }
+          });
+        }
+      } catch (_) {}
     });
   }
 
