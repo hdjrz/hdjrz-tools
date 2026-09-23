@@ -156,7 +156,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.8.4";
+  const HARDCODED_VERSION = "1.8.5";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -176,9 +176,21 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.8.5",
+      title: "Settings Modal Layout Fix & HTML Balance Restoration",
+      date: "Latest",
+      agentFeatures: [
+        "🎨 Clean Modal Architecture: Restored HTML tag balance in Settings Cloud & Backup panel.",
+        "🖥️ Full-Width Content Panels: Escalation Buttons and all categories now expand across the full modal width with proper footer docking."
+      ],
+      adminFeatures: [
+        "Layout Bug Fix: Fixed misplaced closing tags that caused the footer to render side-by-side with settings panels."
+      ]
+    },
+    {
       version: "1.8.4",
       title: "Master Admin Template Deployment Pipeline & Draft Sync",
-      date: "Latest",
+      date: "Previous",
       agentFeatures: [
         "🚀 Auto-Sync Admin Settings: Custom button updates in Admin Settings now directly sync to the Master Admin Draft Pipeline.",
         "✏️ Master Admin JSON Editor: Directly inspect, modify, and format pending Draft escalation templates before publishing.",
@@ -6363,6 +6375,7 @@
                 <p class="esc-panel-desc">Synchronize button templates across your team or export/import configuration files.</p>
               </div>
 
+              <!-- Card 1: Cloud Templates Synchronization -->
               <div class="esc-cloud-section-card">
                 <div class="esc-cloud-card-header">
                   <div class="esc-cloud-card-info">
@@ -6389,21 +6402,24 @@
                   </div>
                 </div>
                 `}
+              </div>
 
-                ${staffView ? "" : `
-                <div class="esc-cloud-section-card" style="margin-top: 10px; border-color: rgba(37, 99, 235, 0.4); background: rgba(37, 99, 235, 0.05);">
-                  <div class="esc-cloud-card-header">
-                    <div class="esc-cloud-card-info">
-                      <span class="esc-cloud-title" style="color: #60a5fa; font-weight: 700;">🚀 Push to Master Admin Pipeline</span>
-                      <span class="esc-cloud-subtitle">Push your current button settings as a staging draft to the Master Admin Portal to review diffs and publish to all agents.</span>
-                    </div>
-                    <button type="button" class="esc-btn-primary" id="esc-settings-push-draft" style="background: #2563eb; padding: 6px 16px; font-weight: 700; white-space: nowrap;">
-                      🚀 Push to Pipeline
-                    </button>
+              <!-- Card 2: Push to Master Admin Pipeline -->
+              ${staffView ? "" : `
+              <div class="esc-cloud-section-card" style="margin-top: 10px; border-color: rgba(37, 99, 235, 0.4); background: rgba(37, 99, 235, 0.05);">
+                <div class="esc-cloud-card-header">
+                  <div class="esc-cloud-card-info">
+                    <span class="esc-cloud-title" style="color: #60a5fa; font-weight: 700;">🚀 Push to Master Admin Pipeline</span>
+                    <span class="esc-cloud-subtitle">Push your current button settings as a staging draft to the Master Admin Portal to review diffs and publish to all agents.</span>
                   </div>
+                  <button type="button" class="esc-btn-primary" id="esc-settings-push-draft" style="background: #2563eb; padding: 6px 16px; font-weight: 700; white-space: nowrap;">
+                    🚀 Push to Pipeline
+                  </button>
                 </div>
-                `}
+              </div>
+              `}
 
+              <!-- Card 3: Local Backup & Restore -->
               <div class="esc-cloud-section-card" style="margin-top: 10px;">
                 <div class="esc-cloud-card-header">
                   <div class="esc-cloud-card-info">
