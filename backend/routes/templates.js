@@ -19,8 +19,9 @@ import { jsonSuccess, jsonError } from "../utils/response.js";
 import { ForbiddenError, AppError } from "../utils/errors.js";
 
 async function authenticateAdminOrAdminLicense(request, env, body = {}) {
-  const licenseKey = body.key || request.headers.get("X-License-Key") || "";
-  if (licenseKey) {
+  const url = new URL(request.url);
+  const licenseKey = String(body.key || request.headers.get("X-License-Key") || url.searchParams.get("key") || "").trim();
+  if (licenseKey && (licenseKey.toUpperCase().startsWith("HDJRZ-ADMIN-") || licenseKey.toUpperCase().startsWith("HDJRZ-"))) {
     const license = await requireActiveLicense(env, licenseKey);
     if (license.role !== "admin") {
       throw new ForbiddenError("Admin license key required to perform this action", "admin_required");

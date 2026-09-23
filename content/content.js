@@ -156,7 +156,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.8.3";
+  const HARDCODED_VERSION = "1.8.4";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -176,9 +176,23 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.8.4",
+      title: "Master Admin Template Deployment Pipeline & Draft Sync",
+      date: "Latest",
+      agentFeatures: [
+        "🚀 Auto-Sync Admin Settings: Custom button updates in Admin Settings now directly sync to the Master Admin Draft Pipeline.",
+        "✏️ Master Admin JSON Editor: Directly inspect, modify, and format pending Draft escalation templates before publishing.",
+        "📊 Seamless Pipeline Release: 1-click publishing increments production version and distributes updates instantly to all agents."
+      ],
+      adminFeatures: [
+        "Cloud Draft Pipeline: Admin settings modal features dedicated 'Push to Master Admin Pipeline' action.",
+        "Portal JSON Editor: Master Admin Portal allows direct in-browser inspection and editing of draft escalation JSON."
+      ]
+    },
+    {
       version: "1.8.3",
       title: "Real-Time Agent Presence & Instant Offline Synchronization",
-      date: "Latest",
+      date: "Previous",
       agentFeatures: [
         "🔒 Instant Sign-Out Sync: Signing out or releasing device immediately revokes online presence across all Admin panels.",
         "⚡ Pagehide Offline Beacon: Closing browser tabs automatically signals offline status with sub-second Edge cleanup."
@@ -6375,7 +6389,20 @@
                   </div>
                 </div>
                 `}
-              </div>
+
+                ${staffView ? "" : `
+                <div class="esc-cloud-section-card" style="margin-top: 10px; border-color: rgba(37, 99, 235, 0.4); background: rgba(37, 99, 235, 0.05);">
+                  <div class="esc-cloud-card-header">
+                    <div class="esc-cloud-card-info">
+                      <span class="esc-cloud-title" style="color: #60a5fa; font-weight: 700;">🚀 Push to Master Admin Pipeline</span>
+                      <span class="esc-cloud-subtitle">Push your current button settings as a staging draft to the Master Admin Portal to review diffs and publish to all agents.</span>
+                    </div>
+                    <button type="button" class="esc-btn-primary" id="esc-settings-push-draft" style="background: #2563eb; padding: 6px 16px; font-weight: 700; white-space: nowrap;">
+                      🚀 Push to Pipeline
+                    </button>
+                  </div>
+                </div>
+                `}
 
               <div class="esc-cloud-section-card" style="margin-top: 10px;">
                 <div class="esc-cloud-card-header">
@@ -7370,6 +7397,43 @@
       });
     }
 
+    const pushDraftBtn = overlay.querySelector("#esc-settings-push-draft");
+    if (pushDraftBtn) {
+      pushDraftBtn.addEventListener("click", () => {
+        syncCardInputsToWorkingOptions();
+        const api = localStorageApi();
+        if (!api) return showToast("Storage API unavailable");
+        pushDraftBtn.disabled = true;
+        pushDraftBtn.textContent = "Pushing to Pipeline...";
+        api.get(["hdjrzLicenseKey"], (data) => {
+          const key = (data && String(data.hdjrzLicenseKey || "").trim()) || "";
+          if (!key) {
+            pushDraftBtn.disabled = false;
+            pushDraftBtn.textContent = "🚀 Push to Pipeline";
+            return showToast("Admin license key required");
+          }
+          sendWorkerRequest({
+            url: "https://hdjrz-license.rosechel05.workers.dev/api/templates/draft",
+            method: "POST",
+            data: {
+              key,
+              options: workingOptions,
+              notes: "Manual push from Admin Tool Settings (" + (currentSettings.agentName || "Admin") + ")"
+            }
+          }, (err, res) => {
+            pushDraftBtn.disabled = false;
+            pushDraftBtn.textContent = "🚀 Push to Pipeline";
+            if (!err && res && res.ok) {
+              showToast("✅ Successfully staged to Master Admin Draft Pipeline! Open Web Admin Portal to publish.");
+            } else {
+              const msg = (res && (res.message || res.error)) || err || "Failed to push";
+              showToast("⚠️ Push failed: " + msg);
+            }
+          });
+        });
+      });
+    }
+
     overlay.querySelector("#esc-settings-signout").addEventListener("click", () => {
       releaseLicenseOnServer(() => {
         persistLicenseRole("", () => {
@@ -7427,18 +7491,40 @@
               api.get(["hdjrzLicenseKey"], (data) => {
                 const key = (data && String(data.hdjrzLicenseKey || "").trim()) || "";
                 if (key) {
+                  // 1. Sync fleet sound
                   sendWorkerRequest({
                     url: "https://hdjrz-license.rosechel05.workers.dev/config/system",
                     method: "POST",
                     data: { key, fleetSuccessSound: chosenSound }
                   }, () => {});
+
+                  // 2. Automatically sync options to Master Admin Draft Pipeline!
+                  sendWorkerRequest({
+                    url: "https://hdjrz-license.rosechel05.workers.dev/api/templates/draft",
+                    method: "POST",
+                    data: {
+                      key,
+                      options: optionsToSave,
+                      notes: "Updated from Admin Tool Settings (" + (currentSettings.agentName || "Admin") + ")"
+                    }
+                  }, (draftErr, draftRes) => {
+                    if (!draftErr && draftRes && draftRes.ok) {
+                      showToast("✅ Saved locally & synced to Master Admin Draft Pipeline! Review and publish in Web Admin.");
+                    } else {
+                      const detail = (draftRes && (draftRes.message || draftRes.error)) || draftErr || "Unknown error";
+                      console.warn("[hdjrzTools] Template draft sync failed:", detail);
+                      showToast("⚠️ Saved locally, but draft sync failed: " + detail);
+                    }
+                  });
                 }
               });
             }
+            showToast("Saved. Syncing to Master Admin Pipeline...");
+          } else {
+            showToast("Saved.");
+            fetchRemoteTemplates(() => {});
           }
-          showToast("Saved.");
           closeSettings();
-          fetchRemoteTemplates(() => {});
         });
       } catch (err) {
         console.error("[hdjrzTools] Error saving settings:", err);

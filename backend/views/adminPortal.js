@@ -484,6 +484,7 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
             <button type="button" id="pipeline-load-esc-btn" class="btn btn-secondary btn-sm">📥 Load from Escalation Library</button>
             <button type="button" id="pipeline-validate-btn" class="btn btn-secondary btn-sm">🔍 Validate Draft</button>
             <button type="button" id="pipeline-preview-btn" class="btn btn-secondary btn-sm">👁️ Preview & Diff</button>
+            <button type="button" id="pipeline-edit-draft-btn" class="btn btn-secondary btn-sm">✏️ Edit Draft JSON</button>
             <button type="button" id="pipeline-discard-btn" class="btn btn-danger btn-sm">↺ Discard Draft</button>
           </div>
           <div>
@@ -657,6 +658,36 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
   </div>
 
   <div id="toast" class="toast"></div>
+
+  <!-- Edit Draft JSON Modal -->
+  <div id="modal-edit-draft" class="modal-overlay" style="display:none;">
+    <div class="modal-card" style="max-width: 720px;">
+      <div class="modal-header">
+        <div>
+          <h2 style="font-size: 16px; font-weight: 800; color: #fff; letter-spacing: 0.5px;">EDIT DRAFT OPTIONS (JSON)</h2>
+          <div style="font-size: 12px; color: var(--muted); margin-top: 2px;">Directly modify or inspect the pending Draft escalation buttons</div>
+        </div>
+        <button type="button" id="edit-draft-modal-close-x" class="btn btn-secondary btn-sm" style="padding: 2px 8px;">✕</button>
+      </div>
+
+      <div style="margin-bottom: 12px;">
+        <div style="font-size: 12px; color: #cbd5e1; margin-bottom: 6px;">Draft Options JSON Array:</div>
+        <textarea id="edit-draft-json-textarea" spellcheck="false" style="width: 100%; height: 320px; background: #060c18; border: 1px solid #334155; border-radius: 6px; padding: 10px 12px; color: #38bdf8; font-family: var(--font-mono); font-size: 12px; resize: vertical; outline: none;"></textarea>
+      </div>
+
+      <div id="edit-draft-error-box" style="margin-bottom: 14px; padding: 10px 14px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 6px; font-size: 12px; color: #fca5a5; display: none;"></div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 14px; border-top: 1px solid #1e293b;">
+        <button type="button" id="edit-draft-format-btn" class="btn btn-secondary btn-sm" style="font-size: 12px;">✨ Format JSON</button>
+        <div style="display: flex; gap: 10px;">
+          <button type="button" id="edit-draft-cancel-btn" class="btn btn-secondary btn-sm" style="padding: 8px 18px; font-size: 13px;">Cancel</button>
+          <button type="button" id="edit-draft-save-btn" class="btn btn-primary btn-sm" style="background: #2563eb; border: 1px solid #1d4ed8; padding: 8px 18px; font-size: 13px;">
+            💾 Save to Draft
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Pre-Publish Validation Modal (Phase 12) -->
   <div id="validation-modal" class="modal-overlay" style="display:none;">
@@ -1323,6 +1354,84 @@ export const ADMIN_PORTAL_HTML = `<!DOCTYPE html>
           loadPipelineStatus();
         } else {
           alert("Error: " + res.error);
+        }
+      });
+    }
+
+    // Edit Draft JSON Modal Logic
+    const editDraftModal = document.getElementById("modal-edit-draft");
+    const editDraftBtn = document.getElementById("pipeline-edit-draft-btn");
+    const editDraftCloseX = document.getElementById("edit-draft-modal-close-x");
+    const editDraftCancelBtn = document.getElementById("edit-draft-cancel-btn");
+    const editDraftSaveBtn = document.getElementById("edit-draft-save-btn");
+    const editDraftFormatBtn = document.getElementById("edit-draft-format-btn");
+    const editDraftTextarea = document.getElementById("edit-draft-json-textarea");
+    const editDraftErrorBox = document.getElementById("edit-draft-error-box");
+
+    function closeEditDraftModal() {
+      if (editDraftModal) editDraftModal.style.display = "none";
+    }
+
+    if (editDraftCloseX) editDraftCloseX.addEventListener("click", closeEditDraftModal);
+    if (editDraftCancelBtn) editDraftCancelBtn.addEventListener("click", closeEditDraftModal);
+
+    if (editDraftFormatBtn) {
+      editDraftFormatBtn.addEventListener("click", () => {
+        try {
+          const parsed = JSON.parse(editDraftTextarea.value);
+          editDraftTextarea.value = JSON.stringify(parsed, null, 2);
+          editDraftErrorBox.style.display = "none";
+        } catch (e) {
+          editDraftErrorBox.textContent = "Invalid JSON: " + e.message;
+          editDraftErrorBox.style.display = "block";
+        }
+      });
+    }
+
+    if (editDraftBtn) {
+      editDraftBtn.addEventListener("click", () => {
+        const options = (currentPipelineData && currentPipelineData.options) || [];
+        editDraftTextarea.value = JSON.stringify(options, null, 2);
+        editDraftErrorBox.style.display = "none";
+        if (editDraftModal) editDraftModal.style.display = "flex";
+      });
+    }
+
+    if (editDraftSaveBtn) {
+      editDraftSaveBtn.addEventListener("click", async () => {
+        let parsed;
+        try {
+          parsed = JSON.parse(editDraftTextarea.value);
+          if (!Array.isArray(parsed)) {
+            throw new Error("Draft options must be a JSON array of escalation objects.");
+          }
+        } catch (err) {
+          editDraftErrorBox.textContent = "JSON Error: " + err.message;
+          editDraftErrorBox.style.display = "block";
+          return;
+        }
+
+        editDraftSaveBtn.disabled = true;
+        editDraftSaveBtn.textContent = "Saving...";
+        try {
+          const res = await apiRequest("/api/templates/draft", "POST", {
+            options: parsed,
+            notes: "Updated via Admin Portal JSON Editor"
+          });
+          if (res.ok) {
+            closeEditDraftModal();
+            showToast("✓ Draft saved! (" + parsed.length + " buttons)");
+            loadPipelineStatus();
+          } else {
+            editDraftErrorBox.textContent = res.error || "Failed to save draft.";
+            editDraftErrorBox.style.display = "block";
+          }
+        } catch (err) {
+          editDraftErrorBox.textContent = "Network error: " + err.message;
+          editDraftErrorBox.style.display = "block";
+        } finally {
+          editDraftSaveBtn.disabled = false;
+          editDraftSaveBtn.textContent = "💾 Save to Draft";
         }
       });
     }
