@@ -804,8 +804,16 @@ function renderEscalationNote(templateStr, data) {
   const meaningVal = data.meaning || "";
   const codeVal = data.code || "";
   const nameVal = data.name || "";
-  const dobVal = data.dob || data.dateOfBirth || "";
-  const ageVal = data.age || ageFromDob(dobVal);
+  let dobVal = data.dob || data.dateOfBirth || "";
+  let ageVal = data.age || "";
+  if (dobVal) {
+    const m = String(dobVal).match(/^(.*?)\s*\(\s*(\d{1,3}(?:\s*(?:yo|y\/o|yrs?|years?))?)\s*\)\s*$/i);
+    if (m) {
+      dobVal = m[1].trim();
+      if (!ageVal) ageVal = m[2].trim();
+    }
+  }
+  if (!ageVal && dobVal) ageVal = ageFromDob(dobVal);
   const pagcorInfo = getPagcorAgeInfo(dobVal);
 
   const replacements = {

@@ -156,7 +156,7 @@
     return false;
   }
 
-  const HARDCODED_VERSION = "1.8.5";
+  const HARDCODED_VERSION = "1.8.6";
   const DYNAMIC_VER = (typeof GM_getValue === "function" && GM_getValue("HDJRZ_DYNAMIC_VERSION"))
     || (typeof localStorage !== "undefined" && localStorage.getItem("hdjrz_dynamic_version"))
     || null;
@@ -176,9 +176,23 @@
 
   const CHANGELOG_HISTORY = [
     {
+      version: "1.8.6",
+      title: "Complete Name & Middle Name Detection with Multi-Delimiter DOB Parser",
+      date: "Latest",
+      agentFeatures: [
+        "🪪 Complete Full Name Support: Retains 3-, 4-, and 5-word complete legal names including middle names/maternal names without truncating to 2 words.",
+        "⚡ Multi-Delimiter User Notes Parsing: Intelligently detects player names and DOB across notes delimited by `//`, `/`, `|`, and ` - `.",
+        "👤 Author Isolation: Perfectly isolates the player's full name from preceding CSR / staff timestamps and author names.",
+        "🎯 Clean Template Rendering: Sanitizes parenthetical age suffixes to eliminate duplicate `(age) (age)` output in NGP and escalation notes."
+      ],
+      adminFeatures: [
+        "Attribute Matching: Expanded user profile key scanning to include middle name, second name, maternal maiden name, real name, and legal name."
+      ]
+    },
+    {
       version: "1.8.5",
       title: "Settings Modal Layout Fix & HTML Balance Restoration",
-      date: "Latest",
+      date: "Previous",
       agentFeatures: [
         "🎨 Clean Modal Architecture: Restored HTML tag balance in Settings Cloud & Backup panel.",
         "🖥️ Full-Width Content Panels: Escalation Buttons and all categories now expand across the full modal width with proper footer docking."
@@ -2349,8 +2363,16 @@
     const combined = (data && data.userCombined) || (publicId ? `${numericId} (${publicId})` : numericId);
     const reasonVal = (data && data.reason) || "";
     const meaningVal = (data && data.meaning) || "";
-    const codeVal = (data && data.code) || "";
-    const rawDob = (data && (data.dob || data.dateOfBirth)) || "";
+    let rawDob = (data && (data.dob || data.dateOfBirth)) || "";
+    let ageVal = (data && data.age) || "";
+    if (rawDob) {
+      const m = String(rawDob).match(/^(.*?)\s*\(\s*(\d{1,3}(?:\s*(?:yo|y\/o|yrs?|years?))?)\s*\)\s*$/i);
+      if (m) {
+        rawDob = m[1].trim();
+        if (!ageVal) ageVal = m[2].trim();
+      }
+    }
+    if (!ageVal && rawDob) ageVal = ageFromDob(rawDob);
     const pagcor = getPagcorAgeInfo(rawDob);
 
     const replacements = {
@@ -2362,10 +2384,10 @@
       "[Name]": (data && data.name) || "",
       "[DOB]": rawDob,
       "[Dob]": rawDob,
-      "[AGE]": (data && data.age) || ageFromDob(rawDob),
+      "[AGE]": ageVal,
       "[PAGCOR AGE]": pagcor ? pagcor.bracket : "",
       "[AGE BRACKET]": pagcor ? pagcor.bracket : "",
-      "[AGE WITH STATUS]": pagcor ? pagcor.noteText : ((data && data.age) || ageFromDob(rawDob)),
+      "[AGE WITH STATUS]": pagcor ? pagcor.noteText : ageVal,
       "[Verified UID]": (data && data.verifiedUid) || "",
       "[New Account UID]": (data && data.newAccountUid) || "",
       "[Rejected accounts]": (data && data.rejectedAccounts) || "",
@@ -3369,7 +3391,7 @@
       }
       return;
     }
-    if (/^((glife|mayaminiapp|maya)[-_\s]*)?middle[-_\s]*name$/i.test(key)) {
+    if (/^((glife|mayaminiapp|maya)[-_\s]*)?(middle[-_\s]*name|second[-_\s]*name|maternal[-_\s]*(maiden[-_\s]*)?name|middle[-_\s]*initial)$/i.test(key)) {
       if (!isBlankPersonValue(value)) {
         if (isSpecialApp) out.middleName = out.middleName || value;
         else out.middleName = value;
@@ -3383,7 +3405,7 @@
       }
       return;
     }
-    if (/^((glife|mayaminiapp|maya)[-_\s]*)?(full[-_\s]*name|fullname)$/i.test(key) || /^((glife|mayaminiapp|maya)[-_\s]+)?name$/i.test(key)) {
+    if (/^((glife|mayaminiapp|maya)[-_\s]*)?(full[-_\s]*name|fullname|real[-_\s]*name|realname|player[-_\s]*name|complete[-_\s]*name|account[-_\s]*name|legal[-_\s]*name)$/i.test(key) || /^((glife|mayaminiapp|maya)[-_\s]+)?name$/i.test(key)) {
       if (!isBlankPersonValue(value)) out.fullName = out.fullName || value;
       return;
     }
@@ -3441,8 +3463,14 @@
       applyUserAttributePair(out, label.textContent, value);
     });
 
-    out.name = [out.firstName, out.middleName, out.lastName].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
-    if (!out.name && out.fullName) out.name = String(out.fullName).replace(/\s+/g, " ").trim();
+    const combinedParts = [out.firstName, out.middleName, out.lastName].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
+    const cleanFull = String(out.fullName || "").replace(/\s+/g, " ").trim();
+    // Prefer full name if it contains more name parts (e.g. includes middle name not captured separately), otherwise use combined parts
+    if (cleanFull && (!combinedParts || cleanFull.split(/\s+/).length > combinedParts.split(/\s+/).length)) {
+      out.name = cleanFull;
+    } else {
+      out.name = combinedParts || cleanFull;
+    }
     return out;
   }
 
@@ -3618,14 +3646,88 @@
     if (!card) return [];
     const list = card.querySelector(".conversation-list") || card;
     const nodes = Array.from(list.querySelectorAll("p, li, .chat-message, .message, [class*='comment']"));
-    const texts = nodes
-      .map(el => String(el.innerText || el.textContent || "").replace(/\s+/g, " ").trim())
-      .filter(t => t && t.length > 2 && !/^User\s+Notes/i.test(t));
+    const texts = [];
+    nodes.forEach(el => {
+      const raw = String(el.innerText || el.textContent || "").trim();
+      raw.split(/\n+/).forEach(l => {
+        const cleaned = l.replace(/\s+/g, " ").trim();
+        if (cleaned && cleaned.length > 2 && !/^User\s+Notes/i.test(cleaned)) {
+          texts.push(cleaned);
+        }
+      });
+      const collapsed = raw.replace(/\s+/g, " ").trim();
+      if (collapsed && collapsed.length > 2 && !texts.includes(collapsed)) {
+        texts.push(collapsed);
+      }
+    });
     if (texts.length) return texts;
     return String(card.innerText || "")
       .split(/\n/)
       .map(t => t.trim())
       .filter(t => t && !/^User\s+Notes/i.test(t) && t.length > 2);
+  }
+
+  function cleanCandidateName(text) {
+    let s = String(text || "")
+      .replace(/^NOT\s*OK\s+for\s+RETAKE\s*:\s*/gi, " ")
+      .replace(/\bDoc-?UA\b\s*/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    s = s.replace(/^[\|\/\-–—:\s]+|[\|\/\-–—:\s]+$/g, "").trim();
+    const words = s.split(/\s+/).filter(Boolean);
+    if (words.length < 2) return "";
+    // If text has author preceding all-caps name (e.g. "Janilin Domingo DANIELLA JOY FLORES DICION")
+    const caps = [];
+    for (let i = words.length - 1; i >= 0; i--) {
+      const w = words[i];
+      if (/^(JR|SR|II|III|IV)\.?$/i.test(w) || /^[A-ZÁÉÍÓÚÜÑ][A-ZÁÉÍÓÚÜÑ'\-]{1,}$/.test(w)) {
+        caps.unshift(w);
+      } else {
+        break;
+      }
+    }
+    if (caps.length >= 2) return caps.join(" ");
+    if (words.every(w => /^(JR|SR|II|III|IV)\.?$/i.test(w) || /^[A-ZÁÉÍÓÚÜÑ][A-Za-záéíóúüñ'\-]{1,}$/.test(w))) {
+      return words.join(" ");
+    }
+    return "";
+  }
+
+  function parseDelimitedNameDob(text) {
+    let raw = stripNoteTimestamp(text).replace(/\s+/g, " ").trim();
+    const parts = raw.split(/\s*(?:\/\/|\/{2,}|\||\s\/\s|\s+[-–—]\s+)\s*/).map(p => p.trim()).filter(Boolean);
+    if (parts.length < 2) {
+      const slashParts = raw.split(/\s*\/\s*/).map(p => p.trim()).filter(Boolean);
+      if (slashParts.length >= 2) return parseDelimitedSegments(slashParts);
+      return { name: "", dob: "", age: "" };
+    }
+    return parseDelimitedSegments(parts);
+  }
+
+  function parseDelimitedSegments(parts) {
+    let name = "";
+    let dob = "";
+    let age = "";
+
+    for (let i = 0; i < parts.length; i++) {
+      const p = parts[i];
+      const dateM = p.match(/\b([0-9]{1,2}\s+[A-Za-z]{3,9},?\s+[0-9]{4}|\d{4}-\d{2}-\d{2}|\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})\b/i);
+      if (dateM && !dob) {
+        dob = dateM[1].trim();
+        const ageM = p.match(/\((\d{1,3})\s*(?:yo|y\/o|yrs?|years?)?\)/i) || p.match(/\b(?:age|aged)\s*[:\-]?\s*(\d{1,3})\b/i);
+        if (ageM) age = ageM[1];
+      }
+    }
+
+    for (let i = 0; i < parts.length; i++) {
+      const p = parts[i];
+      if (dob && p.includes(dob)) continue;
+      if (/^(UA|Doc-UA|Doc\s*UA|NOT\s*OK.*|RETAKE|R\.UA|UNDERAGE|FOR\s*BLOCKING)$/i.test(p)) continue;
+      const cand = cleanCandidateName(p);
+      if (cand && !name) name = cand;
+    }
+
+    return { name, dob, age };
   }
 
   function splitPipeNameDob(text) {
@@ -3653,7 +3755,7 @@
   function isBareNotOkNote(text) {
     const t = stripNoteTimestamp(text).replace(/\s+/g, " ").trim();
     if (!/NOT\s*OK/i.test(t)) return false;
-    if (noteHasDateToken(t) || /\|/.test(t)) return false;
+    if (noteHasDateToken(t) || /\|/.test(t) || /\/{2,}/.test(t)) return false;
     const stripped = stripNgpUaNotePrefix(t);
     if (looksLikePersonName(stripped)) return false;
     return true;
@@ -3661,7 +3763,7 @@
 
   function splitTwoPartNameDob(text) {
     const raw = stripNgpUaNotePrefix(stripNoteTimestamp(text)).replace(/\s+/g, " ").trim();
-    const dobAt = raw.match(/\|\s*([0-9]{1,2}\s+[A-Za-z]{3,9},?\s+[0-9]{4})/i);
+    const dobAt = raw.match(/(?:\||\/{2,}|\s\/\s|\s+[-–—]\s+)\s*([0-9]{1,2}\s+[A-Za-z]{3,9},?\s+[0-9]{4})/i);
     if (!dobAt || typeof dobAt.index !== "number") return { name: "", dob: "" };
     const dob = dobAt[1].replace(/\s+/g, " ").trim();
     const before = raw.slice(0, dobAt.index).replace(/[\s|\/\-–—]+$/g, "").trim();
@@ -3741,14 +3843,17 @@
   }
 
   function takeParsedNameDob(found, parsed) {
+    if (!parsed) return;
     if (!found.name && parsed.name && !isBlankPersonValue(parsed.name)) found.name = parsed.name;
     if (!found.dob && parsed.dob && !isBlankPersonValue(parsed.dob)) found.dob = parsed.dob;
+    if (!found.age && parsed.age) found.age = parsed.age;
   }
 
   function parseNameDobFromUserNotes(notes) {
-    const found = { name: "", dob: "" };
+    const found = { name: "", dob: "", age: "" };
     const list = notes || [];
     function applyNoteParsers(cleaned) {
+      takeParsedNameDob(found, parseDelimitedNameDob(cleaned));
       takeParsedNameDob(found, splitPipeNameDob(cleaned));
       takeParsedNameDob(found, splitTwoPartNameDob(cleaned));
       takeParsedNameDob(found, parseLabeledNameDob(cleaned));
@@ -4203,7 +4308,7 @@
   }
 
   function scrapeNoteFillExtras(code) {
-    const extras = { name: "", dob: "", noteDate: "", gLifeUserId: "", verifiedUid: "", rejectedAccounts: "" };
+    const extras = { name: "", dob: "", age: "", noteDate: "", gLifeUserId: "", verifiedUid: "", rejectedAccounts: "" };
     const attrs = scrapeUserAttributes();
     extras.name = attrs.name || "";
     extras.dob = attrs.dob || "";
@@ -4234,6 +4339,7 @@
       const fromNotes = parseNameDobFromUserNotes(notes);
       if (isBlankPersonValue(extras.name) && fromNotes.name) extras.name = fromNotes.name;
       if (isBlankPersonValue(extras.dob) && fromNotes.dob) extras.dob = fromNotes.dob;
+      if (fromNotes.age) extras.age = fromNotes.age;
     }
 
     if ((code === "GLIFE.1" || code === "GLIFE.2") && (isBlankPersonValue(extras.name) || isBlankPersonValue(extras.dob))) {
@@ -4241,10 +4347,22 @@
       const piped = splitPipeNameDob(hit || "");
       if (isBlankPersonValue(extras.name) && piped.name) extras.name = piped.name;
       if (isBlankPersonValue(extras.dob) && piped.dob) extras.dob = piped.dob;
+      if (piped.age && !extras.age) extras.age = piped.age;
     }
 
     if (code === "REACT" && isBlankPersonValue(extras.name) && extras.gLifeUserId && !isBlankPersonValue(extras.gLifeUserId)) {
       extras.name = extras.gLifeUserId;
+    }
+
+    if (extras.dob) {
+      const m = String(extras.dob).match(/^(.*?)\s*\(\s*(\d{1,3}(?:\s*(?:yo|y\/o|yrs?|years?))?)\s*\)\s*$/i);
+      if (m) {
+        extras.dob = m[1].trim();
+        if (!extras.age) extras.age = m[2].trim();
+      }
+    }
+    if (!extras.age && extras.dob) {
+      extras.age = ageFromDob(extras.dob);
     }
 
     return extras;
@@ -5348,12 +5466,25 @@
     const notePerson = scrapeNoteFillExtras(item.code);
     if (isBlankPersonValue(activePlayer.name) && notePerson.name) activePlayer.name = notePerson.name;
     if (isBlankPersonValue(activePlayer.dob) && notePerson.dob) activePlayer.dob = notePerson.dob;
+    if (!activePlayer.age && notePerson.age) activePlayer.age = notePerson.age;
 
-    function formatNameDobSummary(name, dob) {
+    function formatNameDobSummary(name, dob, age) {
       const n = isBlankPersonValue(name) ? "" : String(name).trim();
-      const d = isBlankPersonValue(dob) ? "" : String(dob).trim();
+      let d = isBlankPersonValue(dob) ? "" : String(dob).trim();
+      let a = age ? String(age).trim() : "";
+      if (d) {
+        const m = d.match(/^(.*?)\s*\(\s*(\d{1,3}(?:\s*(?:yo|y\/o|yrs?|years?))?)\s*\)\s*$/i);
+        if (m) {
+          d = m[1].trim();
+          if (!a) a = m[2].trim();
+        }
+      }
+      if (!a && d) {
+        a = ageFromDob(d);
+      }
       if (!n && !d) return "—";
-      return `${escapeHtml(n || "—")}${d ? " / " + escapeHtml(d) : ""}`;
+      const dobWithAge = d ? (a ? `${d} (${a})` : d) : "";
+      return `${escapeHtml(n || "—")}${dobWithAge ? " / " + escapeHtml(dobWithAge) : ""}`;
     }
 
     // Default reason configured for this option ("Reason when clicked")
@@ -5395,9 +5526,21 @@
       const extras = scrapeNoteFillExtras(item.code);
       const person = String(item.code) === "KYC SWITCH"
         ? pickKycPersonFields(extras.name, extras.dob)
-        : { name: extras.name || activePlayer.name || "", dob: extras.dob || activePlayer.dob || "" };
+        : { name: extras.name || activePlayer.name || "", dob: extras.dob || activePlayer.dob || "", age: extras.age || activePlayer.age || "" };
       if (String(item.code) === "KYC SWITCH") {
         person.dob = formatKycNoteDob(person.dob || "") || person.dob;
+      }
+      let cleanedDob = person.dob || "";
+      let resolvedAge = person.age || "";
+      if (cleanedDob) {
+        const m = String(cleanedDob).match(/^(.*?)\s*\(\s*(\d{1,3}(?:\s*(?:yo|y\/o|yrs?|years?))?)\s*\)\s*$/i);
+        if (m) {
+          cleanedDob = m[1].trim();
+          if (!resolvedAge) resolvedAge = m[2].trim();
+        }
+      }
+      if (!resolvedAge && cleanedDob) {
+        resolvedAge = ageFromDob(cleanedDob);
       }
       return Object.assign({
         code: item.code,
@@ -5415,12 +5558,12 @@
         reason: selectedReason,
         cid: cidVal,
         name: person.name,
-        dob: person.dob,
+        dob: cleanedDob,
         verifiedUid: enteredVerifiedUid || "",
         rejectedAccounts: extras.rejectedAccounts || "",
         noteDate: extras.noteDate || "",
         gLifeUserId: extras.gLifeUserId || "",
-        age: ageFromDob(person.dob || "")
+        age: resolvedAge
       }, extra || {});
     }
 
@@ -5643,7 +5786,7 @@
             </div>
             <div class="esc-summary-item">
               <span>Name / DOB:</span>
-              <span id="esc-summary-display-namedob">${formatNameDobSummary(activePlayer.name, activePlayer.dob)}</span>
+              <span id="esc-summary-display-namedob">${formatNameDobSummary(activePlayer.name, activePlayer.dob, activePlayer.age)}</span>
             </div>
           </div>
 
@@ -5778,8 +5921,8 @@
         const extras = scrapeNoteFillExtras(item.code);
         const person = String(item.code) === "KYC SWITCH"
           ? pickKycPersonFields(extras.name, extras.dob)
-          : { name: extras.name || activePlayer.name || "", dob: extras.dob || activePlayer.dob || "" };
-        summaryDisplayNameDob.innerHTML = formatNameDobSummary(person.name, person.dob);
+          : { name: extras.name || activePlayer.name || "", dob: extras.dob || activePlayer.dob || "", age: extras.age || activePlayer.age || "" };
+        summaryDisplayNameDob.innerHTML = formatNameDobSummary(person.name, person.dob, person.age);
       }
       if (cidStatus) {
         if (enteredCid) {

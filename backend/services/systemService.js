@@ -5,9 +5,9 @@ import { AppError } from "../utils/errors.js";
 
 export const DEFAULT_SYSTEM_CONFIG = {
   minRequiredVersion: "1.1.4",
-  latestVersion: "1.8.5",
-  adminLatestVersion: "1.8.5",
-  agentLatestVersion: "1.8.5",
+  latestVersion: "1.8.6",
+  adminLatestVersion: "1.8.6",
+  agentLatestVersion: "1.8.6",
   killSwitch: false,
   killSwitchMessage: "hdjrzTools is temporarily disabled for emergency maintenance.",
   allowedDomains: ["nano-admin.bet88.ph"],
